@@ -1,11 +1,13 @@
-{{- define "view" -}}
+{{- define "error" -}}
 {{ template "header" }}
-    <section>
-      <h1>Fatal error</h1>
-      <article>
-        <h2>Error message:</h2>
-        <p>{{ printf "%s" .err }}</p>
-      </article>
-    </section>
+    <div class="container">
+      <section class="bg-danger text-dark">
+        <h1>Fatal error</h1>
+        <article>
+          <h2>Error message:</h2>
+          <p>{{.MessageText}}</p>
+        </article>
+      </section>
+    </div>
 {{ template "footer" }}
 {{- end }}

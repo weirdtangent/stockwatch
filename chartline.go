@@ -1,4 +1,4 @@
-package stockwatch
+package main
 
 import (
 	"bytes"

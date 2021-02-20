@@ -1,0 +1,11 @@
+{{- define "message" -}}
+{{ template "header" }}
+    <section>
+      <h1>Status update</h1>
+      <article>
+        <h2>Message text:</h2>
+        <p>{{ printf "%s" .MessageText }}</p>
+      </article>
+    </section>
+{{ template "footer" }}
+{{- end }}

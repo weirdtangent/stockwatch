@@ -1,4 +1,4 @@
-package stockwatch
+package main
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ import (
 var aws_session *session.Session
 var db_session *sqlx.DB
 
-func main() {
+func init() {
 	// initialize logging calls
 	mylog.Init(ioutil.Discard, os.Stdout, os.Stdout, os.Stderr)
 
@@ -32,11 +32,15 @@ func main() {
 	if err != nil {
 		fmt.Print(err.Error())
 	}
+}
 
-	// setup http handlers
+func main() {
+	mylog.Info.Print("Starting server on :3001")
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 	http.HandleFunc("/view/", viewHandler)
+	http.HandleFunc("/search/", searchHandler)
 	http.HandleFunc("/update/", updateHandler)
+	http.HandleFunc("/", homeHandler)
 
 	// starup or die
 	mylog.Error.Fatal(http.ListenAndServe(":3001", nil))

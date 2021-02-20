@@ -1,6 +1,7 @@
-package stockwatch
+package main
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -17,17 +18,19 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 		mylog.Info.Print("ok doing update of exchanges")
 		success, err := updateMarketstackExchanges()
 		if err != nil {
-			mylog.Error.Fatal(err)
+			errorHandler(w, r, fmt.Sprintf("Bulk update of Exchanges failed: %s", err))
+			return
 		}
 		if success != true {
-			mylog.Info.Print("exchanges update failed")
+			errorHandler(w, r, "Bulk update of Exchanges failed")
+			return
 		}
 	case "ticker":
 		symbol := params[1]
-		mylog.Info.Printf("ok doing update of ticker symbol %s", symbol)
 		_, err := updateMarketstackTicker(symbol)
 		if err != nil {
-			mylog.Error.Fatal(err)
+			errorHandler(w, r, fmt.Sprintf("Update of ticket symbol %s failed: %s", symbol, err))
+			return
 		}
 	case "dummy":
 		mylog.Info.Print("just show the template")
@@ -35,6 +38,5 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 		mylog.Error.Fatal("unknown update action: " + action)
 	}
 
-	var data = NilView{}
-	renderTemplateMessages(w, r, "update", &data)
+	errorHandler(w, r, "Operation completed normally")
 }

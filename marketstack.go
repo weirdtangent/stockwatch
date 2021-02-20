@@ -1,4 +1,4 @@
-package stockwatch
+package main
 
 import (
 	"encoding/json"
@@ -9,7 +9,9 @@ import (
 	"graystorm.com/mylog"
 )
 
-func getMarketstackData(action string) (*http.Response, error) {
+const marketstack_url = "http://api.marketstack.com/v1/"
+
+func getMarketstackData(action string, params map[string]string) (*http.Response, error) {
 	httpClient := http.Client{}
 
 	api_access_key, err := myaws.AWSGetSecretKV(aws_session, "marketstack", "api_access_key")
@@ -17,13 +19,16 @@ func getMarketstackData(action string) (*http.Response, error) {
 		mylog.Error.Fatal(err)
 	}
 
-	req, err := http.NewRequest("GET", "http://api.marketstack.com/v1/"+action, nil)
+	req, err := http.NewRequest("GET", marketstack_url+action, nil)
 	if err != nil {
 		mylog.Error.Fatal(err)
 	}
 
 	q := req.URL.Query()
 	q.Add("access_key", *api_access_key)
+	for key, val := range params {
+		q.Add(key, val)
+	}
 	req.URL.RawQuery = q.Encode()
 
 	res, err := httpClient.Do(req)
@@ -38,7 +43,8 @@ func getMarketstackData(action string) (*http.Response, error) {
 }
 
 func updateMarketstackExchanges() (bool, error) {
-	res, err := getMarketstackData("exchanges")
+	var params map[string]string
+	res, err := getMarketstackData("exchanges", params)
 	if err != nil {
 		mylog.Error.Fatal(err)
 	}
@@ -69,7 +75,8 @@ func updateMarketstackExchanges() (bool, error) {
 }
 
 func updateMarketstackTicker(symbol string) (*Ticker, error) {
-	res, err := getMarketstackData(fmt.Sprintf("tickers/%s/eod", symbol))
+	var params map[string]string
+	res, err := getMarketstackData(fmt.Sprintf("tickers/%s/eod", symbol), params)
 	if err != nil {
 		mylog.Error.Fatal(err)
 	}
@@ -115,4 +122,50 @@ func updateMarketstackTicker(symbol string) (*Ticker, error) {
 	}
 
 	return ticker, nil
+}
+
+func searchMarketstackTicker(search string) (*Ticker, error) {
+	params := make(map[string]string)
+	params["search"] = search
+
+	res, err := getMarketstackData("tickers", params)
+	if err != nil {
+		mylog.Error.Fatal(err)
+	}
+
+	defer res.Body.Close()
+
+	var apiResponse MSTickerResponse
+	json.NewDecoder(res.Body).Decode(&apiResponse)
+
+	var firstResult Ticker
+	for _, MSTickerData := range apiResponse.Data {
+		if MSTickerData.Symbol != "" {
+			// grab the exchange's country_id we'll need, create new record if needed
+			var country = &Country{0, MSTickerData.StockExchange.Country_code, MSTickerData.StockExchange.Country, "", ""}
+			country, err = getOrCreateCountry(country)
+			if err != nil {
+				mylog.Error.Fatal(err)
+			}
+
+			// grab the exchange_id we'll need, create new record if needed
+			var exchange = &Exchange{0, MSTickerData.StockExchange.Acronym, MSTickerData.StockExchange.Name, country.Country_id, MSTickerData.StockExchange.City, "", ""}
+			exchange, err = getOrCreateExchange(exchange)
+			if err != nil {
+				mylog.Error.Fatal(err)
+			}
+
+			// use marketstack data to create or update ticker
+			var ticker = &Ticker{0, MSTickerData.Symbol, exchange.Exchange_id, MSTickerData.Name, "", ""}
+			ticker, err = createOrUpdateTicker(ticker)
+			if err != nil {
+				mylog.Error.Fatal(err)
+			}
+			if firstResult.Ticker_symbol == "" {
+				firstResult = *ticker
+			}
+		}
+	}
+
+	return updateMarketstackTicker(firstResult.Ticker_symbol)
 }

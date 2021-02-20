@@ -1,4 +1,4 @@
-package stockwatch
+package main
 
 import (
 	"database/sql"
@@ -69,6 +69,10 @@ type Watch struct {
 // contrived schema for views
 
 type NilView struct {
+}
+
+type Message struct {
+	MessageText string
 }
 
 type WebWatch struct {

@@ -1,4 +1,4 @@
-package stockwatch
+package main
 
 import (
 	"net/http"
@@ -71,5 +71,5 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	var klineChartHTML = chartHandlerKLine(ticker, exchange, dailies, webwatches)
 	var data = TickerView{*ticker, *exchange, dailies[1:30], webwatches, lineChartHTML, klineChartHTML}
 
-	renderTemplate(w, r, "view", &data)
+	renderTemplateView(w, r, "view", &data)
 }
