@@ -1,0 +1,11 @@
+{{- define "view" -}}
+{{ template "header" }}
+    <section>
+      <h1>Fatal error</h1>
+      <article>
+        <h2>Error message:</h2>
+        <p>{{ printf "%s" .err }}</p>
+      </article>
+    </section>
+{{ template "footer" }}
+{{- end }}

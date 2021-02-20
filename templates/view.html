@@ -1,0 +1,81 @@
+{{- define "view" -}}
+{{ template "header" }}
+    <script src="/static/vendor/jquery/jquery-3.5.1.min.js"></script>
+    <script src="/static/js/view.js"></script>
+
+    <div class="container-xl">
+      <header class="row">
+        <div class="col">
+          <h3>Symbol: <a href="/view/{{.Ticker.Ticker_symbol}}/{{.Exchange.Exchange_acronym}}">{{.Ticker.Ticker_symbol}}</a> ({{.Exchange.Exchange_acronym}})</h3>
+          <h4>{{.Ticker.Ticker_name}}</h4>
+          <span id="toggle">
+            <button type="button" class="nav-item btn-sm text-light bg-success"><i class="fas fa-chart-line"></i> Line</button>
+            <button type="button" class="nav-item btn-sm text-light bg-success"><i class="far fa-chart-bar"></i> Candlestick</button>
+            <button type="button" class="nav-item btn-sm text-light bg-danger py-2"><i class="far fa-window-close"></i></button>
+          </span>
+        </div>
+      </header>
+    </div>
+
+    <div class="container">
+      <section class="row float-lg-start">
+        <div class="col-xl-3 col-xl-2 col-l-12 bg-light text-primary" style="z-index: -1000;">
+          <p></p>
+        </div>
+        <div class="col-xxl-4 col-xl-4 offset-xxl-1 offset-xl-1 col-l-12" id="chart">
+          <script src="/static/vendor/echarts/echarts.min.js"></script>
+          <script src="/static/vendor/echarts/vintage.js"></script>
+          <article id="lineChart" class="">{{.LineChartHTML}}</article>
+          <article id="klineChart" class="chart-off">{{.KLineChartHTML}}</article>
+        </div>
+        <div class="col-xl-3 col-xl-2 offset-xxl-1 offset-xl-1 bg-light text-primary" style="z-index: 1000;">
+          {{if .Watches}}
+          <section class="row">
+            <h3 class="text-danger">Watches</h3>
+            <ul>
+            {{range .Watches}}
+            <li>{{ if .Source_name.Valid }}{{.Source_name.String}}
+                  {{ if .Source_company.Valid }} at{{end}}
+                {{end}}
+                {{if .Source_company}}{{.Source_company.String}}{{end}}
+                {{if .Target_date}}, on {{ printf "%-10.10s" .Source_date}},{{end}}
+                {{if .Target_price}} set a target price of {{ printf "$%.2f" .Target_price}} for
+                {{else}} highlighted{{end}}
+                this stock.</li>
+            {{end}}
+            </ul>
+          </section>
+          {{end}}
+        </div>
+      </section>
+    </div>
+
+    <div class="container">
+      {{if .Dailies}}
+      <section class="row">
+        <h3>Daily Activity (last 30 days)</h3>
+        <table class="table table-striped table-sm mx-5">
+          <tr>
+            <th scope="col" class="text-center">At End of Date</th>
+            <th scope="col" class="text-end pe-5">Open Price</th>
+            <th scope="col" class="text-end pe-5">High Price</th>
+            <th scope="col" class="text-end pe-5">Low Price</th>
+            <th scope="col" class="text-end pe-5">Close Price</th>
+            <th scope="col" class="text-end pe-5">Volume</th>
+          </tr>
+        {{range .Dailies}}
+         <tr>
+           <td class="text-center">{{.Price_date}}</td>
+           <td class="text-end pe-5">{{printf "%.2f" .Open_price}}</td>
+           <td class="text-end pe-5">{{printf "%.2f" .High_price}}</td>
+           <td class="text-end pe-5">{{printf "%.2f" .Low_price}}</td>
+           <td class="text-end pe-5">{{printf "%.2f" .Close_price}}</td>
+           <td class="text-end pe-5">{{printf "%.0f" .Volume}}</td>
+         </tr>
+        {{end}}
+        </table>
+      </section>
+      {{end}}
+    </div>
+{{ template "footer" }}
+{{- end }}
