@@ -18,16 +18,12 @@
     </div>
 
     <div class="container">
-      <section class="row float-lg-start">
-        <div class="col-xl-3 col-xl-2 col-l-12 bg-light text-primary" style="z-index: -1000;">
-          <p></p>
-        </div>
-        <div class="col-xxl-4 col-xl-4 offset-xxl-1 offset-xl-1 col-l-12" id="chart">
+      <section class="row">
           <script src="/static/vendor/echarts/echarts.min.js"></script>
           <script src="/static/vendor/echarts/vintage.js"></script>
-          <article id="lineChart" class="">{{.LineChartHTML}}</article>
+          <article id="lineChart">{{.LineChartHTML}}</article>
           <article id="klineChart" class="chart-off">{{.KLineChartHTML}}</article>
-        </div>
+        <!--
         <div class="col-xl-3 col-xl-2 offset-xxl-1 offset-xl-1 bg-light text-primary" style="z-index: 1000;">
           {{if .Watches}}
           <section class="row">
@@ -47,6 +43,7 @@
           </section>
           {{end}}
         </div>
+        -->
       </section>
     </div>
 

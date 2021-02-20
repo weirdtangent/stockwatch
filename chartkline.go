@@ -15,23 +15,24 @@ type klineData struct {
 }
 
 func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwatches []WebWatch) template.HTML {
+	// build data needed
 	EasternTZ, _ := time.LoadLocation("America/New_York")
 	endDate := time.Now().In(EasternTZ)
 	priceDate := endDate.AddDate(0, 0, -100)
 
-	// construct line chart
-	kline := charts.NewKLine()
 	x_axis := make([]string, 0)
-	y_axis := make([]opts.KlineData, 0)
+	candleData := make([]opts.KlineData, 0)
 	for x := 0; x < len(dailies); x++ {
 		priceDate = priceDate.AddDate(0, 0, 1)
 		x_axis = append(x_axis, priceDate.Format("2006-01-02"))
-		y_axis = append(y_axis, opts.KlineData{Value: [4]float32{dailies[x].Open_price, dailies[x].High_price, dailies[x].Low_price, dailies[x].Close_price}})
+		candleData = append(candleData, opts.KlineData{Value: [4]float32{dailies[x].Open_price, dailies[x].Close_price, dailies[x].Low_price, dailies[x].High_price}})
 	}
 
+	// build chart
+	kline := charts.NewKLine()
 	kline.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width: "600px",
+			Width: "1200px",
 			Theme: types.ThemeVintage,
 		}),
 		charts.WithTitleOpts(opts.Title{
@@ -44,7 +45,7 @@ func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webw
 			Scale: true,
 		}),
 		charts.WithDataZoomOpts(opts.DataZoom{
-			Start:      50,
+			Start:      33,
 			End:        100,
 			XAxisIndex: []int{0},
 		}),
@@ -55,14 +56,10 @@ func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webw
 	)
 
 	// Put data into instance
-	kline.SetXAxis(x_axis).AddSeries("kline", y_axis).
-		SetSeriesOptions(
-			charts.WithMarkPointStyleOpts(opts.MarkPointStyle{
-				Label: &opts.Label{
-					Show: true,
-				},
-			}),
-		)
+	kline.SetXAxis(x_axis)
+	kline.AddSeries("kline", candleData)
+
+	kline.Renderer = newSnippetRenderer(kline, kline.Validate)
 
 	return renderToHtml(kline)
 }

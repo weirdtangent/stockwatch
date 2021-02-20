@@ -14,7 +14,8 @@ func renderTemplate(w http.ResponseWriter, r *http.Request, tmplname string) {
 		http.NotFound(w, r)
 	}
 
-	err = tmpl.ExecuteTemplate(w, tmplname, NilView{})
+	var Empty interface{}
+	err = tmpl.ExecuteTemplate(w, tmplname, &Empty)
 	if err != nil {
 		mylog.Error.Print(err)
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"graystorm.com/mylog"
 )
@@ -39,4 +40,29 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	errorHandler(w, r, "Operation completed normally")
+}
+
+// see if we need to pull a daily update:
+//  if we don't have the EOD price for the prior business day
+//  OR if we don't have it for the current business day and it's now 7pm or later
+func updateTicker(ticker *Ticker) (*Ticker, error) {
+	EasternTZ, _ := time.LoadLocation("America/New_York")
+	currentTime := time.Now().In(EasternTZ)
+	priorWeekDay := currentTime.AddDate(0, 0, -1)
+	for ; priorWeekDay.Weekday() == 0 || priorWeekDay.Weekday() == 6; priorWeekDay.AddDate(0, 0, -1) {
+	}
+
+	date_prior := priorWeekDay.Format("2006-01-2")
+	time_now := currentTime.Format("15:04:05")
+	most_recent, err := getDailyMostRecent(ticker.Ticker_id)
+
+	if err == nil && (most_recent.Price_date < date_prior || (most_recent.Price_date == date_prior && time_now > "19:00:00")) {
+		mylog.Warning.Printf("Use Marketstack API to get the latest EOD price info for %s", ticker.Ticker_symbol)
+		ticker, err = updateMarketstackTicker(ticker.Ticker_symbol)
+		if err == nil {
+			mylog.Info.Printf("%s updated with latest EOD prices", ticker.Ticker_symbol)
+		}
+	}
+
+	return ticker, err
 }

@@ -15,9 +15,6 @@ header {
 .chart-off {
   display: none;
 }
-#chart {
-  margin-top: -2rem !important;
-}
 
 footer { 
   background-color: #330099;
