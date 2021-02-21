@@ -5,7 +5,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/alexedwards/scs"
+	"github.com/alexedwards/scs/mysqlstore"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/jmoiron/sqlx"
 
@@ -13,6 +16,7 @@ import (
 	"graystorm.com/mylog"
 )
 
+var sessionManager *scs.SessionManager
 var aws_session *session.Session
 var db_session *sqlx.DB
 
@@ -32,16 +36,23 @@ func init() {
 	if err != nil {
 		fmt.Print(err.Error())
 	}
+
+	// Initialize a new session manager and configure the session lifetime.
+	sessionManager = scs.New()
+	sessionManager.Lifetime = 24 * time.Hour
+	sessionManager.Store = mysqlstore.New(db_session.DB)
+	sessionManager.Cookie.Domain = "stockwatch.graystorm.com"
 }
 
 func main() {
 	mylog.Info.Print("Starting server on :3001")
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
-	http.HandleFunc("/view/", viewHandler)
-	http.HandleFunc("/search/", searchHandler)
-	http.HandleFunc("/update/", updateHandler)
-	http.HandleFunc("/", homeHandler)
+	mux := http.NewServeMux()
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
+	mux.HandleFunc("/view/", viewHandler)
+	mux.HandleFunc("/search/", searchHandler)
+	mux.HandleFunc("/update/", updateHandler)
+	mux.HandleFunc("/", homeHandler)
 
 	// starup or die
-	mylog.Error.Fatal(http.ListenAndServe(":3001", nil))
+	mylog.Error.Fatal(http.ListenAndServe(":3001", sessionManager.LoadAndSave(mux)))
 }
