@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"graystorm.com/mylog"
+	"github.com/rs/zerolog/log"
 )
 
 func viewHandler(w http.ResponseWriter, r *http.Request) {
@@ -16,7 +16,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	// grab exchange they asked for
 	exchange, err := getExchange(acronym)
 	if err != nil {
-		mylog.Warning.Printf("Invalid acronym: %s. %s", acronym, err)
+		log.Warn().Err(err).Str("acronym", acronym).Msg("Invalid table key")
 		http.NotFound(w, r)
 		return
 	}
@@ -26,7 +26,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		ticker, err = updateMarketstackTicker(symbol)
 		if err != nil {
-			mylog.Warning.Print(err)
+			log.Warn().Err(err).Str("symbol", symbol).Msg("Failed to update EOD for ticker")
 			http.NotFound(w, r)
 			return
 		}
@@ -37,7 +37,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	// load up to last 100 days of EOD data
 	dailies, err := loadDailies(ticker.Ticker_id, 100)
 	if err != nil {
-		mylog.Warning.Print(err)
+		log.Warn().Err(err).Str("symbol", ticker.Ticker_symbol).Int64("ticker_id", ticker.Ticker_id).Msg("Failed to load daily prices for ticker")
 		http.NotFound(w, r)
 		return
 	}
@@ -45,7 +45,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	// load any active watches about this ticker
 	webwatches, err := loadWebWatches(ticker.Ticker_id)
 	if err != nil {
-		mylog.Warning.Print(err)
+		log.Warn().Err(err).Str("symbol", ticker.Ticker_symbol).Int64("ticker_id", ticker.Ticker_id).Msg("Failed to load watches for ticker")
 		http.NotFound(w, r)
 		return
 	}

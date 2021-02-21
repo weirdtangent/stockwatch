@@ -1,7 +1,7 @@
 package main
 
 import (
-	"graystorm.com/mylog"
+  "github.com/rs/zerolog/log"
 )
 
 func getCountry(country_code string) (*Country, error) {
@@ -21,11 +21,11 @@ func createCountry(country *Country) (*Country, error) {
 
 	res, err := db_session.Exec(insert, country.Country_code, country.Country_name)
 	if err != nil {
-		mylog.Error.Fatal(err)
+    log.Fatal().Err(err).Msg("Failed on INSERT")
 	}
 	country_id, err := res.LastInsertId()
 	if err != nil {
-		mylog.Error.Fatal(err)
+    log.Fatal().Err(err).Msg("Failed on LAST_INSERT_ID")
 	}
 	return getCountryById(country_id)
 }
@@ -48,7 +48,7 @@ func createOrUpdateCountry(country *Country) (*Country, error) {
 
 	_, err = db_session.Exec(update, country.Country_code, country.Country_name, existing.Country_id)
 	if err != nil {
-		mylog.Warning.Print(err)
+		log.Warn().Err(err).Msg("Failed on UPDATE")
 	}
 	return getCountryById(existing.Country_id)
 }

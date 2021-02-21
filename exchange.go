@@ -1,7 +1,7 @@
 package main
 
 import (
-	"graystorm.com/mylog"
+	"github.com/rs/zerolog/log"
 )
 
 func getExchange(acronym string) (*Exchange, error) {
@@ -21,11 +21,11 @@ func createExchange(exchange *Exchange) (*Exchange, error) {
 
 	res, err := db_session.Exec(insert, exchange.Exchange_acronym, exchange.Exchange_name)
 	if err != nil {
-		mylog.Error.Fatal(err)
+		log.Fatal().Err(err).Msg("Failed on INSERT")
 	}
 	exchange_id, err := res.LastInsertId()
 	if err != nil {
-		mylog.Error.Fatal(err)
+		log.Fatal().Err(err).Msg("Failed on LAST_INSERT_ID")
 	}
 	return getExchangeById(exchange_id)
 }
@@ -48,7 +48,7 @@ func createOrUpdateExchange(exchange *Exchange) (*Exchange, error) {
 
 	_, err = db_session.Exec(update, exchange.Exchange_name, exchange.Country_id, existing.Exchange_id)
 	if err != nil {
-		mylog.Warning.Print(err)
+		log.Warn().Err(err).Msg("Failed on UPDATE")
 	}
 	return getExchangeById(existing.Exchange_id)
 }

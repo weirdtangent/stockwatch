@@ -6,7 +6,7 @@ import (
 	"html/template"
 	"io"
 
-	"graystorm.com/mylog"
+	"github.com/rs/zerolog/log"
 
 	chartrender "github.com/go-echarts/go-echarts/v2/render"
 )
@@ -16,7 +16,7 @@ func renderToHtml(c interface{}) template.HTML {
 	r := c.(chartrender.Renderer)
 	err := r.Render(&buf)
 	if err != nil {
-		mylog.Error.Printf("Failed to render chart: %s", err)
+		log.Error().Err(err).Msg("Failed to render line chart")
 		return ""
 	}
 

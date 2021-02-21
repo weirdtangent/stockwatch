@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"graystorm.com/mylog"
+	"github.com/rs/zerolog/log"
 )
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
 	searchType := r.URL.Path[len("/search/"):]
-	mylog.Info.Print("checking searchType")
 
 	switch searchType {
 	case "ticker":
@@ -18,7 +17,6 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 			errorHandler(w, r, "There was an empty search string")
 			return
 		}
-		mylog.Info.Printf("doing search for searchString: %s", searchString)
 
 		ticker, err := searchMarketstackTicker(searchString)
 		if err != nil {
@@ -34,7 +32,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, fmt.Sprintf("/view/%s/%s", ticker.Ticker_symbol, exchange.Exchange_acronym), http.StatusFound)
 		return
 	default:
-		mylog.Error.Printf("unknown update action: %s", searchType)
+		log.Warn().Str("searchtype", searchType).Msg("Unknown search_type")
 		http.NotFound(w, r)
 	}
 
