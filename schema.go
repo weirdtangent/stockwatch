@@ -83,11 +83,17 @@ type WebWatch struct {
 	Source_company sql.NullString
 }
 
+type ViewPair struct {
+	Symbol  string
+	Acronym string
+}
+
 type TickerView struct {
 	Ticker         Ticker
 	Exchange       Exchange
 	Dailies        []Daily
 	Watches        []WebWatch
+	Recents        []ViewPair
 	LineChartHTML  template.HTML
 	KLineChartHTML template.HTML
 }

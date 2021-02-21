@@ -52,11 +52,16 @@ func updateTicker(ticker *Ticker) (*Ticker, error) {
 	for ; priorWeekDay.Weekday() == 0 || priorWeekDay.Weekday() == 6; priorWeekDay.AddDate(0, 0, -1) {
 	}
 
-	date_prior := priorWeekDay.Format("2006-01-2")
 	time_now := currentTime.Format("15:04:05")
+	date_now := currentTime.Format("2006-01-02")
+	is_today_weekday := (currentTime.Weekday() > 0 && currentTime.Weekday() < 6)
+
+	date_prior := priorWeekDay.Format("2006-01-02")
 	most_recent, err := getDailyMostRecent(ticker.Ticker_id)
 
-	if err == nil && (most_recent.Price_date < date_prior || (most_recent.Price_date == date_prior && time_now > "19:00:00")) {
+	// if we don't have most recent EOD prices up to the previous workday, get em
+	// or, if we don't have today's AND today is a weekday AND it's past 7PM, get em
+	if err == nil && (most_recent.Price_date < date_prior || (most_recent.Price_date < date_now && is_today_weekday && time_now > "19:00:00")) {
 		mylog.Warning.Printf("Use Marketstack API to get the latest EOD price info for %s", ticker.Ticker_symbol)
 		ticker, err = updateMarketstackTicker(ticker.Ticker_symbol)
 		if err == nil {
