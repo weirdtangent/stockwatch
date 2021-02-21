@@ -19,6 +19,7 @@ import (
 var sessionManager *scs.SessionManager
 var aws_session *session.Session
 var db_session *sqlx.DB
+var verbose = true
 
 func init() {
 	// initialize logging calls

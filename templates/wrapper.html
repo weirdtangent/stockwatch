@@ -3,7 +3,7 @@
 <html>
   <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
-    <link href="/static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/vendor/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="/static/vendor/fontawesome/css/all.css" rel="stylesheet">
     <link href="/static/css/internal.css" rel="stylesheet">
     <title>Graystorm StockWatch</title>
@@ -22,6 +22,7 @@
             <li class="nav-item"><a class="nav-link link-light" href="#section3">Holdings</a></li>
             <li class="nav-item"><a class="nav-link link-light disabled" href="#" tabindex="-1" aria-disabled="true">Disabled</a></li>
           </ul>
+          <!--
           {{if .Recents}}
           <ul class="nav me-auto mb-2 mb-lg-0i small">
             <li class="nav-item me-1">Recent:</li>
@@ -30,6 +31,7 @@
             {{end -}}
           </ul>
           {{end -}}
+          -->
         </div>
         <div class="float-end">
           <form method="POST" action="/search/ticker" class="form-control mt-3">
