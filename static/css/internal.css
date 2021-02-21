@@ -1,0 +1,17 @@
+nav form {
+  border: 0 !important;
+}
+
+header {
+  background-color: #BDBDBD !important;
+  padding: 0 5rem 1rem 5rem;
+}
+
+.chart-off {
+  display: none;
+}
+
+footer { 
+  padding: 0 20px;
+  line-height: 3rem;
+}
