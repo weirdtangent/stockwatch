@@ -8,7 +8,7 @@ import (
 )
 
 func renderTemplate(w http.ResponseWriter, r *http.Request, tmplname string) {
-	tmpl, err := template.ParseFiles("templates/header.html", "templates/footer.html", "templates/"+tmplname+".html")
+	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/wrapper.html")
 	if err != nil {
 		mylog.Warning.Print(err)
 		http.NotFound(w, r)
@@ -21,8 +21,8 @@ func renderTemplate(w http.ResponseWriter, r *http.Request, tmplname string) {
 	}
 }
 
-func renderTemplateView(w http.ResponseWriter, r *http.Request, tmplname string, data *TickerView) {
-	tmpl, err := template.ParseFiles("templates/header.html", "templates/footer.html", "templates/"+tmplname+".html")
+func renderTemplateMessages(w http.ResponseWriter, r *http.Request, tmplname string, data *Message) {
+	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/wrapper.html")
 	if err != nil {
 		mylog.Warning.Print(err)
 		http.NotFound(w, r)
@@ -34,8 +34,8 @@ func renderTemplateView(w http.ResponseWriter, r *http.Request, tmplname string,
 	}
 }
 
-func renderTemplateMessages(w http.ResponseWriter, r *http.Request, tmplname string, data *Message) {
-	tmpl, err := template.ParseFiles("templates/header.html", "templates/footer.html", "templates/"+tmplname+".html")
+func renderTemplateView(w http.ResponseWriter, r *http.Request, tmplname string, data *TickerView) {
+	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/wrapper.html")
 	if err != nil {
 		mylog.Warning.Print(err)
 		http.NotFound(w, r)

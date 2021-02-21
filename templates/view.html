@@ -1,5 +1,5 @@
 {{- define "view" -}}
-{{ template "header" }}
+{{ template "header" . }}
     <script src="/static/vendor/jquery/jquery-3.5.1.min.js"></script>
     <script src="/static/js/view.js"></script>
 
@@ -19,8 +19,8 @@
 
     <div class="container">
       <section class="row">
-          <script src="/static/vendor/echarts/echarts.min.js"></script>
-          <script src="/static/vendor/echarts/vintage.js"></script>
+          <script src="/static/vendor/echarts/dist/echarts.min.js"></script>
+          <script src="/static/vendor/echarts/theme/vintage.js"></script>
           <article id="lineChart">{{.LineChartHTML}}</article>
           <article id="klineChart" class="chart-off">{{.KLineChartHTML}}</article>
         <!--
@@ -74,5 +74,5 @@
       </section>
       {{end}}
     </div>
-{{ template "footer" }}
+{{ template "footer" . }}
 {{- end }}

@@ -21,6 +21,14 @@
             <li class="nav-item"><a class="nav-link link-light" href="#section3">Holdings</a></li>
             <li class="nav-item"><a class="nav-link link-light disabled" href="#" tabindex="-1" aria-disabled="true">Disabled</a></li>
           </ul>
+          {{if .Recents}}
+          <ul class="nav me-auto mb-2 mb-lg-0i small">
+            <li class="nav-item me-1">Recent:</li>
+            {{range .Recents}}
+              <li class="nav-item"><a href="/view/{{.Symbol}}/{{.Acronym}}"><button type="button" class="badge text-dark bg-warning"><i class="fas fa-dollar-sign"></i>{{.Symbol}}</button></a></li>
+            {{end}}
+          </ul>
+          {{end}}
         </div>
         <div class="float-end">
           <form method="POST" action="/search/ticker" class="form-control mt-3">
@@ -30,4 +38,14 @@
         </div>
       </div>
     </nav>
+{{- end}}
+
+{{- define "footer" -}}
+    <!-- Footer -->
+    <footer class="footer fixed-bottom fs-6 align-middle text-light">
+      &copy; Jeffrey Culverhouse - <a href="mailto:jeff@graystorm.com" class="link-light">jeff@graystorm.com</a>
+    </footer>
+
+  </body>
+</html>
 {{- end}}
