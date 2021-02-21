@@ -10,6 +10,7 @@
   </head>
 
   <body id="page-top">
+    <script src="/static/vendor/jquery/jquery-3.5.1.min.js"></script>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg text-white">
       <div class="container-fluid">
@@ -24,11 +25,11 @@
           {{if .Recents}}
           <ul class="nav me-auto mb-2 mb-lg-0i small">
             <li class="nav-item me-1">Recent:</li>
-            {{range .Recents}}
+            {{range .Recents -}}
               <li class="nav-item"><a href="/view/{{.Symbol}}/{{.Acronym}}"><button type="button" class="badge text-dark bg-warning"><i class="fas fa-dollar-sign"></i>{{.Symbol}}</button></a></li>
-            {{end}}
+            {{end -}}
           </ul>
-          {{end}}
+          {{end -}}
         </div>
         <div class="float-end">
           <form method="POST" action="/search/ticker" class="form-control mt-3">
@@ -38,6 +39,11 @@
         </div>
       </div>
     </nav>
+{{- end}}
+
+{{- define "chart_js" -}}
+    <script src="/static/vendor/echarts/dist/echarts.min.js"></script>
+    <script src="/static/vendor/echarts/theme/vintage.js"></script>
 {{- end}}
 
 {{- define "footer" -}}

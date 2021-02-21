@@ -1,6 +1,5 @@
 {{- define "view" -}}
 {{ template "header" . }}
-    <script src="/static/vendor/jquery/jquery-3.5.1.min.js"></script>
     <script src="/static/js/view.js"></script>
 
     <div class="container-xl">
@@ -19,8 +18,7 @@
 
     <div class="container">
       <section class="row">
-          <script src="/static/vendor/echarts/dist/echarts.min.js"></script>
-          <script src="/static/vendor/echarts/theme/vintage.js"></script>
+          {{ template "chart_js" }}
           <article id="lineChart">{{.LineChartHTML}}</article>
           <article id="klineChart" class="chart-off">{{.KLineChartHTML}}</article>
         <!--
