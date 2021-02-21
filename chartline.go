@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"reflect"
 	"time"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
+	//"github.com/rs/zerolog/log"
 )
 
 func chartHandlerLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwatches []WebWatch) template.HTML {
@@ -30,8 +32,9 @@ func chartHandlerLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwa
 	prices := charts.NewLine()
 	prices.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width: "1200px",
-			Theme: types.ThemeVintage,
+			Width:  "800px",
+			Height: "350px",
+			Theme:  types.ThemeVintage,
 		}),
 		charts.WithTitleOpts(opts.Title{
 			Title:    fmt.Sprintf("%s (%s) %s", ticker.Ticker_symbol, exchange.Exchange_acronym, ticker.Ticker_name),
@@ -47,14 +50,36 @@ func chartHandlerLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwa
 
 	// Put data into instance
 	prices.SetXAxis(x_axis).
-		AddSeries(ticker.Ticker_symbol, y_axis).
-		SetSeriesOptions(
-			charts.WithLineChartOpts(
-				opts.LineChart{Smooth: true},
-			),
-		)
+		AddSeries(ticker.Ticker_symbol, y_axis,
+			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
+	prices.
+		AddSeries("MA5", calcMovingAvg(5, y_axis),
+			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
+	prices.
+		AddSeries("MA10", calcMovingAvg(10, y_axis),
+			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
+	prices.
+		AddSeries("MA20", calcMovingAvg(20, y_axis),
+			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
 
 	prices.Renderer = newSnippetRenderer(prices, prices.Validate)
 
 	return renderToHtml(prices)
+}
+
+func calcMovingAvg(days float32, prices []opts.LineData) []opts.LineData {
+	movingAvg := make([]opts.LineData, 0, 100)
+	for i, _ := range prices {
+		if i < int(days) {
+			movingAvg = append(movingAvg, opts.LineData{Value: "-"})
+		} else {
+			var sum float32 = 0
+			for j := 0; j < int(days); j++ {
+				val := reflect.ValueOf(prices[i-j])
+				sum += val.FieldByName("Value").Interface().(float32)
+			}
+			movingAvg = append(movingAvg, opts.LineData{Value: sum / days})
+		}
+	}
+	return movingAvg
 }

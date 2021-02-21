@@ -28,39 +28,43 @@ func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webw
 		priceDate = priceDate.AddDate(0, 0, 1)
 		x_axis = append(x_axis, priceDate.Format("2006-01-02"))
 		candleData = append(candleData, opts.KlineData{Value: [4]float32{dailies[x].Open_price, dailies[x].Close_price, dailies[x].Low_price, dailies[x].High_price}})
-		volumeData = append(volumeData, opts.BarData{Value: dailies[x].Volume})
+		volumeData = append(volumeData, opts.BarData{Value: dailies[x].Volume / 1000000})
 	}
 
 	// build charts
 	prices := charts.NewKLine()
 	prices.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width: "1200px",
-			Theme: types.ThemeVintage,
+			Width:  "800px",
+			Height: "350px",
+			Theme:  types.ThemeVintage,
 		}),
 		charts.WithTitleOpts(opts.Title{
 			Title:    fmt.Sprintf("%s (%s) %s", ticker.Ticker_symbol, exchange.Exchange_acronym, ticker.Ticker_name),
 			Subtitle: "Share Price",
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
+			Show: false,
 			AxisLabel: &opts.AxisLabel{
 				Show:   false,
 				Rotate: 45,
 			},
 		}),
-		charts.WithYAxisOpts(opts.YAxis{}),
+		charts.WithYAxisOpts(opts.YAxis{
+			AxisLabel: &opts.AxisLabel{
+				Show: false,
+			},
+		}),
 	)
 
 	volume := charts.NewBar()
 	volume.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "1200px",
-			Height: "200px",
+			Width:  "800px",
+			Height: "225px",
 			Theme:  types.ThemeVintage,
 		}),
-		charts.WithTitleOpts(opts.Title{
-			Subtitle: "Volume",
-		}),
+		charts.WithTitleOpts(opts.Title{Subtitle: "Volume in mil"}),
 		charts.WithXAxisOpts(opts.XAxis{
 			AxisLabel: &opts.AxisLabel{
 				Show:   false,
@@ -76,11 +80,13 @@ func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webw
 
 	// Put data into instance
 	prices.SetXAxis(x_axis).
-		AddSeries("price", candleData)
+		AddSeries("price", candleData, charts.WithLabelOpts(opts.Label{Show: false}))
 	prices.Renderer = newSnippetRenderer(prices, prices.Validate)
 
 	volume.SetXAxis(x_axis).
-		AddSeries("volume", volumeData)
+		AddSeries("volume", volumeData, charts.WithLabelOpts(opts.Label{Show: false}))
+
+	prices.Renderer = newSnippetRenderer(prices, prices.Validate)
 	volume.Renderer = newSnippetRenderer(volume, volume.Validate)
 
 	return renderToHtml(prices) + renderToHtml(volume)

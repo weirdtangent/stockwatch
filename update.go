@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-  "graystorm.com/mytime"
+	"graystorm.com/mytime"
 )
 
 func updateHandler(w http.ResponseWriter, r *http.Request) {

@@ -27,11 +27,11 @@ func createTicker(ticker *Ticker) (*Ticker, error) {
 
 	res, err := db_session.Exec(insert, ticker.Ticker_symbol, ticker.Exchange_id, ticker.Ticker_name)
 	if err != nil {
-		log.Fatal().Err(err).Str("symbol",ticker.Ticker_symbol).Int64("ticker_id", ticker.Ticker_id).Msg("Failed on INSERT")
+		log.Fatal().Err(err).Str("symbol", ticker.Ticker_symbol).Int64("ticker_id", ticker.Ticker_id).Msg("Failed on INSERT")
 	}
 	ticker_id, err := res.LastInsertId()
 	if err != nil {
-		log.Fatal().Err(err).Str("symbol",ticker.Ticker_symbol).Int64("ticker_id", ticker.Ticker_id).Msg("Failed on LAST_INSERT_ID")
+		log.Fatal().Err(err).Str("symbol", ticker.Ticker_symbol).Int64("ticker_id", ticker.Ticker_id).Msg("Failed on LAST_INSERT_ID")
 	}
 	return getTickerById(ticker_id)
 }
@@ -54,7 +54,7 @@ func createOrUpdateTicker(ticker *Ticker) (*Ticker, error) {
 
 	_, err = db_session.Exec(update, ticker.Exchange_id, ticker.Ticker_name, existing.Ticker_id)
 	if err != nil {
-		log.Warn().Err(err).Str("symbol",ticker.Ticker_symbol).Int64("ticker_id", ticker.Ticker_id).Msg("Failed on UPDATE")
+		log.Warn().Err(err).Str("symbol", ticker.Ticker_symbol).Int64("ticker_id", ticker.Ticker_id).Msg("Failed on UPDATE")
 	}
 	return getTickerById(existing.Ticker_id)
 }

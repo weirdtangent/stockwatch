@@ -3,14 +3,14 @@
     <script src="/static/js/view.js"></script>
 
     <div class="container-xl">
-      <header class="row">
+      <header class="row bg-dark">
         <div class="col">
-          <h3>Symbol: <a href="/view/{{.Ticker.Ticker_symbol}}/{{.Exchange.Exchange_acronym}}">{{.Ticker.Ticker_symbol}}</a> ({{.Exchange.Exchange_acronym}})</h3>
+          <h3>Symbol: <a class="link-light" href="/view/{{.Ticker.Ticker_symbol}}/{{.Exchange.Exchange_acronym}}">{{.Ticker.Ticker_symbol}}</a> ({{.Exchange.Exchange_acronym}})</h3>
           <h4>{{.Ticker.Ticker_name}}</h4>
           <span id="toggle">
-            <button type="button" class="nav-item btn-sm text-light bg-success"><i class="fas fa-chart-line"></i> Line</button>
-            <button type="button" class="nav-item btn-sm text-light bg-success"><i class="far fa-chart-bar"></i> Candlestick</button>
-            <button type="button" class="nav-item btn-sm text-light bg-danger py-2"><i class="far fa-window-close"></i></button>
+            <button type="button" class="nav-item btn-sm bg-success"><i class="fas fa-chart-line"></i> Line</button>
+            <button type="button" class="nav-item btn-sm bg-success"><i class="far fa-chart-bar"></i> Candlestick</button>
+            <button type="button" class="nav-item btn-sm bg-danger py-2"><i class="far fa-window-close"></i></button>
           </span>
         </div>
       </header>

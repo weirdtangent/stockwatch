@@ -36,7 +36,7 @@ func getMarketstackData(action string, params map[string]string) (*http.Response
 		log.Fatal().Err(err).Msg("Failed to perform HTTP request")
 	}
 	if res.StatusCode != http.StatusOK {
-		log.Fatal().Str("URL", req.URL.RawQuery).Int("status_code", res.StatusCode).Msg("Failed to receive 200 success code from HTTP request")
+		log.Fatal().Stringer("url", req.URL).Int("status_code", res.StatusCode).Msg("Failed to receive 200 success code from HTTP request")
 	}
 
 	return res, nil
@@ -60,7 +60,7 @@ func updateMarketstackExchanges() (bool, error) {
 			var country = &Country{0, MSExchangeData.Country_code, MSExchangeData.Country, "", ""}
 			country, err := createOrUpdateCountry(country)
 			if err != nil {
-        log.Fatal().Err(err).Str("country_code", MSExchangeData.Country_code).Msg("Failed to create/update country for exchange")
+				log.Fatal().Err(err).Str("country_code", MSExchangeData.Country_code).Msg("Failed to create/update country for exchange")
 			}
 
 			// use marketstack data to create or update exchange

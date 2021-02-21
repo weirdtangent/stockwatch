@@ -39,14 +39,14 @@ func getOrCreateExchange(exchange *Exchange) (*Exchange, error) {
 }
 
 func createOrUpdateExchange(exchange *Exchange) (*Exchange, error) {
-	var update = "UPDATE exchange SET exchange_name=?,country_id=? WHERE exchange_id=?"
+	var update = "UPDATE exchange SET exchange_name=?,country_id=?,city=? WHERE exchange_id=?"
 
 	existing, err := getExchange(exchange.Exchange_acronym)
 	if err != nil {
 		return createExchange(exchange)
 	}
 
-	_, err = db_session.Exec(update, exchange.Exchange_name, exchange.Country_id, existing.Exchange_id)
+	_, err = db_session.Exec(update, exchange.Exchange_name, exchange.Country_id, exchange.City, existing.Exchange_id)
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed on UPDATE")
 	}

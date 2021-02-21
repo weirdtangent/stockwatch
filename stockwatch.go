@@ -19,6 +19,10 @@ var aws_session *session.Session
 var db_session *sqlx.DB
 var verbose = true
 
+type Logger struct {
+	handler http.Handler
+}
+
 func init() {
 	// setup logging
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
@@ -54,7 +58,22 @@ func main() {
 	mux.HandleFunc("/update/", updateHandler)
 	mux.HandleFunc("/", homeHandler)
 
+	wrappedMux := NewLogger(mux)
+
 	// starup or die
-	err := http.ListenAndServe(":3001", sessionManager.LoadAndSave(mux))
+	err := http.ListenAndServe(":3001", sessionManager.LoadAndSave(wrappedMux))
 	log.Fatal().Err(err).Msg("Stopped serving requests")
+}
+
+//ServeHTTP handles the request by passing it to the real
+//handler and logging the request details
+func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	t := time.Now()
+	l.handler.ServeHTTP(w, r)
+	log.Info().Stringer("url", r.URL).Int("status_code", 200).Int64("response_time", time.Since(t).Nanoseconds()).Msg("request served")
+}
+
+//NewLogger constructs a new Logger middleware handler
+func NewLogger(handlerToWrap http.Handler) *Logger {
+	return &Logger{handlerToWrap}
 }

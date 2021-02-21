@@ -1,7 +1,7 @@
 package main
 
 import (
-  "github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/log"
 )
 
 func getCountry(country_code string) (*Country, error) {
@@ -21,11 +21,11 @@ func createCountry(country *Country) (*Country, error) {
 
 	res, err := db_session.Exec(insert, country.Country_code, country.Country_name)
 	if err != nil {
-    log.Fatal().Err(err).Msg("Failed on INSERT")
+		log.Fatal().Err(err).Msg("Failed on INSERT")
 	}
 	country_id, err := res.LastInsertId()
 	if err != nil {
-    log.Fatal().Err(err).Msg("Failed on LAST_INSERT_ID")
+		log.Fatal().Err(err).Msg("Failed on LAST_INSERT_ID")
 	}
 	return getCountryById(country_id)
 }
