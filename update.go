@@ -6,7 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"graystorm.com/mylog"
+	"github.com/rs/zerolog/log"
+  "graystorm.com/mytime"
 )
 
 func updateHandler(w http.ResponseWriter, r *http.Request) {
@@ -16,7 +17,6 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch action {
 	case "exchanges":
-		mylog.Info.Print("ok doing update of exchanges")
 		success, err := updateMarketstackExchanges()
 		if err != nil {
 			errorHandler(w, r, fmt.Sprintf("Bulk update of Exchanges failed: %s", err))
@@ -33,10 +33,8 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 			errorHandler(w, r, fmt.Sprintf("Update of ticket symbol %s failed: %s", symbol, err))
 			return
 		}
-	case "dummy":
-		mylog.Info.Print("just show the template")
 	default:
-		mylog.Error.Fatal("unknown update action: " + action)
+		log.Error().Str("action", action).Msg("Unknown update action")
 	}
 
 	errorHandler(w, r, "Operation completed normally")
@@ -47,39 +45,42 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 //  OR if we don't have it for the current business day and it's now 7pm or later
 func updateTicker(ticker *Ticker) (*Ticker, error) {
 	mostRecentDaily, err := getDailyMostRecent(ticker.Ticker_id)
-  if err != nil {
-    mylog.Warning.Printf("Error getting most recent EOD date for %s(%d): %s", ticker.Ticker_symbol, ticker.Ticker_id, err)
-    return ticker, err
-  }
-  mostRecentDailyDate := mostRecentDaily.Price_date
-  mostRecentAvailable := mostRecentEODPricesAvailable()
+	if err != nil {
+		log.Warn().Err(err).Str("symbol", ticker.Ticker_symbol).Int64("ticker_id", ticker.Ticker_id).Msg("Error getting most recent EOD date")
+		return ticker, err
+	}
+	mostRecentDailyDate := mostRecentDaily.Price_date
+	mostRecentAvailable := mostRecentEODPricesAvailable()
 
 	if mostRecentDailyDate < mostRecentAvailable {
-		mylog.Info.Printf("Using Marketstack API to get the latest EOD price info for %s(%d)", ticker.Ticker_symbol, ticker.Ticker_id)
 		ticker, err = updateMarketstackTicker(ticker.Ticker_symbol)
 		if err != nil {
-      mylog.Warning.Print("Error getting EOD prices for %s(%d): %s", ticker.Ticker_symbol, ticker.Ticker_id, err)
-      return ticker, err
-    }
-		mylog.Info.Printf("%s(%d) updated with latest EOD prices", ticker.Ticker_symbol, ticker.Ticker_id)
+			log.Warn().Err(err).Str("symbol", ticker.Ticker_symbol).Int64("ticker_id", ticker.Ticker_id).Msg("Error getting EOD prices for ticker")
+			return ticker, err
+		}
+		log.Info().Str("symbol", ticker.Ticker_symbol).Int64("ticker_id", ticker.Ticker_id).Msg("Updated ticker with latest EOD prices")
 	}
 
 	return ticker, nil
 }
 
 func mostRecentEODPricesAvailable() string {
-	currentDateTime := time.Local
+	EasternTZ, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get timezone")
+		return "1970-01-01"
+	}
+	currentDateTime := time.Now().In(EasternTZ)
 	currentTime := currentDateTime.Format("15:04:05")
 	currentDate := currentDateTime.Format("2006-01-02")
-  isWorkDay := mytime.isWorkday(currentDateTime)
+	IsWorkDay := mytime.IsWorkday(currentDateTime)
 
-  if isWorkDay && currentTime > "19:00:00" {
-    return currentDate
-  }
+	if IsWorkDay && currentTime > "19:00:00" {
+		return currentDate
+	}
 
-  prevWorkDate := mytime.lastWorkDate(currentDateTime)
-  prevWorkDay := prevWorkDate.Format("2006-01-02")
+	prevWorkDate := mytime.LastWorkDate(currentDateTime)
+	prevWorkDay := prevWorkDate.Format("2006-01-02")
 
-  return prevWorkDay
+	return prevWorkDay
 }
-
