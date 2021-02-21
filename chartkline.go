@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"time"
 
@@ -22,44 +23,65 @@ func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webw
 
 	x_axis := make([]string, 0)
 	candleData := make([]opts.KlineData, 0)
+	volumeData := make([]opts.BarData, 0)
 	for x := 0; x < len(dailies); x++ {
 		priceDate = priceDate.AddDate(0, 0, 1)
 		x_axis = append(x_axis, priceDate.Format("2006-01-02"))
 		candleData = append(candleData, opts.KlineData{Value: [4]float32{dailies[x].Open_price, dailies[x].Close_price, dailies[x].Low_price, dailies[x].High_price}})
+		volumeData = append(volumeData, opts.BarData{Value: dailies[x].Volume})
 	}
 
-	// build chart
-	kline := charts.NewKLine()
-	kline.SetGlobalOptions(
+	// build charts
+	prices := charts.NewKLine()
+	prices.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
 			Width: "1200px",
 			Theme: types.ThemeVintage,
 		}),
 		charts.WithTitleOpts(opts.Title{
-			Title: ticker.Ticker_symbol,
+			Title:    fmt.Sprintf("%s (%s) %s", ticker.Ticker_symbol, exchange.Exchange_acronym, ticker.Ticker_name),
+			Subtitle: "Share Price",
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
-			SplitNumber: 20,
+			AxisLabel: &opts.AxisLabel{
+				Show:   false,
+				Rotate: 45,
+			},
 		}),
-		charts.WithYAxisOpts(opts.YAxis{
-			Scale: true,
-		}),
-		charts.WithDataZoomOpts(opts.DataZoom{
-			Start:      33,
-			End:        100,
-			XAxisIndex: []int{0},
+		charts.WithYAxisOpts(opts.YAxis{}),
+	)
+
+	volume := charts.NewBar()
+	volume.SetGlobalOptions(
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:  "1200px",
+			Height: "200px",
+			Theme:  types.ThemeVintage,
 		}),
 		charts.WithTitleOpts(opts.Title{
-			Title:    ticker.Ticker_symbol,
-			Subtitle: "Up to last 100 End of Day prices",
+			Subtitle: "Volume",
+		}),
+		charts.WithXAxisOpts(opts.XAxis{
+			AxisLabel: &opts.AxisLabel{
+				Show:   false,
+				Rotate: 45,
+			},
+		}),
+		charts.WithYAxisOpts(opts.YAxis{
+			AxisLabel: &opts.AxisLabel{
+				Show: false,
+			},
 		}),
 	)
 
 	// Put data into instance
-	kline.SetXAxis(x_axis)
-	kline.AddSeries("kline", candleData)
+	prices.SetXAxis(x_axis).
+		AddSeries("price", candleData)
+	prices.Renderer = newSnippetRenderer(prices, prices.Validate)
 
-	kline.Renderer = newSnippetRenderer(kline, kline.Validate)
+	volume.SetXAxis(x_axis).
+		AddSeries("volume", volumeData)
+	volume.Renderer = newSnippetRenderer(volume, volume.Validate)
 
-	return renderToHtml(kline)
+	return renderToHtml(prices) + renderToHtml(volume)
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"time"
 
@@ -26,31 +27,34 @@ func chartHandlerLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwa
 	}
 
 	// construct line chart
-	line := charts.NewLine()
-	line.SetGlobalOptions(
+	prices := charts.NewLine()
+	prices.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
 			Width: "1200px",
 			Theme: types.ThemeVintage,
 		}),
-		charts.WithDataZoomOpts(opts.DataZoom{
-			Start:      33,
-			End:        100,
-			XAxisIndex: []int{0},
-		}),
 		charts.WithTitleOpts(opts.Title{
-			Title:    ticker.Ticker_symbol,
-			Subtitle: "Up to last 100 End of Day prices",
-		}))
+			Title:    fmt.Sprintf("%s (%s) %s", ticker.Ticker_symbol, exchange.Exchange_acronym, ticker.Ticker_name),
+			Subtitle: "Share Price",
+		}),
+		charts.WithXAxisOpts(opts.XAxis{
+			AxisLabel: &opts.AxisLabel{
+				Rotate: 45,
+			},
+		}),
+		charts.WithYAxisOpts(opts.YAxis{}),
+	)
 
 	// Put data into instance
-	line.SetXAxis(x_axis).
-		AddSeries(
-			ticker.Ticker_symbol, y_axis).
+	prices.SetXAxis(x_axis).
+		AddSeries(ticker.Ticker_symbol, y_axis).
 		SetSeriesOptions(
 			charts.WithLineChartOpts(
-				opts.LineChart{Smooth: true}))
+				opts.LineChart{Smooth: true},
+			),
+		)
 
-	line.Renderer = newSnippetRenderer(line, line.Validate)
+	prices.Renderer = newSnippetRenderer(prices, prices.Validate)
 
-	return renderToHtml(line)
+	return renderToHtml(prices)
 }
