@@ -7,15 +7,14 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func renderTemplate(w http.ResponseWriter, r *http.Request, tmplname string) {
+func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname string, data *DefaultView) {
 	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/wrapper.html")
 	if err != nil {
 		log.Warn().Err(err).Str("template", tmplname).Msg("Failed to parse template")
 		http.NotFound(w, r)
 	}
 
-	var Empty interface{}
-	err = tmpl.ExecuteTemplate(w, tmplname, &Empty)
+	err = tmpl.ExecuteTemplate(w, tmplname, data)
 	if err != nil {
 		log.Error().Err(err).Str("template", tmplname).Msg("Failed to execute template")
 	}

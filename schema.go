@@ -68,7 +68,8 @@ type Watch struct {
 
 // contrived schema for views
 
-type NilView struct {
+type DefaultView struct {
+	Recents        []ViewPair
 }
 
 type Message struct {

@@ -1,10 +1,10 @@
 {{- define "home" -}}
-{{ template "header" }}
+{{ template "header" . }}
     <header class="container-fluid">
       <div class="float-middle">
         <h1 class="text-center">Welcome to <em>Graystorm StockWatch</em>!</h1>
         <p class="text-center lead">powered by <a href="https://marketstack.com/" target="_blank">marketstack</a> data</p>
       </div>
     </header>
-{{ template "footer" }}
+{{ template "footer" . }}
 {{- end }}
