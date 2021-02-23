@@ -1,0 +1,5 @@
+stockwatch
+logs/
+utils/data
+static/css/.sass-cache
+static/vendor
