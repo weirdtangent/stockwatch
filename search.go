@@ -36,6 +36,6 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	}
 
-	var data = Message{""}
+	var data = Message{Config, ""}
 	renderTemplateMessages(w, r, "update", &data)
 }

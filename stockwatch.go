@@ -22,6 +22,7 @@ var (
   aws_session *session.Session
   db_session *sqlx.DB
   googleOauthConfig *oauth2.Config
+	Config ConfigData
   verbose = true
 )
 

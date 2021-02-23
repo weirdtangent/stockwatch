@@ -68,11 +68,17 @@ type Watch struct {
 
 // contrived schema for views
 
+type ConfigData struct {
+	TmplName string
+}
+
 type DefaultView struct {
-	Recents        []ViewPair
+	Config  ConfigData
+	Recents []ViewPair
 }
 
 type Message struct {
+	Config      ConfigData
 	MessageText string
 }
 
@@ -90,6 +96,7 @@ type ViewPair struct {
 }
 
 type TickerView struct {
+	Config         ConfigData
 	Ticker         Ticker
 	Exchange       Exchange
 	Dailies        []Daily

@@ -14,6 +14,7 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 		http.NotFound(w, r)
 	}
 
+	data.Config.TmplName = tmplname
 	err = tmpl.ExecuteTemplate(w, tmplname, data)
 	if err != nil {
 		log.Error().Err(err).Str("template", tmplname).Msg("Failed to execute template")
@@ -27,6 +28,7 @@ func renderTemplateMessages(w http.ResponseWriter, r *http.Request, tmplname str
 		http.NotFound(w, r)
 	}
 
+	data.Config.TmplName = tmplname
 	err = tmpl.ExecuteTemplate(w, tmplname, data)
 	if err != nil {
 		log.Error().Err(err).Str("template", tmplname).Msg("Failed to execute template")
@@ -40,6 +42,7 @@ func renderTemplateView(w http.ResponseWriter, r *http.Request, tmplname string,
 		http.NotFound(w, r)
 	}
 
+	data.Config.TmplName = tmplname
 	err = tmpl.ExecuteTemplate(w, tmplname, data)
 	if err != nil {
 		log.Error().Err(err).Str("template", tmplname).Msg("Failed to execute template")

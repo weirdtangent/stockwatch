@@ -55,5 +55,5 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 
 	recents, err := addTickerToRecents(r, ticker.Ticker_symbol, exchange.Exchange_acronym)
 
-	renderTemplateView(w, r, "view", &TickerView{*ticker, *exchange, dailies[1:30], webwatches, *recents, lineChartHTML, klineChartHTML})
+	renderTemplateView(w, r, "view", &TickerView{Config, *ticker, *exchange, dailies[1:30], webwatches, *recents, lineChartHTML, klineChartHTML})
 }
