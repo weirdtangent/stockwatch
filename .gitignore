@@ -2,4 +2,7 @@ stockwatch
 logs/
 utils/data
 static/css/.sass-cache
-static/vendor
+static/vendor/bootstrap/*
+static/vendor/echarts/*
+static/vendor/fontawesome/*
+static/vendor/jquery/*
