@@ -7,11 +7,24 @@ header {
   padding: 0 5rem 1rem 5rem;
 }
 
-.chart-off {
+.main-content {
+  min-height: calc(100vh - 104px);
+}
+
+body.home .main-content {
+  background: url("/static/images/front-page.jpg") no-repeat top/contain scroll;
+}
+
+.hideOnProfile,
+.showOnProfile {
   display: none;
 }
 
-footer { 
+.chartSecondary {
+  display: none;
+}
+
+footer {
   padding: 0 20px;
   line-height: 3rem;
 }

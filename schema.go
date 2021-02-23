@@ -36,6 +36,17 @@ type Exchange struct {
 	Update_datetime  string
 }
 
+type OAuth struct {
+	OAuth_id          int64
+	OAuth_vener       string
+	OAuth_user        string
+	Watcher_id        int64
+	OAuth_status      string
+	LastUser_datetime string
+	Create_datetime   string
+	Update_datetime   string
+}
+
 type Source struct {
 	Source_id       int64
 	Source_company  string

@@ -12,38 +12,53 @@
 
   <body id="page-top" class="{{.Config.TmplName}}">
     <script src="/static/vendor/jquery/jquery-3.5.1.min.js"></script>
-    <script src="https://apis.google.com/js/platform.js" async defer></script>
+    <script src="https://apis.google.com/js/platform.js?onload=init" async defer></script>
     <script src="/static/js/wrapper.js"></script>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="nav navbar-dark bg-primary" style="min-height: 98px;">
       <div class="container-fluid">
         <div class="float-start">
           <h1 class="display-3"><a href="/" class="navbar-brand text-decoration-none">Graystorm StockWatch</a></h1>
-          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <ul class="nav me-auto mb-2 nav-justified">
             <li class="nav-item"><a class="nav-link" href="#section1">Favorites</a></li>
             <li class="nav-item"><a class="nav-link" href="#section2">Watch</a></li>
-            <li class="nav-item"><a class="nav-link" href="#section3">Holdings</a></li>
             <li class="nav-item"><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Disabled</a></li>
-            <li class="nav-item"><a class="nav-link" href="#" onclick="signOut();">Logout</a></li>
           </ul>
           {{if .Recents}}
-          <ul class="nav me-auto mb-2 mb-lg-0i small">
-            <li class="nav-item me-1">Recent:</li>
+          <ul class="nav me-auto mb-2 small">
+            <li class="nav-item mx-1">Recent:</li>
             {{range .Recents -}}
-              <li class="nav-item"><a href="/view/{{.Symbol}}/{{.Acronym}}"><button type="button" class="badge text-dark bg-warning"><i class="fas fa-dollar-sign"></i>{{.Symbol}}</button></a></li>
+              <li class="nav-item mx-1"><a href="/view/{{.Symbol}}/{{.Acronym}}"><button type="button" class="badge text-dark bg-warning"><i class="fas fa-dollar-sign"></i>{{.Symbol}}</button></a></li>
             {{end -}}
           </ul>
           {{end -}}
         </div>
-        <div class="float-end">
-          <div class="float-end g-signin2 mb-3" data-onsuccess="onSignIn"></div>
-          <form method="POST" action="/search/ticker" class="form-control mt-3 bg-primary">
-            <input class="form-control-sm" name="searchString" type="search" placeholder="Search" aria-label="Search">
-            <button class="form-control-sm bg-light text-dark" type="submit">Search</button>
-          </form>
-        </div>
       </div>
     </nav>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-3 bg-dark">
+          {{ template "sidemenu" }}
+        </div><!-- col-2 -->
+        <div class="col-9 mb-n5">
+{{- end}}
+
+{{- define "sidemenu" -}}
+          <div class="float-end hideOnProfile">
+            <div class="g-signin2 mt-3 text-center" data-longtitle="true" data-onsuccess="onSignIn"></div>
+            <form method="POST" action="/search/ticker" class="form-control bg-primary mt-3">
+              <input class="form-control-sm" name="searchString" type="search" placeholder="Search" aria-label="Search">
+              <button class="form-control-sm bg-light text-dark" type="submit">Search</button>
+            </form>
+          </div><!-- hideOnProfile -->
+          <ul class="nav me-auto mb-2 mb-lg-0 showOnProfile">
+            <li class="nav-item me-1 text-warning">Welcome back <span class="profileName"></span>!</li>
+            <li class="nav-item"><a class="nav-link" href="#section1">Account</a></li>
+            <li class="nav-item"><a class="nav-link" href="#section2">Holdings</a></li>
+            <li class="nav-item"><a class="nav-link" href="#section3">Preferences</a></li>
+            <li class="nav-item"><a class="nav-link" href="#" class="signout">Disconnect Google</a></li>
+          </ul>
 {{- end}}
 
 {{- define "chart_js" -}}
@@ -53,8 +68,12 @@
 
 {{- define "footer" -}}
     <!-- Footer -->
-    <footer class="footer fixed-bottom fs-6 align-middle text-light">
-      &copy; Jeffrey Culverhouse - <a href="mailto:jeff@graystorm.com" class="link-light">jeff@graystorm.com</a>
+    <footer class="footer fixed-bottom fs-6 align-middle text-light row">
+        <div class="col-2">
+          <p class="lh-1 small">&copy;2021
+            <a href="mailto:jeff@graystorm.com" class="text-decoration-none">jeff@graystorm.com</a>
+          </p>
+        </div>
     </footer>
 
   </body>
