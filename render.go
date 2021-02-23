@@ -8,7 +8,7 @@ import (
 )
 
 func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname string, data *DefaultView) {
-	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/wrapper.html")
+	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/_wrapper.html")
 	if err != nil {
 		log.Warn().Err(err).
 			Str("template", tmplname).Msg("Failed to parse template")
@@ -26,7 +26,7 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 }
 
 func renderTemplateMessages(w http.ResponseWriter, r *http.Request, tmplname string, data *Message) {
-	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/wrapper.html")
+	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/_wrapper.html")
 	if err != nil {
 		log.Warn().Err(err).
 			Str("template", tmplname).
@@ -44,7 +44,7 @@ func renderTemplateMessages(w http.ResponseWriter, r *http.Request, tmplname str
 }
 
 func renderTemplateView(w http.ResponseWriter, r *http.Request, tmplname string, data *TickerView) {
-	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/wrapper.html")
+	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/_wrapper.html")
 	if err != nil {
 		log.Warn().Err(err).
 			Str("template", tmplname).

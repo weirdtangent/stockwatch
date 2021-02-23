@@ -1,4 +1,4 @@
-{{- define "header" -}}
+{{- define "_header" -}}
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
   <head>
@@ -42,12 +42,12 @@
     <div class="container-fluid"><!-- wrapper container -->
       <div class="row"><!-- wrapper row -->
         <div class="col-4 col-md-3 col-xl-2 bg-dark">
-          {{ template "sidemenu" }}
+          {{ template "_sidemenu" }}
         </div><!-- col-2 -->
         <div class="col-8 col-md-9 col-xl-10 mb-n5"><!-- wrapper col -->
 {{- end}}
 
-{{- define "sidemenu" -}}
+{{- define "_sidemenu" -}}
           <div class="float-end">
             <div class="g-signin2 mt-3 text-center hideOnProfile" data-longtitle="true" data-onsuccess="onSignIn"></div>
             <form method="POST" action="/search/ticker" class="form-control bg-primary mt-3">
@@ -64,12 +64,12 @@
           </ul>
 {{- end}}
 
-{{- define "chart_js" -}}
+{{- define "_chart_js" -}}
     <script src="/static/vendor/echarts/dist/echarts.min.js"></script>
     <script src="/static/vendor/echarts/theme/vintage.js"></script>
 {{- end}}
 
-{{- define "footer" -}}
+{{- define "_footer" -}}
     <!-- Footer -->
     <footer class="footer fixed-bottom fs-6 align-middle text-light row">
         <div class="col-2">
