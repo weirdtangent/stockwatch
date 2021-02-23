@@ -21,11 +21,15 @@ func createCountry(country *Country) (*Country, error) {
 
 	res, err := db_session.Exec(insert, country.Country_code, country.Country_name)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed on INSERT")
+		log.Fatal().Err(err).
+			Str("table_name", "country").
+			Msg("Failed on INSERT")
 	}
 	country_id, err := res.LastInsertId()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed on LAST_INSERT_ID")
+		log.Fatal().Err(err).
+			Str("table_name", "country").
+			Msg("Failed on LAST_INSERT_ID")
 	}
 	return getCountryById(country_id)
 }
@@ -48,7 +52,9 @@ func createOrUpdateCountry(country *Country) (*Country, error) {
 
 	_, err = db_session.Exec(update, country.Country_code, country.Country_name, existing.Country_id)
 	if err != nil {
-		log.Warn().Err(err).Msg("Failed on UPDATE")
+		log.Warn().Err(err).
+			Str("table_name", "country").
+			Msg("Failed on UPDATE")
 	}
 	return getCountryById(existing.Country_id)
 }

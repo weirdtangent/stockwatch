@@ -34,7 +34,9 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	default:
-		log.Error().Str("action", action).Msg("Unknown update action")
+		log.Error().
+			Str("action", action).
+			Msg("Unknown update action")
 	}
 
 	errorHandler(w, r, "Operation completed normally")
@@ -46,19 +48,34 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 func updateTicker(ticker *Ticker) (*Ticker, error) {
 	mostRecentDaily, err := getDailyMostRecent(ticker.Ticker_id)
 	if err != nil {
-		log.Warn().Err(err).Str("symbol", ticker.Ticker_symbol).Int64("ticker_id", ticker.Ticker_id).Msg("Error getting most recent EOD date")
+		log.Warn().Err(err).
+			Str("symbol", ticker.Ticker_symbol).
+			Int64("ticker_id", ticker.Ticker_id).
+			Msg("Error getting most recent EOD date")
 		return ticker, err
 	}
 	mostRecentDailyDate := mostRecentDaily.Price_date
 	mostRecentAvailable := mostRecentEODPricesAvailable()
 
+	log.Info().
+		Str("symbol", ticker.Ticker_symbol).
+		Str("mostRecentDailyDate", mostRecentDailyDate).
+		Str("mostRecentAvailable", mostRecentAvailable).
+		Msg("check if new EOD available for ticker")
+
 	if mostRecentDailyDate < mostRecentAvailable {
 		ticker, err = updateMarketstackTicker(ticker.Ticker_symbol)
 		if err != nil {
-			log.Warn().Err(err).Str("symbol", ticker.Ticker_symbol).Int64("ticker_id", ticker.Ticker_id).Msg("Error getting EOD prices for ticker")
+			log.Warn().Err(err).
+				Str("symbol", ticker.Ticker_symbol).
+				Int64("ticker_id", ticker.Ticker_id).
+				Msg("Error getting EOD prices for ticker")
 			return ticker, err
 		}
-		log.Info().Str("symbol", ticker.Ticker_symbol).Int64("ticker_id", ticker.Ticker_id).Msg("Updated ticker with latest EOD prices")
+		log.Info().
+			Str("symbol", ticker.Ticker_symbol).
+			Int64("ticker_id", ticker.Ticker_id).
+			Msg("Updated ticker with latest EOD prices")
 	}
 
 	return ticker, nil
@@ -67,7 +84,8 @@ func updateTicker(ticker *Ticker) (*Ticker, error) {
 func mostRecentEODPricesAvailable() string {
 	EasternTZ, err := time.LoadLocation("America/New_York")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get timezone")
+		log.Error().Err(err).
+			Msg("Failed to get timezone")
 		return "1970-01-01"
 	}
 	currentDateTime := time.Now().In(EasternTZ)

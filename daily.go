@@ -25,7 +25,9 @@ func getDailyMostRecent(ticker_id int64) (*Daily, error) {
 func loadDailies(ticker_id int64, days int) ([]Daily, error) {
 	rows, err := db_session.Queryx("SELECT * FROM daily WHERE ticker_id=? AND volume > 0 ORDER BY price_date DESC LIMIT ?", ticker_id, days)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed on SELECT")
+		log.Fatal().Err(err).
+			Str("table_name", "daily").
+			Msg("Failed on SELECT")
 	}
 	defer rows.Close()
 
@@ -34,13 +36,17 @@ func loadDailies(ticker_id int64, days int) ([]Daily, error) {
 	for rows.Next() {
 		err = rows.StructScan(&daily)
 		if err != nil {
-			log.Warn().Err(err).Msg("Error reading result rows")
+			log.Warn().Err(err).
+				Str("table_name", "daily").
+				Msg("Error reading result rows")
 		} else {
 			dailies = append(dailies, daily)
 		}
 	}
 	if err := rows.Err(); err != nil {
-		log.Fatal().Err(err).Msg("Error reading result rows")
+		log.Fatal().Err(err).
+			Str("table_name", "daily").
+			Msg("Error reading result rows")
 	}
 
 	return dailies, err
@@ -51,11 +57,15 @@ func createDaily(daily *Daily) (*Daily, error) {
 
 	res, err := db_session.Exec(insert, daily.Ticker_id, daily.Price_date, daily.Open_price, daily.High_price, daily.Low_price, daily.Close_price, daily.Volume)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed on INSERT")
+		log.Fatal().Err(err).
+			Str("table_name", "daily").
+			Msg("Failed on INSERT")
 	}
 	daily_id, err := res.LastInsertId()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed on LAST_INSERT_ID")
+		log.Fatal().Err(err).
+			Str("table_name", "daily").
+			Msg("Failed on LAST_INSERT_ID")
 	}
 	return getDailyById(daily_id)
 }
@@ -78,7 +88,9 @@ func createOrUpdateDaily(daily *Daily) (*Daily, error) {
 
 	_, err = db_session.Exec(update, daily.Open_price, daily.High_price, daily.Low_price, daily.Close_price, daily.Volume, existing.Ticker_id, existing.Price_date)
 	if err != nil {
-		log.Warn().Err(err).Msg("Failed on UPDATE")
+		log.Warn().Err(err).
+			Str("table_name", "daily").
+			Msg("Failed on UPDATE")
 	}
 	return getDailyById(existing.Daily_id)
 }

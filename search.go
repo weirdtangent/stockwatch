@@ -18,6 +18,10 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		log.Info().
+			Str("search_type", searchType).
+			Str("search_string", searchString).
+			Msg("Unknown search_type")
 		ticker, err := searchMarketstackTicker(searchString)
 		if err != nil {
 			errorHandler(w, r, fmt.Sprintf("Nothing found for search string: %s", searchString))
@@ -32,7 +36,9 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, fmt.Sprintf("/view/%s/%s", ticker.Ticker_symbol, exchange.Exchange_acronym), http.StatusFound)
 		return
 	default:
-		log.Warn().Str("searchtype", searchType).Msg("Unknown search_type")
+		log.Warn().
+			Str("search_type", searchType).
+			Msg("Unknown search_type")
 		http.NotFound(w, r)
 	}
 

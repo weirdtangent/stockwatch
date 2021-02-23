@@ -21,11 +21,15 @@ func createExchange(exchange *Exchange) (*Exchange, error) {
 
 	res, err := db_session.Exec(insert, exchange.Exchange_acronym, exchange.Exchange_name)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed on INSERT")
+		log.Fatal().Err(err).
+			Str("table_name", "exchange").
+			Msg("Failed on INSERT")
 	}
 	exchange_id, err := res.LastInsertId()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed on LAST_INSERT_ID")
+		log.Fatal().Err(err).
+			Str("table_name", "exchange").
+			Msg("Failed on LAST_INSERT_ID")
 	}
 	return getExchangeById(exchange_id)
 }
@@ -48,7 +52,9 @@ func createOrUpdateExchange(exchange *Exchange) (*Exchange, error) {
 
 	_, err = db_session.Exec(update, exchange.Exchange_name, exchange.Country_id, exchange.City, existing.Exchange_id)
 	if err != nil {
-		log.Warn().Err(err).Msg("Failed on UPDATE")
+		log.Warn().Err(err).
+			Str("table_name", "exchange").
+			Msg("Failed on UPDATE")
 	}
 	return getExchangeById(existing.Exchange_id)
 }

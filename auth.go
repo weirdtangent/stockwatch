@@ -31,7 +31,8 @@ func googleLoginHandler(w http.ResponseWriter, r *http.Request) {
 func googleCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := getUserInfo(r.FormValue("state"), r.FormValue("code"))
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get google user info")
+		log.Error().Err(err).
+			Msg("Failed to get google user info")
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
@@ -65,13 +66,15 @@ func googleTokenSigninHandler(w http.ResponseWriter, r *http.Request) {
 	// go get svc account JSON
 	google_svc_acct, err := myaws.AWSGetSecretValue(aws_session, "stockwatch_google_svc_acct")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+		log.Fatal().Err(err).
+			Msg("Failed to retrieve secret")
 	}
 
 	// build our own credentials from that
 	credentials, err := google.CredentialsFromJSON(context.Background(), []byte(*google_svc_acct), "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to build credentials")
+		log.Fatal().Err(err).
+			Msg("Failed to build credentials")
 	}
 
 	// create ClientOption with those credentials
@@ -80,13 +83,15 @@ func googleTokenSigninHandler(w http.ResponseWriter, r *http.Request) {
 	// build New Token Validator using that ClientOption
 	tokenValidator, err := idtoken.NewValidator(context.Background(), clientOption)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to initiate the google idtoken validator")
+		log.Error().Err(err).
+			Msg("Failed to initiate the google idtoken validator")
 	}
 
 	// attempt to validate the idtoken the user presented
 	payload, err := tokenValidator.Validate(context.Background(), id_token, *google_client_id)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to validate the google idtoken")
+		log.Error().Err(err).
+			Msg("Failed to validate the google idtoken")
 	}
 
 	var profile = GoogleProfileData{
