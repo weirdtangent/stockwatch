@@ -79,8 +79,18 @@ type Watch struct {
 
 // contrived schema for views
 
+type GoogleProfileData struct {
+	Name       string
+	GivenName  string
+	FamilyName string
+	Email      string
+	PictureURL string
+	Locale     string
+}
+
 type ConfigData struct {
-	TmplName string
+	TmplName      string
+	GoogleProfile GoogleProfileData
 }
 
 type DefaultView struct {

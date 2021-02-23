@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -83,9 +84,23 @@ func googleTokenSigninHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// attempt to validate the idtoken the user presented
-	_, err = tokenValidator.Validate(context.Background(), id_token, *google_client_id)
+	payload, err := tokenValidator.Validate(context.Background(), id_token, *google_client_id)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to validate the google idtoken")
+	}
+
+	var profile = GoogleProfileData{
+		payload.Claims["name"].(string),
+		payload.Claims["given_name"].(string),
+		payload.Claims["family_name"].(string),
+		payload.Claims["email"].(string),
+		payload.Claims["picture"].(string),
+		payload.Claims["locale"].(string),
+	}
+	GoogleProfile = profile
+	profileJSON, err := json.Marshal(profile)
+	if err == nil {
+		sessionManager.Put(r.Context(), "google_profile", profileJSON)
 	}
 
 	return

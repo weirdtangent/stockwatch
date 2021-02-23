@@ -33,15 +33,18 @@
           </ul>
           {{end -}}
         </div>
+        <div class="float-end showOnProfile my-2">
+          <img class="image-fluid rounded" src="{{.Config.GoogleProfile.PictureURL}}">
+        </div>
       </div>
     </nav>
 
-    <div class="container-fluid">
-      <div class="row">
-        <div class="col-3 bg-dark">
+    <div class="container-fluid"><!-- wrapper container -->
+      <div class="row"><!-- wrapper row -->
+        <div class="col-4 col-md-3 col-xl-2 bg-dark">
           {{ template "sidemenu" }}
         </div><!-- col-2 -->
-        <div class="col-9 mb-n5">
+        <div class="col-8 col-md-9 col-xl-10 mb-n5"><!-- wrapper col -->
 {{- end}}
 
 {{- define "sidemenu" -}}
@@ -53,7 +56,7 @@
             </form>
           </div><!-- hideOnProfile -->
           <ul class="nav me-auto mb-2 mb-lg-0 showOnProfile">
-            <li class="nav-item me-1 text-warning">Welcome back <span class="profileName"></span>!</li>
+            <li class="nav-item me-1 text-warning">Welcome back<br><span class="profileName"></span>!</li>
             <li class="nav-item"><a class="nav-link" href="#section1">Account</a></li>
             <li class="nav-item"><a class="nav-link" href="#section2">Holdings</a></li>
             <li class="nav-item"><a class="nav-link" href="#section3">Preferences</a></li>

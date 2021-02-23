@@ -20,10 +20,11 @@ import (
 var (
 	sessionManager    *scs.SessionManager
 	aws_session       *session.Session
-  db_session        *sqlx.DB
+	db_session        *sqlx.DB
 	googleOauthConfig *oauth2.Config
 	google_client_id  *string
 	Config            ConfigData
+	GoogleProfile     GoogleProfileData
 	verbose           = true
 )
 
