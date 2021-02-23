@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-  //"github.com/rs/zerolog/log"
+	//"github.com/rs/zerolog/log"
 )
 
 func getRecents(r *http.Request) (*[]ViewPair, error) {
-  recents := []ViewPair{}
+	recents := []ViewPair{}
 
 	// get current list (if any) from session
 	recents_json := sessionManager.GetBytes(r.Context(), "view_recents")
@@ -15,9 +15,8 @@ func getRecents(r *http.Request) (*[]ViewPair, error) {
 		json.Unmarshal(recents_json, &recents)
 	}
 
-  return &recents, nil
+	return &recents, nil
 }
-
 
 func addTickerToRecents(r *http.Request, symbol string, acronym string) (*[]ViewPair, error) {
 	var recents []ViewPair
