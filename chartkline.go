@@ -81,8 +81,6 @@ func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webw
 	// Put data into instance
 	prices.SetXAxis(x_axis).
 		AddSeries("price", candleData, charts.WithLabelOpts(opts.Label{Show: false}))
-	prices.Renderer = newSnippetRenderer(prices, prices.Validate)
-
 	volume.SetXAxis(x_axis).
 		AddSeries("volume", volumeData, charts.WithLabelOpts(opts.Label{Show: false}))
 
