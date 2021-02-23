@@ -1,0 +1,3 @@
+#!/bin/bash
+
+/www/stockwatch/stockwatch 2>logs/stockwatch.log &
