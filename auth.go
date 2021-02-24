@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/alexedwards/scs"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/rs/zerolog/log"
 
 	"golang.org/x/oauth2"
@@ -18,32 +20,31 @@ import (
 	"graystorm.com/myaws"
 )
 
-var (
-	oauthStateString = "vXrwhPrewsQxJKX6Bg9H86MoEC3PfPwv"
-)
-
-func googleLoginHandler(w http.ResponseWriter, r *http.Request) {
-	url := googleOauthConfig.AuthCodeURL(oauthStateString)
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+func googleLoginHandler(oauthConfig *oauth2.Config, oauthStateString string) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		url := oauthConfig.AuthCodeURL(oauthStateString)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	})
 }
 
 // google authorized redirect URL is /callback and lands here
-func googleCallbackHandler(w http.ResponseWriter, r *http.Request) {
-	_, err := getUserInfo(r.FormValue("state"), r.FormValue("code"))
-	if err != nil {
-		log.Error().Err(err).
-			Msg("Failed to get google user info")
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+func googleCallbackHandler(oauthConfig *oauth2.Config, oauthStateString string) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, err := getUserInfo(oauthConfig, oauthStateString, r.FormValue("state"), r.FormValue("code"))
+		if err != nil {
+			log.Error().Err(err).
+				Msg("Failed to get google user info")
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		}
 		return
-	}
-	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	})
 }
 
-func getUserInfo(state string, code string) ([]byte, error) {
+func getUserInfo(oauthConfig *oauth2.Config, oauthStateString string, state string, code string) ([]byte, error) {
 	if state != oauthStateString {
 		return nil, fmt.Errorf("invalid oauth state")
 	}
-	token, err := googleOauthConfig.Exchange(oauth2.NoContext, code)
+	token, err := oauthConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		return nil, fmt.Errorf("code exchange failed: %s", err.Error())
 	}
@@ -60,55 +61,56 @@ func getUserInfo(state string, code string) ([]byte, error) {
 }
 
 // validate idtoken the user has
-func googleTokenSigninHandler(w http.ResponseWriter, r *http.Request) {
-	id_token := r.FormValue("idtoken")
+func googleTokenSigninHandler(aws *session.Session, googleClientId *string, smgr *scs.SessionManager) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id_token := r.FormValue("idtoken")
 
-	// go get svc account JSON
-	google_svc_acct, err := myaws.AWSGetSecretValue(aws_session, "stockwatch_google_svc_acct")
-	if err != nil {
-		log.Fatal().Err(err).
-			Msg("Failed to retrieve secret")
-	}
+		// go get svc account JSON
+		google_svc_acct, err := myaws.AWSGetSecretValue(aws, "stockwatch_google_svc_acct")
+		if err != nil {
+			log.Fatal().Err(err).
+				Msg("Failed to retrieve secret")
+		}
 
-	// build our own credentials from that
-	credentials, err := google.CredentialsFromJSON(context.Background(), []byte(*google_svc_acct), "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile")
-	if err != nil {
-		log.Fatal().Err(err).
-			Msg("Failed to build credentials")
-	}
+		// build our own credentials from that
+		credentials, err := google.CredentialsFromJSON(context.Background(), []byte(*google_svc_acct), "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile")
+		if err != nil {
+			log.Fatal().Err(err).
+				Msg("Failed to build credentials")
+		}
 
-	// create ClientOption with those credentials
-	clientOption := option.WithCredentials(credentials)
+		// create ClientOption with those credentials
+		clientOption := option.WithCredentials(credentials)
 
-	// build New Token Validator using that ClientOption
-	tokenValidator, err := idtoken.NewValidator(context.Background(), clientOption)
-	if err != nil {
-		log.Error().Err(err).
-			Msg("Failed to initiate the google idtoken validator")
-	}
+		// build New Token Validator using that ClientOption
+		tokenValidator, err := idtoken.NewValidator(context.Background(), clientOption)
+		if err != nil {
+			log.Error().Err(err).
+				Msg("Failed to initiate the google idtoken validator")
+		}
 
-	// attempt to validate the idtoken the user presented
-	payload, err := tokenValidator.Validate(context.Background(), id_token, *google_client_id)
-	if err != nil {
-		log.Error().Err(err).
-			Msg("Failed to validate the google idtoken")
-	}
+		// attempt to validate the idtoken the user presented
+		payload, err := tokenValidator.Validate(context.Background(), id_token, *googleClientId)
+		if err != nil {
+			log.Error().Err(err).
+				Msg("Failed to validate the google idtoken")
+		}
 
-	var profile = GoogleProfileData{
-		payload.Claims["name"].(string),
-		payload.Claims["given_name"].(string),
-		payload.Claims["family_name"].(string),
-		payload.Claims["email"].(string),
-		payload.Claims["picture"].(string),
-		payload.Claims["locale"].(string),
-	}
-	GoogleProfile = profile
-	profileJSON, err := json.Marshal(profile)
-	if err == nil {
-		sessionManager.Put(r.Context(), "google_profile", profileJSON)
-	}
+		var profile = GoogleProfileData{
+			payload.Claims["name"].(string),
+			payload.Claims["given_name"].(string),
+			payload.Claims["family_name"].(string),
+			payload.Claims["email"].(string),
+			payload.Claims["picture"].(string),
+			payload.Claims["locale"].(string),
+		}
+		profileJSON, err := json.Marshal(profile)
+		if err == nil {
+			smgr.Put(r.Context(), "google_profile", profileJSON)
+		}
 
-	return
+		return
+	})
 }
 
 //"&{accounts.google.com 602086455575-vj2spkou0ucsntgol9srfkf8mka3o5i2.apps.googleusercontent.com 1614054670 1614051070 101798707958613429940

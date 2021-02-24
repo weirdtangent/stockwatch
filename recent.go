@@ -3,27 +3,26 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-	//"github.com/rs/zerolog/log"
+
+	"github.com/alexedwards/scs"
 )
 
-func getRecents(r *http.Request) (*[]ViewPair, error) {
+func getRecents(sm *scs.SessionManager, r *http.Request) (*[]ViewPair, error) {
 	recents := []ViewPair{}
 
 	// get current list (if any) from session
-	recents_json := sessionManager.GetBytes(r.Context(), "view_recents")
-	if len(recents_json) > 0 {
-		json.Unmarshal(recents_json, &recents)
-	}
+	recents_json := sm.GetBytes(r.Context(), "view_recents")
+	json.Unmarshal(recents_json, &recents)
 
 	return &recents, nil
 }
 
-func addTickerToRecents(r *http.Request, symbol string, acronym string) (*[]ViewPair, error) {
+func addTickerToRecents(sm *scs.SessionManager, r *http.Request, symbol string, acronym string) (*[]ViewPair, error) {
 	var recents []ViewPair
 	this_view := ViewPair{symbol, acronym}
 
 	// get current list (if any) from session
-	recents_json := sessionManager.GetBytes(r.Context(), "view_recents")
+	recents_json := sm.GetBytes(r.Context(), "view_recents")
 	if len(recents_json) > 0 {
 		json.Unmarshal(recents_json, &recents)
 	}
@@ -45,7 +44,7 @@ func addTickerToRecents(r *http.Request, symbol string, acronym string) (*[]View
 	// write it to the session
 	recents_json, err := json.Marshal(recents)
 	if err == nil {
-		sessionManager.Put(r.Context(), "view_recents", recents_json)
+		sm.Put(r.Context(), "view_recents", recents_json)
 	}
 
 	return &recents, err

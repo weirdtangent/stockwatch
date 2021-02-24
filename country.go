@@ -1,25 +1,26 @@
 package main
 
 import (
+	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 )
 
-func getCountry(country_code string) (*Country, error) {
+func getCountry(db *sqlx.DB, country_code string) (*Country, error) {
 	var country Country
-	err := db_session.QueryRowx("SELECT * FROM country WHERE country_code=?", country_code).StructScan(&country)
+	err := db.QueryRowx("SELECT * FROM country WHERE country_code=?", country_code).StructScan(&country)
 	return &country, err
 }
 
-func getCountryById(country_id int64) (*Country, error) {
+func getCountryById(db *sqlx.DB, country_id int64) (*Country, error) {
 	var country Country
-	err := db_session.QueryRowx("SELECT * FROM country WHERE country_id=?", country_id).StructScan(&country)
+	err := db.QueryRowx("SELECT * FROM country WHERE country_id=?", country_id).StructScan(&country)
 	return &country, err
 }
 
-func createCountry(country *Country) (*Country, error) {
+func createCountry(db *sqlx.DB, country *Country) (*Country, error) {
 	var insert = "INSERT INTO country SET country_code=?, country_name=?"
 
-	res, err := db_session.Exec(insert, country.Country_code, country.Country_name)
+	res, err := db.Exec(insert, country.Country_code, country.Country_name)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("table_name", "country").
@@ -31,30 +32,30 @@ func createCountry(country *Country) (*Country, error) {
 			Str("table_name", "country").
 			Msg("Failed on LAST_INSERT_ID")
 	}
-	return getCountryById(country_id)
+	return getCountryById(db, country_id)
 }
 
-func getOrCreateCountry(country *Country) (*Country, error) {
-	existing, err := getCountry(country.Country_code)
+func getOrCreateCountry(db *sqlx.DB, country *Country) (*Country, error) {
+	existing, err := getCountry(db, country.Country_code)
 	if err != nil && existing.Country_id == 0 {
-		return createCountry(country)
+		return createCountry(db, country)
 	}
 	return existing, err
 }
 
-func createOrUpdateCountry(country *Country) (*Country, error) {
+func createOrUpdateCountry(db *sqlx.DB, country *Country) (*Country, error) {
 	var update = "UPDATE country SET country_code=?, country_name=? WHERE country_id=?"
 
-	existing, err := getCountry(country.Country_code)
+	existing, err := getCountry(db, country.Country_code)
 	if err != nil {
-		return createCountry(country)
+		return createCountry(db, country)
 	}
 
-	_, err = db_session.Exec(update, country.Country_code, country.Country_name, existing.Country_id)
+	_, err = db.Exec(update, country.Country_code, country.Country_name, existing.Country_id)
 	if err != nil {
 		log.Warn().Err(err).
 			Str("table_name", "country").
 			Msg("Failed on UPDATE")
 	}
-	return getCountryById(existing.Country_id)
+	return getCountryById(db, existing.Country_id)
 }

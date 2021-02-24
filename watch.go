@@ -1,11 +1,12 @@
 package main
 
 import (
+	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 )
 
-func loadWebWatches(ticker_id int64) ([]WebWatch, error) {
-	rows, err := db_session.Queryx("SELECT target_date,target_price,source_date,source_company,source_name FROM watch LEFT JOIN source USING (source_id) WHERE ticker_id = ? ORDER BY source_date", ticker_id)
+func loadWebWatches(db *sqlx.DB, ticker_id int64) ([]WebWatch, error) {
+	rows, err := db.Queryx("SELECT target_date,target_price,source_date,source_company,source_name FROM watch LEFT JOIN source USING (source_id) WHERE ticker_id = ? ORDER BY source_date", ticker_id)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("table_name", "watch").

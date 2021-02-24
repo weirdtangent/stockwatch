@@ -15,8 +15,6 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 		http.NotFound(w, r)
 	}
 
-	data.Config.TmplName = tmplname
-	data.Config.GoogleProfile = GoogleProfile
 	err = tmpl.ExecuteTemplate(w, tmplname, data)
 	if err != nil {
 		log.Error().Err(err).

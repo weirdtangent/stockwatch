@@ -6,8 +6,6 @@ import (
 
 	"github.com/alexedwards/scs"
 	"github.com/alexedwards/scs/mysqlstore"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
@@ -15,17 +13,6 @@ import (
 	"golang.org/x/oauth2/google"
 
 	"graystorm.com/myaws"
-)
-
-var (
-	sessionManager    *scs.SessionManager
-	aws_session       *session.Session
-	db_session        *sqlx.DB
-	googleOauthConfig *oauth2.Config
-	google_client_id  *string
-	Config            ConfigData
-	GoogleProfile     GoogleProfileData
-	verbose           = true
 )
 
 type Logger struct {
@@ -39,63 +26,58 @@ func main() {
 	log.Logger = log.With().Caller().Logger()
 
 	// connect to AWS
-	var err error
-	aws_session, err = myaws.AWSConnect("us-east-1", "stockwatch")
+	aws, err := myaws.AWSConnect("us-east-1", "stockwatch")
 	if err != nil {
-		log.Fatal().Err(err).
-			Msg("Failed to connect to AWS")
+		log.Fatal().Err(err).Msg("Failed to connect to AWS")
 	}
 
 	// connect to Aurora
-	db_session, err = myaws.DBConnect(aws_session, "stockwatch_rds", "stockwatch")
+	db, err := myaws.DBConnect(aws, "stockwatch_rds", "stockwatch")
 	if err != nil {
-		log.Fatal().Err(err).
-			Msg("Failed to connect the RDS")
+		log.Fatal().Err(err).Msg("Failed to connect the RDS")
 	}
 
 	// config Google OAuth
-	google_client_id, err = myaws.AWSGetSecretKV(aws_session, "stockwatch_google_oauth", "client_id")
+	clientId, err := myaws.AWSGetSecretKV(aws, "stockwatch_google_oauth", "client_id")
 	if err != nil {
-		log.Fatal().Err(err).
-			Msg("Failed to retrieve secret")
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
-	google_client_secret, err := myaws.AWSGetSecretKV(aws_session, "stockwatch_google_oauth", "client_secret")
+	clientSecret, err := myaws.AWSGetSecretKV(aws, "stockwatch_google_oauth", "client_secret")
 	if err != nil {
-		log.Fatal().Err(err).
-			Msg("Failed to retrieve secret")
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
-	googleOauthConfig = &oauth2.Config{
+	oAuthConfig := &oauth2.Config{
 		RedirectURL:  "https://stockwatch.graystorm.com/callback",
-		ClientID:     *google_client_id,
-		ClientSecret: *google_client_secret,
+		ClientID:     *clientId,
+		ClientSecret: *clientSecret,
 		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
 		Endpoint:     google.Endpoint,
 	}
+	var oAuthStateStr = "vXrwhPrewsQxJKX6Bg9H86MoEC3PfPwv"
 
 	// Initialize a new session manager and configure the session lifetime.
-	sessionManager = scs.New()
-	sessionManager.Lifetime = 365 * 24 * time.Hour
-	sessionManager.Store = mysqlstore.New(db_session.DB)
-	sessionManager.Cookie.Domain = "stockwatch.graystorm.com"
+	smgr := scs.New()
+	smgr.Lifetime = 365 * 24 * time.Hour
+	smgr.Store = mysqlstore.New(db.DB)
+	smgr.Cookie.Domain = "stockwatch.graystorm.com"
 
 	// starting up
-	log.Info().Int("port", 3001).
-		Msg("Started serving requests")
+	log.Info().Int("port", 3001).Msg("Started serving requests")
 
 	mux := http.NewServeMux()
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
-	mux.HandleFunc("/login", googleLoginHandler)
-	mux.HandleFunc("/callback", googleCallbackHandler)
-	mux.HandleFunc("/tokensignin", googleTokenSigninHandler)
-	mux.HandleFunc("/view/", viewHandler)
-	mux.HandleFunc("/search/", searchHandler)
-	mux.HandleFunc("/update/", updateHandler)
-	mux.HandleFunc("/", homeHandler)
+	mux.HandleFunc("/login", googleLoginHandler(oAuthConfig, oAuthStateStr))
+	mux.HandleFunc("/callback", googleCallbackHandler(oAuthConfig, oAuthStateStr))
+	mux.HandleFunc("/tokensignin", googleTokenSigninHandler(aws, clientId, smgr))
+	mux.HandleFunc("/view/", viewHandler(aws, db, smgr))
+	mux.HandleFunc("/search/", searchHandler(aws, db))
+	mux.HandleFunc("/update/", updateHandler(aws, db))
+	mux.HandleFunc("/", homeHandler(smgr))
 
-	wrappedMux := NewLogger(mux)
+	//wrappedMux := NewLogger(mux)
 
 	// starup or die
-	if err = http.ListenAndServe(":3001", sessionManager.LoadAndSave(wrappedMux)); err != nil {
+	if err = http.ListenAndServe(":3001", smgr.LoadAndSave(NewLogger(mux))); err != nil {
 		log.Fatal().Err(err).
 			Msg("Stopped serving requests")
 	}

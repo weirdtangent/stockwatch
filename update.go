@@ -1,52 +1,56 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
+
 	"graystorm.com/mytime"
 )
 
-func updateHandler(w http.ResponseWriter, r *http.Request) {
-	path_paramlist := r.URL.Path[len("/update/"):]
-	params := strings.Split(path_paramlist, "/")
-	action := params[0]
+func updateHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path_paramlist := r.URL.Path[len("/update/"):]
+		params := strings.Split(path_paramlist, "/")
+		action := params[0]
 
-	switch action {
-	case "exchanges":
-		success, err := updateMarketstackExchanges()
-		if err != nil {
-			errorHandler(w, r, fmt.Sprintf("Bulk update of Exchanges failed: %s", err))
-			return
+		switch action {
+		case "exchanges":
+			success, err := updateMarketstackExchanges(aws, db)
+			if err != nil {
+				log.Error().Msgf("Bulk update of Exchanges failed: %s", err)
+				return
+			}
+			if success != true {
+				log.Error().Msgf("Bulk update of Exchanges failed")
+				return
+			}
+		case "ticker":
+			symbol := params[1]
+			_, err := updateMarketstackTicker(aws, db, symbol)
+			if err != nil {
+				log.Error().Msgf("Update of ticket symbol %s failed: %s", symbol, err)
+				return
+			}
+		default:
+			log.Error().
+				Str("action", action).
+				Msg("Unknown update action")
 		}
-		if success != true {
-			errorHandler(w, r, "Bulk update of Exchanges failed")
-			return
-		}
-	case "ticker":
-		symbol := params[1]
-		_, err := updateMarketstackTicker(symbol)
-		if err != nil {
-			errorHandler(w, r, fmt.Sprintf("Update of ticket symbol %s failed: %s", symbol, err))
-			return
-		}
-	default:
-		log.Error().
-			Str("action", action).
-			Msg("Unknown update action")
-	}
 
-	errorHandler(w, r, "Operation completed normally")
+		log.Info().Msgf("Operation completed normally")
+	})
 }
 
 // see if we need to pull a daily update:
 //  if we don't have the EOD price for the prior business day
 //  OR if we don't have it for the current business day and it's now 7pm or later
-func updateTicker(ticker *Ticker) (*Ticker, error) {
-	mostRecentDaily, err := getDailyMostRecent(ticker.Ticker_id)
+func updateTicker(aws *session.Session, db *sqlx.DB, ticker *Ticker) (*Ticker, error) {
+	mostRecentDaily, err := getDailyMostRecent(db, ticker.Ticker_id)
 	if err != nil {
 		log.Warn().Err(err).
 			Str("symbol", ticker.Ticker_symbol).
@@ -64,7 +68,7 @@ func updateTicker(ticker *Ticker) (*Ticker, error) {
 		Msg("check if new EOD available for ticker")
 
 	if mostRecentDailyDate < mostRecentAvailable {
-		ticker, err = updateMarketstackTicker(ticker.Ticker_symbol)
+		ticker, err = updateMarketstackTicker(aws, db, ticker.Ticker_symbol)
 		if err != nil {
 			log.Warn().Err(err).
 				Str("symbol", ticker.Ticker_symbol).

@@ -5,16 +5,19 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
+
 	"graystorm.com/myaws"
 )
 
 const marketstack_url = "http://api.marketstack.com/v1/"
 
-func getMarketstackData(action string, params map[string]string) (*http.Response, error) {
+func getMarketstackData(aws *session.Session, action string, params map[string]string) (*http.Response, error) {
 	httpClient := http.Client{}
 
-	api_access_key, err := myaws.AWSGetSecretKV(aws_session, "marketstack", "api_access_key")
+	api_access_key, err := myaws.AWSGetSecretKV(aws, "marketstack", "api_access_key")
 	if err != nil {
 		log.Fatal().Err(err).
 			Msg("Failed to get marketstack API key")
@@ -48,9 +51,9 @@ func getMarketstackData(action string, params map[string]string) (*http.Response
 	return res, nil
 }
 
-func updateMarketstackExchanges() (bool, error) {
+func updateMarketstackExchanges(aws *session.Session, db *sqlx.DB) (bool, error) {
 	var params map[string]string
-	res, err := getMarketstackData("exchanges", params)
+	res, err := getMarketstackData(aws, "exchanges", params)
 	if err != nil {
 		log.Fatal().Err(err).
 			Msg("Failed to get marketstack data for exchanges")
@@ -65,7 +68,7 @@ func updateMarketstackExchanges() (bool, error) {
 		if MSExchangeData.Acronym != "" {
 			// grab the country_id we'll need, create new record if needed
 			var country = &Country{0, MSExchangeData.Country_code, MSExchangeData.Country, "", ""}
-			country, err := createOrUpdateCountry(country)
+			country, err := createOrUpdateCountry(db, country)
 			if err != nil {
 				log.Fatal().Err(err).
 					Str("country_code", MSExchangeData.Country_code).
@@ -74,7 +77,7 @@ func updateMarketstackExchanges() (bool, error) {
 
 			// use marketstack data to create or update exchange
 			var exchange = &Exchange{0, MSExchangeData.Acronym, MSExchangeData.Name, country.Country_id, MSExchangeData.City, "", ""}
-			_, err = createOrUpdateExchange(exchange)
+			_, err = createOrUpdateExchange(db, exchange)
 			if err != nil {
 				log.Fatal().Err(err).
 					Str("acronym", MSExchangeData.Acronym).
@@ -85,9 +88,9 @@ func updateMarketstackExchanges() (bool, error) {
 	return true, nil
 }
 
-func updateMarketstackTicker(symbol string) (*Ticker, error) {
+func updateMarketstackTicker(aws *session.Session, db *sqlx.DB, symbol string) (*Ticker, error) {
 	var params map[string]string
-	res, err := getMarketstackData(fmt.Sprintf("tickers/%s/eod", symbol), params)
+	res, err := getMarketstackData(aws, fmt.Sprintf("tickers/%s/eod", symbol), params)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("symbol", symbol).
@@ -103,7 +106,7 @@ func updateMarketstackTicker(symbol string) (*Ticker, error) {
 
 	// grab the exchange's country_id we'll need, create new record if needed
 	var country = &Country{0, MSEndOfDayData.StockExchange.Country_code, MSEndOfDayData.StockExchange.Country, "", ""}
-	country, err = getOrCreateCountry(country)
+	country, err = getOrCreateCountry(db, country)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("country_code", MSEndOfDayData.StockExchange.Country_code).
@@ -112,7 +115,7 @@ func updateMarketstackTicker(symbol string) (*Ticker, error) {
 
 	// grab the exchange_id we'll need, create new record if needed
 	var exchange = &Exchange{0, MSEndOfDayData.StockExchange.Acronym, MSEndOfDayData.StockExchange.Name, country.Country_id, MSEndOfDayData.StockExchange.City, "", ""}
-	exchange, err = getOrCreateExchange(exchange)
+	exchange, err = getOrCreateExchange(db, exchange)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("acronym", MSEndOfDayData.StockExchange.Acronym).
@@ -121,7 +124,7 @@ func updateMarketstackTicker(symbol string) (*Ticker, error) {
 
 	// use marketstack data to create or update ticker
 	var ticker = &Ticker{0, MSEndOfDayData.Symbol, exchange.Exchange_id, MSEndOfDayData.Name, "", ""}
-	ticker, err = createOrUpdateTicker(ticker)
+	ticker, err = createOrUpdateTicker(db, ticker)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("symbol", MSEndOfDayData.Symbol).
@@ -133,7 +136,7 @@ func updateMarketstackTicker(symbol string) (*Ticker, error) {
 		// use marketstack data to create or update dailies
 		var daily = &Daily{0, ticker.Ticker_id, MSIndexData.Price_date, MSIndexData.Open_price, MSIndexData.High_price, MSIndexData.Low_price, MSIndexData.Close_price, MSIndexData.Volume, "", ""}
 		if daily.Volume > 0 {
-			_, err = createOrUpdateDaily(daily)
+			_, err = createOrUpdateDaily(db, daily)
 			if err != nil {
 				log.Fatal().Err(err).
 					Str("symbol", ticker.Ticker_symbol).
@@ -146,11 +149,11 @@ func updateMarketstackTicker(symbol string) (*Ticker, error) {
 	return ticker, nil
 }
 
-func searchMarketstackTicker(search string) (*Ticker, error) {
+func searchMarketstackTicker(aws *session.Session, db *sqlx.DB, search string) (*Ticker, error) {
 	params := make(map[string]string)
 	params["search"] = search
 
-	res, err := getMarketstackData("tickers", params)
+	res, err := getMarketstackData(aws, "tickers", params)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("search", search).
@@ -167,7 +170,7 @@ func searchMarketstackTicker(search string) (*Ticker, error) {
 		if MSTickerData.Symbol != "" {
 			// grab the exchange's country_id we'll need, create new record if needed
 			var country = &Country{0, MSTickerData.StockExchange.Country_code, MSTickerData.StockExchange.Country, "", ""}
-			country, err = getOrCreateCountry(country)
+			country, err = getOrCreateCountry(db, country)
 			if err != nil {
 				log.Fatal().Err(err).
 					Str("country_code", MSTickerData.StockExchange.Country_code).
@@ -176,7 +179,7 @@ func searchMarketstackTicker(search string) (*Ticker, error) {
 
 			// grab the exchange_id we'll need, create new record if needed
 			var exchange = &Exchange{0, MSTickerData.StockExchange.Acronym, MSTickerData.StockExchange.Name, country.Country_id, MSTickerData.StockExchange.City, "", ""}
-			exchange, err = getOrCreateExchange(exchange)
+			exchange, err = getOrCreateExchange(db, exchange)
 			if err != nil {
 				log.Fatal().Err(err).
 					Str("acronym", MSTickerData.StockExchange.Acronym).
@@ -185,7 +188,7 @@ func searchMarketstackTicker(search string) (*Ticker, error) {
 
 			// use marketstack data to create or update ticker
 			var ticker = &Ticker{0, MSTickerData.Symbol, exchange.Exchange_id, MSTickerData.Name, "", ""}
-			ticker, err = createOrUpdateTicker(ticker)
+			ticker, err = createOrUpdateTicker(db, ticker)
 			if err != nil {
 				log.Fatal().Err(err).
 					Str("symbol", MSTickerData.Symbol).
@@ -197,5 +200,5 @@ func searchMarketstackTicker(search string) (*Ticker, error) {
 		}
 	}
 
-	return updateMarketstackTicker(firstResult.Ticker_symbol)
+	return updateMarketstackTicker(aws, db, firstResult.Ticker_symbol)
 }
