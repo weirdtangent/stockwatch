@@ -42,6 +42,12 @@ func chartHandlerLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwa
 			Title:    fmt.Sprintf("%s (%s) %s", ticker.Ticker_symbol, exchange.Exchange_acronym, ticker.Ticker_name),
 			Subtitle: "Share Price",
 		}),
+		charts.WithLegendOpts(opts.Legend{
+			Show:     true,
+			Data:     []string{"Closeing Price", "5-Day MA", "10-Day MA", "20-Day MA"},
+			Orient:   "horizontal",
+			Selected: map[string]bool{ticker.Ticker_symbol: true, "MA5": false, "MA10": false, "MA20": false},
+		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			AxisLabel: &opts.AxisLabel{
 				Rotate: 45,
@@ -57,7 +63,8 @@ func chartHandlerLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwa
 			Height: "225px",
 			Theme:  types.ThemeVintage,
 		}),
-		charts.WithTitleOpts(opts.Title{Subtitle: "Volume in mil"}),
+		charts.WithTitleOpts(opts.Title{
+			Subtitle: "Volume in mil"}),
 		charts.WithXAxisOpts(opts.XAxis{
 			AxisLabel: &opts.AxisLabel{
 				Show:   false,
