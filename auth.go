@@ -17,7 +17,7 @@ import (
 	"google.golang.org/api/idtoken"
 	"google.golang.org/api/option"
 
-	"graystorm.com/myaws"
+	"github.com/weirdtangent/myaws"
 )
 
 func googleLoginHandler(oauthConfig *oauth2.Config, oauthStateString string) http.HandlerFunc {

@@ -12,7 +12,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 
-	"graystorm.com/myaws"
+	"github.com/weirdtangent/myaws"
 )
 
 type Logger struct {

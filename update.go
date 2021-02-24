@@ -9,7 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
-	"graystorm.com/mytime"
+	"github.com/weirdtangent/mytime"
 )
 
 func updateHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {

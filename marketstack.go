@@ -9,7 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
-	"graystorm.com/myaws"
+	"github.com/weirdtangent/myaws"
 )
 
 const marketstack_url = "http://api.marketstack.com/v1/"
