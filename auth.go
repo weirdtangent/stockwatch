@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 
-	"github.com/alexedwards/scs"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/rs/zerolog/log"
 
@@ -61,8 +59,9 @@ func getUserInfo(oauthConfig *oauth2.Config, oauthStateString string, state stri
 }
 
 // validate idtoken the user has
-func googleTokenSigninHandler(aws *session.Session, googleClientId *string, smgr *scs.SessionManager) http.HandlerFunc {
+func googleTokenSigninHandler(aws *session.Session, googleClientId *string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		session := getSession(r)
 		id_token := r.FormValue("idtoken")
 
 		// go get svc account JSON
@@ -104,10 +103,7 @@ func googleTokenSigninHandler(aws *session.Session, googleClientId *string, smgr
 			payload.Claims["picture"].(string),
 			payload.Claims["locale"].(string),
 		}
-		profileJSON, err := json.Marshal(profile)
-		if err == nil {
-			smgr.Put(r.Context(), "google_profile", profileJSON)
-		}
+		session.Values["google_profile"] = profile
 
 		return
 	})

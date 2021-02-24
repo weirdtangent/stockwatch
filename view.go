@@ -4,14 +4,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/alexedwards/scs"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 )
 
-func viewHandler(aws *session.Session, db *sqlx.DB, smgr *scs.SessionManager) http.HandlerFunc {
+func viewHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		session := getSession(r)
 		path_paramlist := r.URL.Path[len("/view/"):]
 		params := strings.Split(path_paramlist, "/")
 		symbol := params[0]
@@ -67,7 +67,7 @@ func viewHandler(aws *session.Session, db *sqlx.DB, smgr *scs.SessionManager) ht
 		var lineChartHTML = chartHandlerLine(ticker, exchange, dailies, webwatches)
 		var klineChartHTML = chartHandlerKLine(ticker, exchange, dailies, webwatches)
 
-		recents, err := addTickerToRecents(smgr, r, ticker.Ticker_symbol, exchange.Exchange_acronym)
+		recents, err := addTickerToRecents(session, r, ticker.Ticker_symbol, exchange.Exchange_acronym)
 
 		var Config = ConfigData{}
 		renderTemplateView(w, r, "view", &TickerView{Config, *ticker, *exchange, dailies[1:30], webwatches, *recents, lineChartHTML, klineChartHTML})

@@ -1,31 +1,23 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 
-	"github.com/alexedwards/scs"
+	"github.com/gorilla/sessions"
 )
 
-func getRecents(sm *scs.SessionManager, r *http.Request) (*[]ViewPair, error) {
-	recents := []ViewPair{}
-
+func getRecents(session *sessions.Session, r *http.Request) (*[]ViewPair, error) {
 	// get current list (if any) from session
-	recents_json := sm.GetBytes(r.Context(), "view_recents")
-	json.Unmarshal(recents_json, &recents)
+	recents := session.Values["view_recents"].([]ViewPair)
 
 	return &recents, nil
 }
 
-func addTickerToRecents(sm *scs.SessionManager, r *http.Request, symbol string, acronym string) (*[]ViewPair, error) {
-	var recents []ViewPair
-	this_view := ViewPair{symbol, acronym}
-
+func addTickerToRecents(session *sessions.Session, r *http.Request, symbol string, acronym string) (*[]ViewPair, error) {
 	// get current list (if any) from session
-	recents_json := sm.GetBytes(r.Context(), "view_recents")
-	if len(recents_json) > 0 {
-		json.Unmarshal(recents_json, &recents)
-	}
+	recents := session.Values["view_recents"].([]ViewPair)
+
+	this_view := ViewPair{symbol, acronym}
 
 	// if this symbol/exchange is already on their list just bomb out
 	for _, viewed := range recents {
@@ -42,10 +34,7 @@ func addTickerToRecents(sm *scs.SessionManager, r *http.Request, symbol string, 
 	recents = append(recents, this_view)
 
 	// write it to the session
-	recents_json, err := json.Marshal(recents)
-	if err == nil {
-		sm.Put(r.Context(), "view_recents", recents_json)
-	}
+	session.Values["view_recents"] = recents
 
-	return &recents, err
+	return &recents, nil
 }
