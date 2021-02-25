@@ -42,6 +42,20 @@ func viewHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 
 		ticker, _ = updateTicker(aws, db, ticker)
 
+		daily, err := getDailyMostRecent(db, ticker.Ticker_id)
+		if err != nil {
+			log.Warn().Err(err).
+				Str("symbol", ticker.Ticker_symbol).
+				Int64("ticker_id", ticker.Ticker_id).
+				Msg("Failed to load most recent daily price for ticker")
+			http.NotFound(w, r)
+			return
+		}
+		lastDailyMove, err := getLastDailyMove(db, ticker.Ticker_id)
+		if err != nil {
+			lastDailyMove = "unknown"
+		}
+
 		// load up to last 100 days of EOD data
 		dailies, err := loadDailies(db, ticker.Ticker_id, 100)
 		if err != nil {
@@ -70,6 +84,6 @@ func viewHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 		recents, err := addTickerToRecents(session, r, ticker.Ticker_symbol, exchange.Exchange_acronym)
 
 		var Config = ConfigData{}
-		renderTemplateView(w, r, "view", &TickerView{Config, *ticker, *exchange, dailies[0:30], webwatches, *recents, lineChartHTML, klineChartHTML})
+		renderTemplateView(w, r, "view", &TickerView{Config, *ticker, *exchange, *daily, lastDailyMove, dailies[len(dailies)-30:], webwatches, *recents, lineChartHTML, klineChartHTML})
 	})
 }

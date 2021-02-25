@@ -124,6 +124,8 @@ type TickerView struct {
 	Config         ConfigData
 	Ticker         Ticker
 	Exchange       Exchange
+	Daily          Daily
+	LastDailyMove  string
 	Dailies        []Daily
 	Watches        []WebWatch
 	Recents        []ViewPair

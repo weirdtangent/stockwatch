@@ -4,15 +4,7 @@
 
           <div class="row">
             <div class="col-12 main-content">
-              <header class="bg-dark">
-                  <h3>Symbol: <a class="link-light" href="/view/{{.Ticker.Ticker_symbol}}/{{.Exchange.Exchange_acronym}}">{{.Ticker.Ticker_symbol}}</a> ({{.Exchange.Exchange_acronym}})</h3>
-                  <h4>{{.Ticker.Ticker_name}}</h4>
-                  <span id="toggle">
-                    <button type="button" class="nav-item btn-sm bg-success"><i class="fas fa-chart-line"></i> Line</button>
-                    <button type="button" class="nav-item btn-sm bg-success"><i class="far fa-chart-bar"></i> Candlestick</button>
-                    <button type="button" class="nav-item btn-sm bg-danger py-2"><i class="far fa-window-close"></i></button>
-                  </span>
-              </header>
+              {{ template "_ticker_top" . }}
               <h4>Daily Activity (last 30 days)</h4>
               <section class="mt-3 me-5">
                   {{ template "_chart_js" }}

@@ -2,6 +2,7 @@ package main
 
 import (
 	//"fmt"
+	"encoding/gob"
 	"net/http"
 
 	"github.com/gorilla/securecookie"
@@ -74,6 +75,7 @@ func main() {
 	var hashKey = []byte(*cookieAuthKey)
 	var blockKey = []byte(*cookieEncryptionKey)
 	var secureCookie = securecookie.New(hashKey, blockKey)
+	gob.RegisterName("ViewPair", []ViewPair{})
 
 	// Initialize a new session manager and configure the session lifetime.
 	store, err := dynastore.New(

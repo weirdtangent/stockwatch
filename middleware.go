@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -50,7 +49,6 @@ func (s *Session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			log.Fatal().Err(err).Msg("Failed to save session")
 		}
 	}
-	fmt.Printf("%#v\n\n", session)
 	r = r.Clone(context.WithValue(r.Context(), "ddbs", session))
 
 	defer session.Save(r, w)

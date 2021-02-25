@@ -7,24 +7,51 @@ import (
 
 func getDaily(db *sqlx.DB, ticker_id int64, daily_date string) (*Daily, error) {
 	var daily Daily
-	err := db.QueryRowx("SELECT * FROM daily WHERE ticker_id=? AND price_date=?", ticker_id, daily_date).StructScan(&daily)
+	err := db.QueryRowx(
+		`SELECT * FROM daily WHERE ticker_id=? AND price_date=?`,
+		ticker_id, daily_date).StructScan(&daily)
 	return &daily, err
 }
 
 func getDailyById(db *sqlx.DB, daily_id int64) (*Daily, error) {
 	var daily Daily
-	err := db.QueryRowx("SELECT * FROM daily WHERE daily_id=?", daily_id).StructScan(&daily)
+	err := db.QueryRowx(
+		`SELECT * FROM daily WHERE daily_id=?`,
+		daily_id).StructScan(&daily)
 	return &daily, err
 }
 
 func getDailyMostRecent(db *sqlx.DB, ticker_id int64) (*Daily, error) {
 	var daily Daily
-	err := db.QueryRowx("SELECT * FROM daily WHERE ticker_id=? ORDER BY price_date DESC LIMIT 1", ticker_id).StructScan(&daily)
+	err := db.QueryRowx(
+		`SELECT * FROM daily WHERE ticker_id=?
+		 ORDER BY price_date DESC LIMIT 1`,
+		ticker_id).StructScan(&daily)
 	return &daily, err
 }
 
+func getLastDailyMove(db *sqlx.DB, ticker_id int64) (string, error) {
+	var lastDailyMove string
+	row := db.QueryRowx(
+		`SELECT IF(daily.close_price >= prev.close_price,"up",IF(daily.close_price < prev.close_price,"down","unknown")) AS lastDailyMove
+		 FROM daily
+		 LEFT JOIN (
+		   SELECT ticker_id, close_price FROM daily AS prev_daily
+			 WHERE ticker_id=? ORDER by price_date DESC LIMIT 1,1
+		 ) AS prev ON (daily.ticker_id = prev.ticker_id)
+		 WHERE daily.ticker_id=? ORDER BY price_date DESC LIMIT 1`,
+		ticker_id, ticker_id)
+	err := row.Scan(&lastDailyMove)
+	return lastDailyMove, err
+}
+
 func loadDailies(db *sqlx.DB, ticker_id int64, days int) ([]Daily, error) {
-	rows, err := db.Queryx("SELECT * FROM (SELECT * FROM daily WHERE ticker_id=? AND volume > 0 ORDER BY price_date DESC LIMIT ?) DT1 ORDER BY price_date", ticker_id, days)
+	rows, err := db.Queryx(
+		`SELECT * FROM (
+       SELECT * FROM daily WHERE ticker_id=? AND volume > 0
+		   ORDER BY price_date DESC LIMIT ?) DT1
+		 ORDER BY price_date`,
+		ticker_id, days)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("table_name", "daily").
