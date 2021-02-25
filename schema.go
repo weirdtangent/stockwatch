@@ -5,6 +5,8 @@ import (
 	"html/template"
 )
 
+// table schema from aurora ---------------------------------------------------
+
 type Country struct {
 	Country_id      int64
 	Country_code    string
@@ -77,7 +79,7 @@ type Watch struct {
 	Update_datetime string
 }
 
-// contrived schema for views
+// google oauth ---------------------------------------------------------------
 
 type GoogleProfileData struct {
 	Name       string
@@ -87,6 +89,8 @@ type GoogleProfileData struct {
 	PictureURL string
 	Locale     string
 }
+
+// contrived schema for templates ---------------------------------------------
 
 type ConfigData struct {
 	TmplName      string
@@ -131,7 +135,7 @@ type MessageView struct {
 	Messages []string
 }
 
-// marketstack data
+// marketstack json data ------------------------------------------------------
 
 type MSExchangeData struct {
 	Name         string `json:"name"`

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"time"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
@@ -17,16 +16,17 @@ type klineData struct {
 
 func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwatches []WebWatch) template.HTML {
 	// build data needed
-	EasternTZ, _ := time.LoadLocation("America/New_York")
-	endDate := time.Now().In(EasternTZ)
-	priceDate := endDate.AddDate(0, 0, -100)
+	days := len(dailies)
+	x_axis := make([]string, 0, days)
+	hidden_axis := make([]string, 0, days)
+	candleData := make([]opts.KlineData, 0, days)
+	volumeData := make([]opts.BarData, 0, days)
+	for x := 0; x < days; x++ {
+		displayDate := dailies[x].Price_date
+		x_axis = append(x_axis, displayDate)
+		hidden_axis = append(hidden_axis, "")
 
-	x_axis := make([]string, 0)
-	candleData := make([]opts.KlineData, 0)
-	volumeData := make([]opts.BarData, 0)
-	for x := 0; x < len(dailies); x++ {
-		priceDate = priceDate.AddDate(0, 0, 1)
-		x_axis = append(x_axis, priceDate.Format("2006-01-02"))
+		//candleData = append(candleData, opts.KlineData{Value: [4]float32{dailies[x].Open_price, dailies[x].High_price, dailies[x].Low_price, dailies[x].Close_price}})
 		candleData = append(candleData, opts.KlineData{Value: [4]float32{dailies[x].Open_price, dailies[x].Close_price, dailies[x].Low_price, dailies[x].High_price}})
 		volumeData = append(volumeData, opts.BarData{Value: dailies[x].Volume / 1000000})
 	}
@@ -35,18 +35,19 @@ func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webw
 	prices := charts.NewKLine()
 	prices.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "800px",
-			Height: "350px",
-			Theme:  types.ThemeVintage,
+			Width:      "850px",
+			Height:     "350px",
+			Theme:      types.ThemeVintage,
+			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
 		charts.WithTitleOpts(opts.Title{
 			Title:    fmt.Sprintf("%s (%s) %s", ticker.Ticker_symbol, exchange.Exchange_acronym, ticker.Ticker_name),
 			Subtitle: "Share Price",
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
-			Show: false,
+			Show: true,
 			AxisLabel: &opts.AxisLabel{
-				Show:   false,
+				Show:   true,
 				Rotate: 45,
 			},
 		}),
@@ -60,9 +61,10 @@ func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webw
 	volume := charts.NewBar()
 	volume.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "800px",
-			Height: "225px",
-			Theme:  types.ThemeVintage,
+			Width:      "850px",
+			Height:     "225px",
+			Theme:      types.ThemeVintage,
+			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
 		charts.WithTitleOpts(opts.Title{Subtitle: "Volume in mil"}),
 		charts.WithXAxisOpts(opts.XAxis{
@@ -79,7 +81,7 @@ func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webw
 	)
 
 	// Put data into instance
-	prices.SetXAxis(x_axis).
+	prices.SetXAxis(hidden_axis).
 		AddSeries("price", candleData, charts.WithLabelOpts(opts.Label{Show: false}))
 	volume.SetXAxis(x_axis).
 		AddSeries("volume", volumeData, charts.WithLabelOpts(opts.Label{Show: false}))

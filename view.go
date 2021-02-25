@@ -70,6 +70,6 @@ func viewHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 		recents, err := addTickerToRecents(session, r, ticker.Ticker_symbol, exchange.Exchange_acronym)
 
 		var Config = ConfigData{}
-		renderTemplateView(w, r, "view", &TickerView{Config, *ticker, *exchange, dailies[1:30], webwatches, *recents, lineChartHTML, klineChartHTML})
+		renderTemplateView(w, r, "view", &TickerView{Config, *ticker, *exchange, dailies[0:30], webwatches, *recents, lineChartHTML, klineChartHTML})
 	})
 }

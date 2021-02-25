@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"html/template"
 	"reflect"
-	"time"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
@@ -14,18 +13,17 @@ import (
 
 func chartHandlerLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwatches []WebWatch) template.HTML {
 	// build data needed
-	EasternTZ, _ := time.LoadLocation("America/New_York")
-	endDate := time.Now().In(EasternTZ)
-	priceDate := endDate.AddDate(0, 0, -100)
-
-	x_axis := make([]string, 0, 100)
-	lineData := make([]opts.LineData, 0, 100)
-	volumeData := make([]opts.BarData, 0)
-	for x := 0; x < 100; x++ {
-		priceDate = priceDate.AddDate(0, 0, 1)
-		displayDate := priceDate.Format("2006-01-02")
+	days := len(dailies)
+	x_axis := make([]string, 0, days)
+	hidden_axis := make([]string, 0, days)
+	lineData := make([]opts.LineData, 0, days)
+	volumeData := make([]opts.BarData, 0, days)
+	for x := 0; x < days; x++ {
+		displayDate := dailies[x].Price_date
 		closePrice := dailies[x].Close_price
+
 		x_axis = append(x_axis, displayDate)
+		hidden_axis = append(hidden_axis, "")
 		lineData = append(lineData, opts.LineData{Value: closePrice})
 		volumeData = append(volumeData, opts.BarData{Value: dailies[x].Volume / 1000000})
 	}
@@ -34,9 +32,10 @@ func chartHandlerLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwa
 	prices := charts.NewLine()
 	prices.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "800px",
-			Height: "350px",
-			Theme:  types.ThemeVintage,
+			Width:      "850px",
+			Height:     "350px",
+			Theme:      types.ThemeVintage,
+			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
 		charts.WithTitleOpts(opts.Title{
 			Title:    fmt.Sprintf("%s (%s) %s", ticker.Ticker_symbol, exchange.Exchange_acronym, ticker.Ticker_name),
@@ -59,9 +58,10 @@ func chartHandlerLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwa
 	volume := charts.NewBar()
 	volume.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "800px",
-			Height: "225px",
-			Theme:  types.ThemeVintage,
+			Width:      "850px",
+			Height:     "225px",
+			Theme:      types.ThemeVintage,
+			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
 		charts.WithTitleOpts(opts.Title{
 			Subtitle: "Volume in mil"}),
@@ -79,17 +79,17 @@ func chartHandlerLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwa
 	)
 
 	// Put data into instance
-	prices.SetXAxis(x_axis).
+	prices.SetXAxis(hidden_axis).
 		AddSeries(ticker.Ticker_symbol, lineData,
 			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
 	prices.
-		AddSeries("MA5", calcMovingAvg(5, lineData),
+		AddSeries("MA5", calcMovingLineAvg(5, lineData),
 			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
 	prices.
-		AddSeries("MA10", calcMovingAvg(10, lineData),
+		AddSeries("MA10", calcMovingLineAvg(10, lineData),
 			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
 	prices.
-		AddSeries("MA20", calcMovingAvg(20, lineData),
+		AddSeries("MA20", calcMovingLineAvg(20, lineData),
 			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
 
 	volume.SetXAxis(x_axis).
@@ -101,7 +101,7 @@ func chartHandlerLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwa
 	return renderToHtml(prices) + renderToHtml(volume)
 }
 
-func calcMovingAvg(days float32, prices []opts.LineData) []opts.LineData {
+func calcMovingLineAvg(days float32, prices []opts.LineData) []opts.LineData {
 	movingAvg := make([]opts.LineData, 0, 100)
 	for i, _ := range prices {
 		if i < int(days) {

@@ -1,11 +1,9 @@
 package main
 
 import (
-	"context"
 	"net/http"
-	"time"
 
-	"github.com/gorilla/sessions"
+	"github.com/gorilla/securecookie"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/savaki/dynastore"
@@ -16,20 +14,13 @@ import (
 	"github.com/weirdtangent/myaws"
 )
 
-type Logger struct {
-	handler http.Handler
-}
-type Session struct {
-	store   *dynastore.Store
-	name    string
-	handler http.Handler
-}
-
 func main() {
 	// setup logging
-	//zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	log.Logger = log.With().Caller().Logger()
+
+	// grab config
+	awsConfig, err := myaws.AWSConfig("us-east-1")
 
 	// connect to AWS
 	aws, err := myaws.AWSConnect("us-east-1", "stockwatch")
@@ -40,7 +31,13 @@ func main() {
 	// connect to Aurora
 	db, err := myaws.DBConnect(aws, "stockwatch_rds", "stockwatch")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect the RDS")
+		log.Fatal().Err(err).Msg("Failed to connect to RDS")
+	}
+
+	// connect to Dynamo
+	ddb, err := myaws.DDBConnect(aws)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to connect to DDB")
 	}
 
 	// config Google OAuth
@@ -59,14 +56,39 @@ func main() {
 		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
 		Endpoint:     google.Endpoint,
 	}
-	var oAuthStateStr = "vXrwhPrewsQxJKX6Bg9H86MoEC3PfPwv"
+	oAuthStateStr, err := myaws.AWSGetSecretKV(aws, "stockwatch_oauth_state", "oauth_state")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+
+	// Cookie setup for sessionID
+	cookieAuthKey, err := myaws.AWSGetSecretKV(aws, "stockwatch_cookie", "auth_key")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+	cookieEncryptionKey, err := myaws.AWSGetSecretKV(aws, "stockwatch_cookie", "encryption_key")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+	var hashKey = []byte(*cookieAuthKey)
+	var blockKey = []byte(*cookieEncryptionKey)
+	var secureCookie = securecookie.New(hashKey, blockKey)
 
 	// Initialize a new session manager and configure the session lifetime.
-	store, err := dynastore.New(dynastore.Path("/"), dynastore.HTTPOnly(), dynastore.MaxAge(900))
+	store, err := dynastore.New(
+		dynastore.AWSConfig(awsConfig),
+		dynastore.DynamoDB(ddb),
+		dynastore.TableName("stockwatch-session"),
+		dynastore.Secure(),
+		dynastore.HTTPOnly(),
+		dynastore.Domain("stockwatch.graystorm.com"),
+		dynastore.Path("/"),
+		dynastore.MaxAge(900),
+		dynastore.Codecs(secureCookie),
+	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to setup session management")
 	}
-	var sessionKey = "session_key"
 
 	// starting up
 	log.Info().Int("port", 3001).Msg("Started serving requests")
@@ -74,8 +96,8 @@ func main() {
 	// setup middleware chain
 	mux := http.NewServeMux()
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
-	mux.HandleFunc("/login", googleLoginHandler(oAuthConfig, oAuthStateStr))
-	mux.HandleFunc("/callback", googleCallbackHandler(oAuthConfig, oAuthStateStr))
+	mux.HandleFunc("/login", googleLoginHandler(oAuthConfig, *oAuthStateStr))
+	mux.HandleFunc("/callback", googleCallbackHandler(oAuthConfig, *oAuthStateStr))
 	mux.HandleFunc("/tokensignin", googleTokenSigninHandler(aws, clientId))
 	mux.HandleFunc("/view/", viewHandler(aws, db))
 	mux.HandleFunc("/search/", searchHandler(aws, db))
@@ -83,7 +105,7 @@ func main() {
 	mux.HandleFunc("/", homeHandler())
 
 	// middleware chain
-	chainedMux1 := withSession(store, sessionKey, mux)
+	chainedMux1 := withSession(store, mux)
 	chainedMux2 := withLogging(chainedMux1)
 
 	// starup or die
@@ -91,40 +113,4 @@ func main() {
 		log.Fatal().Err(err).
 			Msg("Stopped serving requests")
 	}
-}
-
-func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	t := time.Now()
-	l.handler.ServeHTTP(w, r)
-	log.Info().
-		Stringer("url", r.URL).
-		Int("status_code", 200).
-		Int64("response_time", time.Since(t).Nanoseconds()).
-		Msg("")
-}
-func withLogging(h http.Handler) *Logger {
-	return &Logger{h}
-}
-
-func (s *Session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session, _ := s.store.Get(r, s.name)
-	if session.IsNew {
-		session.Values["view_recents"] = []ViewPair{}
-		session.Save(r, w)
-	}
-	defer session.Save(r, w)
-
-	ctx := context.WithValue(r.Context(), "session", session)
-	s.handler.ServeHTTP(w, r.WithContext(ctx))
-}
-func withSession(store *dynastore.Store, name string, h http.Handler) *Session {
-	return &Session{store, name, h}
-}
-
-func getSession(r *http.Request) *sessions.Session {
-	session := r.Context().Value("session").(*sessions.Session)
-	if session == nil {
-		log.Fatal().Err(errFailedToGetSessionFromContext).Msg("")
-	}
-	return session
 }

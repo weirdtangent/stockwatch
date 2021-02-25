@@ -12,7 +12,7 @@ header {
 }
 
 body.home .main-content {
-  background: url("/static/images/front-page.jpg") no-repeat top/contain scroll;
+  background: url("/static/images/front-page.jpg") no-repeat top/cover scroll;
 }
 
 .hideOnProfile,
@@ -20,6 +20,12 @@ body.home .main-content {
   display: none;
 }
 
+#lineChart > div:first-of-type {
+  margin-bottom: -60px;
+}
+#klineChart > div:first-of-type {
+  margin-bottom: -60px;
+}
 .chartSecondary {
   display: none;
 }

@@ -24,7 +24,7 @@ func getDailyMostRecent(db *sqlx.DB, ticker_id int64) (*Daily, error) {
 }
 
 func loadDailies(db *sqlx.DB, ticker_id int64, days int) ([]Daily, error) {
-	rows, err := db.Queryx("SELECT * FROM daily WHERE ticker_id=? AND volume > 0 ORDER BY price_date DESC LIMIT ?", ticker_id, days)
+	rows, err := db.Queryx("SELECT * FROM (SELECT * FROM daily WHERE ticker_id=? AND volume > 0 ORDER BY price_date DESC LIMIT ?) DT1 ORDER BY price_date", ticker_id, days)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("table_name", "daily").
