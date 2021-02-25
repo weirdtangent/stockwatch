@@ -19,7 +19,7 @@ func chartHandlerLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwa
 	lineData := make([]opts.LineData, 0, days)
 	volumeData := make([]opts.BarData, 0, days)
 	for x := 0; x < days; x++ {
-		displayDate := dailies[x].Price_date
+		displayDate := dailies[x].Price_date[5:10]
 		closePrice := dailies[x].Close_price
 
 		x_axis = append(x_axis, displayDate)
@@ -46,10 +46,12 @@ func chartHandlerLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwa
 			Data:     []string{"Closeing Price", "5-Day MA", "10-Day MA", "20-Day MA"},
 			Orient:   "horizontal",
 			Selected: map[string]bool{ticker.Ticker_symbol: true, "MA5": false, "MA10": false, "MA20": false},
+			Left:     "right",
+			Top:      "top",
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			AxisLabel: &opts.AxisLabel{
-				Rotate: 45,
+				Show: false,
 			},
 		}),
 		charts.WithYAxisOpts(opts.YAxis{}),
@@ -67,11 +69,11 @@ func chartHandlerLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwa
 			Subtitle: "Volume in mil"}),
 		charts.WithXAxisOpts(opts.XAxis{
 			AxisLabel: &opts.AxisLabel{
-				Show:   false,
 				Rotate: 45,
 			},
 		}),
 		charts.WithYAxisOpts(opts.YAxis{
+			Show: false,
 			AxisLabel: &opts.AxisLabel{
 				Show: false,
 			},

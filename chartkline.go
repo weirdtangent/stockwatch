@@ -22,7 +22,7 @@ func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webw
 	candleData := make([]opts.KlineData, 0, days)
 	volumeData := make([]opts.BarData, 0, days)
 	for x := 0; x < days; x++ {
-		displayDate := dailies[x].Price_date
+		displayDate := dailies[x].Price_date[5:10]
 		x_axis = append(x_axis, displayDate)
 		hidden_axis = append(hidden_axis, "")
 
@@ -45,15 +45,14 @@ func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webw
 			Subtitle: "Share Price",
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
-			Show: true,
+			Show: false,
 			AxisLabel: &opts.AxisLabel{
-				Show:   true,
-				Rotate: 45,
+				Show: false,
 			},
 		}),
 		charts.WithYAxisOpts(opts.YAxis{
 			AxisLabel: &opts.AxisLabel{
-				Show: false,
+				Show: true,
 			},
 		}),
 	)
@@ -69,11 +68,11 @@ func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webw
 		charts.WithTitleOpts(opts.Title{Subtitle: "Volume in mil"}),
 		charts.WithXAxisOpts(opts.XAxis{
 			AxisLabel: &opts.AxisLabel{
-				Show:   false,
 				Rotate: 45,
 			},
 		}),
 		charts.WithYAxisOpts(opts.YAxis{
+			Show: false,
 			AxisLabel: &opts.AxisLabel{
 				Show: false,
 			},

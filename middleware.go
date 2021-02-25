@@ -38,21 +38,17 @@ type Session struct {
 }
 
 func (s *Session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session, _ := s.store.Get(r, "SID")
+	session, err := s.store.Get(r, "SID")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to get/create session")
+	}
 	if session.IsNew {
 		session.Values["view_recents"] = []ViewPair{}
 		session.Values["theme"] = "light"
-		session.Save(r, w)
-		//if encoded, err := s.store.Codec.Encode("cookie-name", value); err == nil {
-		//	cookie := &http.Cookie{
-		//		Name:     "cookie-name",
-		//		Value:    encoded,
-		//		Path:     "/",
-		//		Secure:   true,
-		//		HttpOnly: true,
-		//	}
-		//	http.SetCookie(w, cookie)
-		//}
+		err := session.Save(r, w)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to save session")
+		}
 	}
 	fmt.Printf("%#v\n\n", session)
 	r = r.Clone(context.WithValue(r.Context(), "ddbs", session))
