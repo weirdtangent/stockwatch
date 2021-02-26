@@ -4,11 +4,19 @@ import (
 	"fmt"
 	"html/template"
 	"reflect"
+	"time"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
 	//"github.com/rs/zerolog/log"
+)
+
+const (
+	mainX  = "950px"
+	mainY  = "450px"
+	smallX = "950px"
+	smallY = "225px"
 )
 
 func chartHandlerDailyLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwatches []WebWatch) template.HTML {
@@ -18,7 +26,7 @@ func chartHandlerDailyLine(ticker *Ticker, exchange *Exchange, dailies []Daily, 
 	hidden_axis := make([]string, 0, days)
 	lineData := make([]opts.LineData, 0, days)
 	volumeData := make([]opts.BarData, 0, days)
-	for x := 0; x < days; x++ {
+	for x := range dailies {
 		displayDate := dailies[x].Price_date[5:10]
 		closePrice := dailies[x].Close_price
 
@@ -32,8 +40,8 @@ func chartHandlerDailyLine(ticker *Ticker, exchange *Exchange, dailies []Daily, 
 	prices := charts.NewLine()
 	prices.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:      "850px",
-			Height:     "450px",
+			Width:      mainX,
+			Height:     mainY,
 			Theme:      types.ThemeVintage,
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
@@ -60,8 +68,8 @@ func chartHandlerDailyLine(ticker *Ticker, exchange *Exchange, dailies []Daily, 
 	volume := charts.NewBar()
 	volume.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:      "850px",
-			Height:     "225px",
+			Width:      smallX,
+			Height:     smallY,
 			Theme:      types.ThemeVintage,
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
@@ -110,13 +118,15 @@ func chartHandlerIntradayLine(ticker *Ticker, exchange *Exchange, intradays []In
 	hidden_axis := make([]string, 0, steps)
 	lineData := make([]opts.LineData, 0, steps)
 	volumeData := make([]opts.BarData, 0, steps)
-	for x := 0; x < steps; x++ {
+	EasternTZ, _ := time.LoadLocation("America/New_York")
+	for x := range intradays {
 		datePart := intradays[x].Price_date[0:10]
 		var displayDate string
 		if datePart != intradate {
 			displayDate = datePart
 		} else {
-			displayDate = intradays[x].Price_date[11:16]
+			timeSlot, _ := time.Parse("15:04", intradays[x].Price_date[11:16])
+			displayDate = timeSlot.In(EasternTZ).Format("15:04")
 		}
 		closePrice := intradays[x].Last_price
 
@@ -130,8 +140,8 @@ func chartHandlerIntradayLine(ticker *Ticker, exchange *Exchange, intradays []In
 	prices := charts.NewLine()
 	prices.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:      "850px",
-			Height:     "450px",
+			Width:      mainX,
+			Height:     mainY,
 			Theme:      types.ThemeVintage,
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
@@ -158,8 +168,8 @@ func chartHandlerIntradayLine(ticker *Ticker, exchange *Exchange, intradays []In
 	volume := charts.NewBar()
 	volume.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:      "850px",
-			Height:     "225px",
+			Width:      smallX,
+			Height:     smallY,
 			Theme:      types.ThemeVintage,
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
@@ -167,7 +177,7 @@ func chartHandlerIntradayLine(ticker *Ticker, exchange *Exchange, intradays []In
 			Subtitle: "Volume"}),
 		charts.WithXAxisOpts(opts.XAxis{
 			AxisLabel: &opts.AxisLabel{
-				Rotate: 45,
+				Rotate: 60,
 			},
 		}),
 		charts.WithYAxisOpts(opts.YAxis{

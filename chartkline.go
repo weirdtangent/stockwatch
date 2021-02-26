@@ -21,7 +21,7 @@ func chartHandlerDailyKLine(ticker *Ticker, exchange *Exchange, dailies []Daily,
 	hidden_axis := make([]string, 0, days)
 	candleData := make([]opts.KlineData, 0, days)
 	volumeData := make([]opts.BarData, 0, days)
-	for x := 0; x < days; x++ {
+	for x := range dailies {
 		displayDate := dailies[x].Price_date[5:10]
 		x_axis = append(x_axis, displayDate)
 		hidden_axis = append(hidden_axis, "")
@@ -34,8 +34,8 @@ func chartHandlerDailyKLine(ticker *Ticker, exchange *Exchange, dailies []Daily,
 	prices := charts.NewKLine()
 	prices.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:      "850px",
-			Height:     "450px",
+			Width:      mainX,
+			Height:     mainY,
 			Theme:      types.ThemeVintage,
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
@@ -59,8 +59,8 @@ func chartHandlerDailyKLine(ticker *Ticker, exchange *Exchange, dailies []Daily,
 	volume := charts.NewBar()
 	volume.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:      "850px",
-			Height:     "225px",
+			Width:      smallX,
+			Height:     smallY,
 			Theme:      types.ThemeVintage,
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
