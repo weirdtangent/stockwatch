@@ -1,9 +1,27 @@
 package main
 
 import (
+	"sort"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 )
+
+type ByPriceDate Dailies
+
+func (a ByPriceDate) Len() int           { return len(a.Days) }
+func (a ByPriceDate) Less(i, j int) bool { return a.Days[i].Price_date < a.Days[j].Price_date }
+func (a ByPriceDate) Swap(i, j int)      { a.Days[i], a.Days[j] = a.Days[j], a.Days[i] }
+
+func (d Dailies) Sort() *Dailies {
+	sort.Sort(ByPriceDate(d))
+	return &d
+}
+
+func (d Dailies) Reverse() *Dailies {
+	sort.Sort(sort.Reverse(ByPriceDate(d)))
+	return &d
+}
 
 func getDaily(db *sqlx.DB, ticker_id int64, daily_date string) (*Daily, error) {
 	var daily Daily

@@ -86,7 +86,7 @@ func viewDailyHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 
 		var Config = ConfigData{}
 		renderTemplateDailyView(w, r, "view-daily",
-			&TickerDailyView{Config, *ticker, *exchange, *daily, lastDailyMove, dailies[len(dailies)-30:], webwatches, *recents, lineChartHTML, klineChartHTML})
+			&TickerDailyView{Config, *ticker, *exchange, *daily, lastDailyMove, Dailies{dailies[len(dailies)-30:]}, webwatches, *recents, lineChartHTML, klineChartHTML})
 	})
 }
 

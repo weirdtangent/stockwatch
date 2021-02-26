@@ -131,13 +131,17 @@ type ViewPair struct {
 	Acronym string
 }
 
+type Dailies struct {
+	Days []Daily
+}
+
 type TickerDailyView struct {
 	Config         ConfigData
 	Ticker         Ticker
 	Exchange       Exchange
 	Daily          Daily
 	LastDailyMove  string
-	Dailies        []Daily
+	Dailies        Dailies
 	Watches        []WebWatch
 	Recents        []ViewPair
 	LineChartHTML  template.HTML
