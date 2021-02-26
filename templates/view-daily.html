@@ -1,4 +1,4 @@
-{{- define "view" -}}
+{{- define "view-daily" -}}
 {{ template "_header" . }}
           <script src="/static/js/view.js"></script>
 
@@ -7,30 +7,9 @@
               {{ template "_ticker_top" . }}
               <h4>Daily Activity (last 30 days)</h4>
               <section class="mt-3 me-5">
-                  {{ template "_chart_js" }}
-                  <article id="lineChart" class="chartDouble">{{.LineChartHTML}}</article>
-                  <article id="klineChart" class="chartDouble chartSecondary">{{.KLineChartHTML}}</article>
-                <!--
-                <div class="col-xl-3 col-xl-2 offset-xxl-1 offset-xl-1 bg-light text-primary" style="z-index: 1000;">
-                  {{if .Watches}}
-                  <section class="row">
-                    <h3 class="text-danger">Watches</h3>
-                    <ul>
-                    {{range .Watches}}
-                    <li>{{ if .Source_name.Valid }}{{.Source_name.String}}
-                          {{ if .Source_company.Valid }} at{{end}}
-                        {{end}}
-                        {{if .Source_company}}{{.Source_company.String}}{{end}}
-                        {{if .Target_date}}, on {{ printf "%-10.10s" .Source_date}},{{end}}
-                        {{if .Target_price}} set a target price of {{ printf "$%.2f" .Target_price}} for
-                        {{else}} highlighted{{end}}
-                        this stock.</li>
-                    {{end}}
-                    </ul>
-                  </section>
-                  {{end}}
-                </div>
-                -->
+                {{ template "_chart_js" }}
+                <article id="lineChart" class="chartDouble">{{.LineChartHTML}}</article>
+                <article id="klineChart" class="chartDouble chartSecondary">{{.KLineChartHTML}}</article>
               </section>
 
               {{if .Dailies}}
@@ -48,7 +27,7 @@
                       </tr>
                     {{range .Dailies}}
                      <tr>
-                       <td class="text-center">{{.Price_date}}</td>
+                       <td class="text-center"><a href="/view/{{$.Ticker.Ticker_symbol}}/{{$.Exchange.Exchange_acronym}}/{{.Price_date}}">{{.Price_date}}</a></td>
                        <td class="text-end">{{printf "%.2f" .Open_price}}</td>
                        <td class="text-end">{{printf "%.2f" .High_price}}</td>
                        <td class="text-end">{{printf "%.2f" .Low_price}}</td>

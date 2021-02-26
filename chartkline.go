@@ -14,7 +14,7 @@ type klineData struct {
 	data [4]float32
 }
 
-func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwatches []WebWatch) template.HTML {
+func chartHandlerDailyKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwatches []WebWatch) template.HTML {
 	// build data needed
 	days := len(dailies)
 	x_axis := make([]string, 0, days)
@@ -26,7 +26,6 @@ func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webw
 		x_axis = append(x_axis, displayDate)
 		hidden_axis = append(hidden_axis, "")
 
-		//candleData = append(candleData, opts.KlineData{Value: [4]float32{dailies[x].Open_price, dailies[x].High_price, dailies[x].Low_price, dailies[x].Close_price}})
 		candleData = append(candleData, opts.KlineData{Value: [4]float32{dailies[x].Open_price, dailies[x].Close_price, dailies[x].Low_price, dailies[x].High_price}})
 		volumeData = append(volumeData, opts.BarData{Value: dailies[x].Volume / 1000000})
 	}
@@ -36,7 +35,7 @@ func chartHandlerKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webw
 	prices.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
 			Width:      "850px",
-			Height:     "350px",
+			Height:     "450px",
 			Theme:      types.ThemeVintage,
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),

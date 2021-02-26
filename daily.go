@@ -7,6 +7,9 @@ import (
 
 func getDaily(db *sqlx.DB, ticker_id int64, daily_date string) (*Daily, error) {
 	var daily Daily
+	if len(daily_date) > 10 {
+		daily_date = daily_date[0:10]
+	}
 	err := db.QueryRowx(
 		`SELECT * FROM daily WHERE ticker_id=? AND price_date=?`,
 		ticker_id, daily_date).StructScan(&daily)

@@ -4,7 +4,9 @@ import (
 	//"fmt"
 	"encoding/gob"
 	"net/http"
+	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -97,22 +99,34 @@ func main() {
 	log.Info().Int("port", 3001).Msg("Started serving requests")
 
 	// setup middleware chain
-	mux := http.NewServeMux()
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
-	mux.HandleFunc("/login", googleLoginHandler(oAuthConfig, *oAuthStateStr))
-	mux.HandleFunc("/callback", googleCallbackHandler(oAuthConfig, *oAuthStateStr))
-	mux.HandleFunc("/tokensignin", googleTokenSigninHandler(aws, clientId))
-	mux.HandleFunc("/view/", viewHandler(aws, db))
-	mux.HandleFunc("/search/", searchHandler(aws, db))
-	mux.HandleFunc("/update/", updateHandler(aws, db))
-	mux.HandleFunc("/", homeHandler())
+	router := mux.NewRouter()
+
+	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
+	//router.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
+
+	router.HandleFunc("/login", googleLoginHandler(oAuthConfig, *oAuthStateStr))
+	router.HandleFunc("/callback", googleCallbackHandler(oAuthConfig, *oAuthStateStr))
+	router.HandleFunc("/tokensignin", googleTokenSigninHandler(aws, clientId))
+	router.HandleFunc("/view/{symbol}/{acronym}", viewDailyHandler(aws, db))
+	router.HandleFunc("/view/{symbol}/{acronym}/{intradate}", viewIntradayHandler(aws, db))
+	router.HandleFunc("/search/{type}", searchHandler(aws, db))
+	router.HandleFunc("/update/{action}", updateHandler(aws, db))
+	router.HandleFunc("/update/{action}/{symbol}", updateHandler(aws, db))
+	router.HandleFunc("/", homeHandler())
 
 	// middleware chain
-	chainedMux1 := withSession(store, mux)
+	chainedMux1 := withSession(store, router)
 	chainedMux2 := withLogging(chainedMux1)
 
 	// starup or die
-	if err = http.ListenAndServe(":3001", chainedMux2); err != nil {
+	server := &http.Server{
+		Handler:      chainedMux2,
+		Addr:         ":3001",
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+
+	if err = server.ListenAndServe(); err != nil {
 		log.Fatal().Err(err).
 			Msg("Stopped serving requests")
 	}

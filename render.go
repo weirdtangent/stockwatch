@@ -42,7 +42,25 @@ func renderTemplateMessages(w http.ResponseWriter, r *http.Request, tmplname str
 	}
 }
 
-func renderTemplateView(w http.ResponseWriter, r *http.Request, tmplname string, data *TickerView) {
+func renderTemplateDailyView(w http.ResponseWriter, r *http.Request, tmplname string, data *TickerDailyView) {
+	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/_wrapper.html")
+	if err != nil {
+		log.Warn().Err(err).
+			Str("template", tmplname).
+			Msg("Failed to parse template")
+		http.NotFound(w, r)
+	}
+
+	data.Config.TmplName = tmplname
+	err = tmpl.ExecuteTemplate(w, tmplname, data)
+	if err != nil {
+		log.Error().Err(err).
+			Str("template", tmplname).
+			Msg("Failed to execute template")
+	}
+}
+
+func renderTemplateIntradayView(w http.ResponseWriter, r *http.Request, tmplname string, data *TickerIntradayView) {
 	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/_wrapper.html")
 	if err != nil {
 		log.Warn().Err(err).

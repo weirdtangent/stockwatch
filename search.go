@@ -5,13 +5,15 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 )
 
 func searchHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		searchType := r.URL.Path[len("/search/"):]
+		params := mux.Vars(r)
+		searchType := params["type"]
 
 		switch searchType {
 		case "ticker":

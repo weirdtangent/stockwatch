@@ -12,7 +12,7 @@ import (
 	"github.com/weirdtangent/myaws"
 )
 
-const marketstack_url = "http://api.marketstack.com/v1/"
+const marketstack_url = "https://api.marketstack.com/v1/"
 
 func getMarketstackData(aws *session.Session, action string, params map[string]string) (*http.Response, error) {
 	httpClient := http.Client{}
@@ -30,11 +30,16 @@ func getMarketstackData(aws *session.Session, action string, params map[string]s
 	}
 
 	q := req.URL.Query()
-	q.Add("access_key", *api_access_key)
 	for key, val := range params {
 		q.Add(key, val)
 	}
+	logQuery := q.Encode()
+	q.Add("access_key", *api_access_key)
 	req.URL.RawQuery = q.Encode()
+
+	log.Info().
+		Str("query", logQuery).
+		Msg("Making marketstack API request")
 
 	res, err := httpClient.Do(req)
 	if err != nil {
@@ -43,7 +48,7 @@ func getMarketstackData(aws *session.Session, action string, params map[string]s
 	}
 	if res.StatusCode != http.StatusOK {
 		log.Fatal().
-			Stringer("url", req.URL).
+			Str("query", logQuery).
 			Int("status_code", res.StatusCode).
 			Msg("Failed to receive 200 success code from HTTP request")
 	}
@@ -52,7 +57,7 @@ func getMarketstackData(aws *session.Session, action string, params map[string]s
 }
 
 func updateMarketstackExchanges(aws *session.Session, db *sqlx.DB) (bool, error) {
-	var params map[string]string
+	params := make(map[string]string)
 	res, err := getMarketstackData(aws, "exchanges", params)
 	if err != nil {
 		log.Fatal().Err(err).
@@ -76,7 +81,7 @@ func updateMarketstackExchanges(aws *session.Session, db *sqlx.DB) (bool, error)
 			}
 
 			// use marketstack data to create or update exchange
-			var exchange = &Exchange{0, MSExchangeData.Acronym, MSExchangeData.Name, country.Country_id, MSExchangeData.City, "", ""}
+			var exchange = &Exchange{0, MSExchangeData.Acronym, MSExchangeData.Mic, MSExchangeData.Name, country.Country_id, MSExchangeData.City, "", ""}
 			_, err = createOrUpdateExchange(db, exchange)
 			if err != nil {
 				log.Fatal().Err(err).
@@ -89,7 +94,7 @@ func updateMarketstackExchanges(aws *session.Session, db *sqlx.DB) (bool, error)
 }
 
 func updateMarketstackTicker(aws *session.Session, db *sqlx.DB, symbol string) (*Ticker, error) {
-	var params map[string]string
+	params := make(map[string]string)
 	res, err := getMarketstackData(aws, fmt.Sprintf("tickers/%s/eod", symbol), params)
 	if err != nil {
 		log.Fatal().Err(err).
@@ -114,7 +119,7 @@ func updateMarketstackTicker(aws *session.Session, db *sqlx.DB, symbol string) (
 	}
 
 	// grab the exchange_id we'll need, create new record if needed
-	var exchange = &Exchange{0, MSEndOfDayData.StockExchange.Acronym, MSEndOfDayData.StockExchange.Name, country.Country_id, MSEndOfDayData.StockExchange.City, "", ""}
+	var exchange = &Exchange{0, MSEndOfDayData.StockExchange.Acronym, "", MSEndOfDayData.StockExchange.Name, country.Country_id, MSEndOfDayData.StockExchange.City, "", ""}
 	exchange, err = getOrCreateExchange(db, exchange)
 	if err != nil {
 		log.Fatal().Err(err).
@@ -149,6 +154,57 @@ func updateMarketstackTicker(aws *session.Session, db *sqlx.DB, symbol string) (
 	return ticker, nil
 }
 
+func updateMarketstackIntraday(aws *session.Session, db *sqlx.DB, ticker *Ticker, exchange *Exchange, intradate string) error {
+	params := make(map[string]string)
+	params["symbols"] = ticker.Ticker_symbol
+	params["exchange"] = exchange.Exchange_mic
+	params["interval"] = "5min"
+	params["sort"] = "ASC"
+	params["date_from"] = intradate + "T14:30:00Z" // 9:30 AM ET open
+	params["date_to"] = intradate + "T21:05:00Z"   // 4:00 PM ET close
+
+	res, err := getMarketstackData(aws, fmt.Sprintf("intraday/%s", intradate), params)
+	if err != nil {
+		log.Fatal().Err(err).
+			Str("symbol", ticker.Ticker_symbol).
+			Str("intraday", intradate).
+			Msg("Failed to get marketstack data for ticker")
+	}
+
+	defer res.Body.Close()
+
+	var apiResponse MSIntradayResponse
+	json.NewDecoder(res.Body).Decode(&apiResponse)
+
+	//log.Fatal().
+	//	Str("response", fmt.Sprintf("%#v", apiResponse)).
+	//	Msg("Failed to get valid marketstack data")
+
+	// country isn't provided, exchange is but to do an intraday
+	// we have to already have that info, so we'll skip doing
+	// any updates for that from this API call
+
+	// lets roll through all the intraday price data we got and make sure we have it all
+	var priorVol float32
+	for _, MSIntradayData := range apiResponse.Data {
+		timeSlot := MSIntradayData.Price_date[11:16]
+		if timeSlot >= "14:30" && timeSlot < "21:05" {
+			// use marketstack data to create or update intradays
+			var intraday = &Intraday{0, ticker.Ticker_id, MSIntradayData.Price_date, MSIntradayData.Last_price, MSIntradayData.Volume - priorVol, "", ""}
+			_, err = createOrUpdateIntraday(db, intraday)
+			if err != nil {
+				log.Fatal().Err(err).
+					Str("symbol", ticker.Ticker_symbol).
+					Int64("ticker_id", ticker.Ticker_id).
+					Msg("Failed to create/update Intraday for ticker")
+			}
+			priorVol = MSIntradayData.Volume
+		}
+	}
+
+	return nil
+}
+
 func searchMarketstackTicker(aws *session.Session, db *sqlx.DB, search string) (*Ticker, error) {
 	params := make(map[string]string)
 	params["search"] = search
@@ -178,7 +234,7 @@ func searchMarketstackTicker(aws *session.Session, db *sqlx.DB, search string) (
 			}
 
 			// grab the exchange_id we'll need, create new record if needed
-			var exchange = &Exchange{0, MSTickerData.StockExchange.Acronym, MSTickerData.StockExchange.Name, country.Country_id, MSTickerData.StockExchange.City, "", ""}
+			var exchange = &Exchange{0, MSTickerData.StockExchange.Acronym, "", MSTickerData.StockExchange.Name, country.Country_id, MSTickerData.StockExchange.City, "", ""}
 			exchange, err = getOrCreateExchange(db, exchange)
 			if err != nil {
 				log.Fatal().Err(err).

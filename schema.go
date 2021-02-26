@@ -31,11 +31,22 @@ type Daily struct {
 type Exchange struct {
 	Exchange_id      int64
 	Exchange_acronym string
+	Exchange_mic     string
 	Exchange_name    string
 	Country_id       int64
 	City             string
 	Create_datetime  string
 	Update_datetime  string
+}
+
+type Intraday struct {
+	Intraday_id     int64
+	Ticker_id       int64
+	Price_date      string
+	Last_price      float32
+	Volume          float32
+	Create_datetime string
+	Update_datetime string
 }
 
 type OAuth struct {
@@ -120,7 +131,7 @@ type ViewPair struct {
 	Acronym string
 }
 
-type TickerView struct {
+type TickerDailyView struct {
 	Config         ConfigData
 	Ticker         Ticker
 	Exchange       Exchange
@@ -133,6 +144,21 @@ type TickerView struct {
 	KLineChartHTML template.HTML
 }
 
+type TickerIntradayView struct {
+	Config            ConfigData
+	Ticker            Ticker
+	Exchange          Exchange
+	Daily             Daily
+	LastDailyMove     string
+	Intradate         string
+	PriorBusinessDate string
+	NextBusinessDate  string
+	Intradays         []Intraday
+	Watches           []WebWatch
+	Recents           []ViewPair
+	LineChartHTML     template.HTML
+}
+
 type MessageView struct {
 	Messages []string
 }
@@ -142,6 +168,7 @@ type MessageView struct {
 type MSExchangeData struct {
 	Name         string `json:"name"`
 	Acronym      string `json:"acronym"`
+	Mic          string `json:"mic"`
 	Country      string `json:"country"`
 	Country_code string `json:"country_code"`
 	City         string `json:"city"`
@@ -151,11 +178,19 @@ type MSIndexData struct {
 	Symbol      string  `json:"symbol"`
 	Exchange    string  `json:"exchange"`
 	Price_date  string  `json:"date"`
-	Volume      float32 `json:"volume"`
 	Open_price  float32 `json:"open"`
 	High_price  float32 `json:"high"`
 	Low_price   float32 `json:"low"`
 	Close_price float32 `json:"close"`
+	Volume      float32 `json:"volume"`
+}
+
+type MSIntradayData struct {
+	Symbol     string  `json:"symbol"`
+	Exchange   string  `json:"exchange"`
+	Price_date string  `json:"date"`
+	Last_price float32 `json:"last"`
+	Volume     float32 `json:"volume"`
 }
 
 type MSEndOfDayData struct {
@@ -183,6 +218,9 @@ type MSIndexResponse struct {
 	Data []MSIndexData `json:"data"`
 }
 
+type MSIntradayResponse struct {
+	Data []MSIntradayData `json:"data"`
+}
 type MSTickerResponse struct {
 	Data []MSTickerData `json:"data"`
 }

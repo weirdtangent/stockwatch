@@ -18,9 +18,9 @@ func getExchangeById(db *sqlx.DB, exchange_id int64) (*Exchange, error) {
 }
 
 func createExchange(db *sqlx.DB, exchange *Exchange) (*Exchange, error) {
-	var insert = "INSERT INTO exchange SET exchange_acronym=?, exchange_name=?"
+	var insert = "INSERT INTO exchange SET exchange_acronym=?, exchange_mic=?, exchange_name=?"
 
-	res, err := db.Exec(insert, exchange.Exchange_acronym, exchange.Exchange_name)
+	res, err := db.Exec(insert, exchange.Exchange_acronym, exchange.Exchange_mic, exchange.Exchange_name)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("table_name", "exchange").
@@ -44,14 +44,14 @@ func getOrCreateExchange(db *sqlx.DB, exchange *Exchange) (*Exchange, error) {
 }
 
 func createOrUpdateExchange(db *sqlx.DB, exchange *Exchange) (*Exchange, error) {
-	var update = "UPDATE exchange SET exchange_name=?,country_id=?,city=? WHERE exchange_id=?"
+	var update = "UPDATE exchange SET exchange_mic=?,exchange_name=?,country_id=?,city=? WHERE exchange_id=?"
 
 	existing, err := getExchange(db, exchange.Exchange_acronym)
 	if err != nil {
 		return createExchange(db, exchange)
 	}
 
-	_, err = db.Exec(update, exchange.Exchange_name, exchange.Country_id, exchange.City, existing.Exchange_id)
+	_, err = db.Exec(update, exchange.Exchange_mic, exchange.Exchange_name, exchange.Country_id, exchange.City, existing.Exchange_id)
 	if err != nil {
 		log.Warn().Err(err).
 			Str("table_name", "exchange").
