@@ -26,11 +26,11 @@
                     </tr>
                   {{range .Dailies.Reverse.Days}}
                    <tr>
-                     <td class="text-center"><a href="/view/{{$.Ticker.Ticker_symbol}}/{{$.Exchange.Exchange_acronym}}/{{.Price_date}}">{{.Price_date}}</a></td>
-                     <td class="pe-2 text-end">{{printf "%.2f" .Open_price}}</td>
-                     <td class="pe-2 text-end">{{printf "%.2f" .High_price}}</td>
-                     <td class="pe-2 text-end">{{printf "%.2f" .Low_price}}</td>
-                     <td class="pe-2 text-end">{{printf "%.2f" .Close_price}}</td>
+                     <td class="text-center"><a href="/view/{{$.Ticker.TickerSymbol}}/{{$.Exchange.ExchangeAcronym}}/{{.PriceDate}}">{{.PriceDate}}</a></td>
+                     <td class="pe-2 text-end">{{printf "%.2f" .OpenPrice}}</td>
+                     <td class="pe-2 text-end">{{printf "%.2f" .HighPrice}}</td>
+                     <td class="pe-2 text-end">{{printf "%.2f" .LowPrice}}</td>
+                     <td class="pe-2 text-end">{{printf "%.2f" .ClosePrice}}</td>
                      <td class="pe-2 text-end">{{printf "%.0f" .Volume}}</td>
                    </tr>
                   {{end}}

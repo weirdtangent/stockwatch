@@ -29,7 +29,7 @@ func viewDailyHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 		}
 
 		// find ticker specifically at that exchange (since there are overlaps)
-		ticker, err := getTicker(db, symbol, exchange.Exchange_id)
+		ticker, err := getTicker(db, symbol, exchange.ExchangeId)
 		if err != nil {
 			ticker, err = updateMarketstackTicker(aws, db, symbol)
 			if err != nil {
@@ -43,37 +43,37 @@ func viewDailyHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 
 		ticker, _ = updateTickerWithEOD(aws, db, ticker)
 
-		daily, err := getDailyMostRecent(db, ticker.Ticker_id)
+		daily, err := getDailyMostRecent(db, ticker.TickerId)
 		if err != nil {
 			log.Warn().Err(err).
-				Str("symbol", ticker.Ticker_symbol).
-				Int64("ticker_id", ticker.Ticker_id).
+				Str("symbol", ticker.TickerSymbol).
+				Int64("tickerId", ticker.TickerId).
 				Msg("Failed to load most recent daily price for ticker")
 			http.NotFound(w, r)
 			return
 		}
-		lastDailyMove, err := getLastDailyMove(db, ticker.Ticker_id)
+		lastDailyMove, err := getLastDailyMove(db, ticker.TickerId)
 		if err != nil {
 			lastDailyMove = "unknown"
 		}
 
 		// load up to last 100 days of EOD data
-		dailies, err := loadDailies(db, ticker.Ticker_id, 100)
+		dailies, err := loadDailies(db, ticker.TickerId, 100)
 		if err != nil {
 			log.Warn().Err(err).
-				Str("symbol", ticker.Ticker_symbol).
-				Int64("ticker_id", ticker.Ticker_id).
+				Str("symbol", ticker.TickerSymbol).
+				Int64("tickerId", ticker.TickerId).
 				Msg("Failed to load daily prices for ticker")
 			http.NotFound(w, r)
 			return
 		}
 
 		// load any active watches about this ticker
-		webwatches, err := loadWebWatches(db, ticker.Ticker_id)
+		webwatches, err := loadWebWatches(db, ticker.TickerId)
 		if err != nil {
 			log.Warn().Err(err).
-				Str("symbol", ticker.Ticker_symbol).
-				Int64("ticker_id", ticker.Ticker_id).
+				Str("symbol", ticker.TickerSymbol).
+				Int64("tickerId", ticker.TickerId).
 				Msg("Failed to load watches for ticker")
 			http.NotFound(w, r)
 			return
@@ -82,7 +82,7 @@ func viewDailyHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 		var lineChartHTML = chartHandlerDailyLine(ticker, exchange, dailies, webwatches)
 		var klineChartHTML = chartHandlerDailyKLine(ticker, exchange, dailies, webwatches)
 
-		recents, err := addTickerToRecents(session, r, ticker.Ticker_symbol, exchange.Exchange_acronym)
+		recents, err := addTickerToRecents(session, r, ticker.TickerSymbol, exchange.ExchangeAcronym)
 
 		var Config = ConfigData{}
 		renderTemplateDailyView(w, r, "view-daily",
@@ -109,11 +109,11 @@ func viewIntradayHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 		}
 
 		// find ticker specifically at that exchange (since there are overlaps)
-		ticker, err := getTicker(db, symbol, exchange.Exchange_id)
+		ticker, err := getTicker(db, symbol, exchange.ExchangeId)
 		if err != nil {
 			log.Warn().Err(err).
 				Str("symbol", symbol).
-				Int64("exchange_id", exchange.Exchange_id).
+				Int64("exchange_id", exchange.ExchangeId).
 				Msg("Failed to find existing ticker")
 			http.NotFound(w, r)
 			return
@@ -121,26 +121,26 @@ func viewIntradayHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 
 		updateTickerWithIntraday(aws, db, ticker, intradate)
 
-		daily, err := getDailyMostRecent(db, ticker.Ticker_id)
+		daily, err := getDailyMostRecent(db, ticker.TickerId)
 		if err != nil {
 			log.Warn().Err(err).
-				Str("symbol", ticker.Ticker_symbol).
-				Int64("ticker_id", ticker.Ticker_id).
+				Str("symbol", ticker.TickerSymbol).
+				Int64("tickerId", ticker.TickerId).
 				Msg("Failed to load most recent daily price for ticker")
 			http.NotFound(w, r)
 			return
 		}
-		lastDailyMove, err := getLastDailyMove(db, ticker.Ticker_id)
+		lastDailyMove, err := getLastDailyMove(db, ticker.TickerId)
 		if err != nil {
 			lastDailyMove = "unknown"
 		}
 
 		// load up intradays for date selected
-		intradays, err := loadIntradayData(db, ticker.Ticker_id, intradate)
+		intradays, err := loadIntradayData(db, ticker.TickerId, intradate)
 		if err != nil {
 			log.Warn().Err(err).
-				Str("symbol", ticker.Ticker_symbol).
-				Int64("ticker_id", ticker.Ticker_id).
+				Str("symbol", ticker.TickerSymbol).
+				Int64("tickerId", ticker.TickerId).
 				Str("intradate", intradate).
 				Msg("Failed to load intraday prices for ticker")
 			http.NotFound(w, r)
@@ -148,11 +148,11 @@ func viewIntradayHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 		}
 
 		// load any active watches about this ticker
-		webwatches, err := loadWebWatches(db, ticker.Ticker_id)
+		webwatches, err := loadWebWatches(db, ticker.TickerId)
 		if err != nil {
 			log.Warn().Err(err).
-				Str("symbol", ticker.Ticker_symbol).
-				Int64("ticker_id", ticker.Ticker_id).
+				Str("symbol", ticker.TickerSymbol).
+				Int64("tickerId", ticker.TickerId).
 				Msg("Failed to load watches for ticker")
 			http.NotFound(w, r)
 			return
@@ -160,7 +160,7 @@ func viewIntradayHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 
 		var lineChartHTML = chartHandlerIntradayLine(ticker, exchange, intradays, webwatches, intradate)
 
-		recents, err := addTickerToRecents(session, r, ticker.Ticker_symbol, exchange.Exchange_acronym)
+		recents, err := addTickerToRecents(session, r, ticker.TickerSymbol, exchange.ExchangeAcronym)
 
 		var Config = ConfigData{}
 		priorBusinessDay, _ := mytime.PriorBusinessDayStr(intradate + " 21:05:00")

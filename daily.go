@@ -10,7 +10,7 @@ import (
 type ByPriceDate Dailies
 
 func (a ByPriceDate) Len() int           { return len(a.Days) }
-func (a ByPriceDate) Less(i, j int) bool { return a.Days[i].Price_date < a.Days[j].Price_date }
+func (a ByPriceDate) Less(i, j int) bool { return a.Days[i].PriceDate < a.Days[j].PriceDate }
 func (a ByPriceDate) Swap(i, j int)      { a.Days[i], a.Days[j] = a.Days[j], a.Days[i] }
 
 func (d Dailies) Sort() *Dailies {
@@ -104,7 +104,7 @@ func loadDailies(db *sqlx.DB, ticker_id int64, days int) ([]Daily, error) {
 func createDaily(db *sqlx.DB, daily *Daily) (*Daily, error) {
 	var insert = "INSERT INTO daily SET ticker_id=?, price_date=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=?"
 
-	res, err := db.Exec(insert, daily.Ticker_id, daily.Price_date, daily.Open_price, daily.High_price, daily.Low_price, daily.Close_price, daily.Volume)
+	res, err := db.Exec(insert, daily.TickerId, daily.PriceDate, daily.OpenPrice, daily.HighPrice, daily.LowPrice, daily.ClosePrice, daily.Volume)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("table_name", "daily").
@@ -120,8 +120,8 @@ func createDaily(db *sqlx.DB, daily *Daily) (*Daily, error) {
 }
 
 func getOrCreateDaily(db *sqlx.DB, daily *Daily) (*Daily, error) {
-	existing, err := getDaily(db, daily.Ticker_id, daily.Price_date)
-	if err != nil && existing.Daily_id == 0 {
+	existing, err := getDaily(db, daily.TickerId, daily.PriceDate)
+	if err != nil && existing.DailyId == 0 {
 		return createDaily(db, daily)
 	}
 	return existing, err
@@ -130,16 +130,16 @@ func getOrCreateDaily(db *sqlx.DB, daily *Daily) (*Daily, error) {
 func createOrUpdateDaily(db *sqlx.DB, daily *Daily) (*Daily, error) {
 	var update = "UPDATE daily SET open_price=?, high_price=?, low_price=?, close_price=?, volume=? WHERE ticker_id=? AND price_date=?"
 
-	existing, err := getDaily(db, daily.Ticker_id, daily.Price_date)
+	existing, err := getDaily(db, daily.TickerId, daily.PriceDate)
 	if err != nil {
 		return createDaily(db, daily)
 	}
 
-	_, err = db.Exec(update, daily.Open_price, daily.High_price, daily.Low_price, daily.Close_price, daily.Volume, existing.Ticker_id, existing.Price_date)
+	_, err = db.Exec(update, daily.OpenPrice, daily.HighPrice, daily.LowPrice, daily.ClosePrice, daily.Volume, existing.TickerId, existing.PriceDate)
 	if err != nil {
 		log.Warn().Err(err).
 			Str("table_name", "daily").
 			Msg("Failed on UPDATE")
 	}
-	return getDailyById(db, existing.Daily_id)
+	return getDailyById(db, existing.DailyId)
 }

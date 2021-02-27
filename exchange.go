@@ -20,7 +20,7 @@ func getExchangeById(db *sqlx.DB, exchange_id int64) (*Exchange, error) {
 func createExchange(db *sqlx.DB, exchange *Exchange) (*Exchange, error) {
 	var insert = "INSERT INTO exchange SET exchange_acronym=?, exchange_mic=?, exchange_name=?"
 
-	res, err := db.Exec(insert, exchange.Exchange_acronym, exchange.Exchange_mic, exchange.Exchange_name)
+	res, err := db.Exec(insert, exchange.ExchangeAcronym, exchange.ExchangeMic, exchange.ExchangeName)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("table_name", "exchange").
@@ -36,8 +36,8 @@ func createExchange(db *sqlx.DB, exchange *Exchange) (*Exchange, error) {
 }
 
 func getOrCreateExchange(db *sqlx.DB, exchange *Exchange) (*Exchange, error) {
-	existing, err := getExchange(db, exchange.Exchange_acronym)
-	if err != nil && existing.Exchange_id == 0 {
+	existing, err := getExchange(db, exchange.ExchangeAcronym)
+	if err != nil && existing.ExchangeId == 0 {
 		return createExchange(db, exchange)
 	}
 	return existing, err
@@ -46,16 +46,16 @@ func getOrCreateExchange(db *sqlx.DB, exchange *Exchange) (*Exchange, error) {
 func createOrUpdateExchange(db *sqlx.DB, exchange *Exchange) (*Exchange, error) {
 	var update = "UPDATE exchange SET exchange_mic=?,exchange_name=?,country_id=?,city=? WHERE exchange_id=?"
 
-	existing, err := getExchange(db, exchange.Exchange_acronym)
+	existing, err := getExchange(db, exchange.ExchangeAcronym)
 	if err != nil {
 		return createExchange(db, exchange)
 	}
 
-	_, err = db.Exec(update, exchange.Exchange_mic, exchange.Exchange_name, exchange.Country_id, exchange.City, existing.Exchange_id)
+	_, err = db.Exec(update, exchange.ExchangeMic, exchange.ExchangeName, exchange.CountryId, exchange.City, existing.ExchangeId)
 	if err != nil {
 		log.Warn().Err(err).
 			Str("table_name", "exchange").
 			Msg("Failed on UPDATE")
 	}
-	return getExchangeById(db, existing.Exchange_id)
+	return getExchangeById(db, existing.ExchangeId)
 }

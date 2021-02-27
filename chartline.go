@@ -27,8 +27,8 @@ func chartHandlerDailyLine(ticker *Ticker, exchange *Exchange, dailies []Daily, 
 	lineData := make([]opts.LineData, 0, days)
 	volumeData := make([]opts.BarData, 0, days)
 	for x := range dailies {
-		displayDate := dailies[x].Price_date[5:10]
-		closePrice := dailies[x].Close_price
+		displayDate := dailies[x].PriceDate[5:10]
+		closePrice := dailies[x].ClosePrice
 
 		x_axis = append(x_axis, displayDate)
 		hidden_axis = append(hidden_axis, "")
@@ -46,14 +46,14 @@ func chartHandlerDailyLine(ticker *Ticker, exchange *Exchange, dailies []Daily, 
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
 		charts.WithTitleOpts(opts.Title{
-			Title:    fmt.Sprintf("%s (%s) %s", ticker.Ticker_symbol, exchange.Exchange_acronym, ticker.Ticker_name),
+			Title:    fmt.Sprintf("%s (%s) %s", ticker.TickerSymbol, exchange.ExchangeAcronym, ticker.TickerName),
 			Subtitle: "Share Price",
 		}),
 		charts.WithLegendOpts(opts.Legend{
 			Show:     true,
 			Data:     []string{"Closeing Price", "5-Day MA", "10-Day MA", "20-Day MA"},
 			Orient:   "horizontal",
-			Selected: map[string]bool{ticker.Ticker_symbol: true, "MA5": false, "MA10": false, "MA20": false},
+			Selected: map[string]bool{ticker.TickerSymbol: true, "MA5": false, "MA10": false, "MA20": false},
 			Left:     "right",
 			Top:      "top",
 		}),
@@ -90,7 +90,7 @@ func chartHandlerDailyLine(ticker *Ticker, exchange *Exchange, dailies []Daily, 
 
 	// Put data into instance
 	prices.SetXAxis(hidden_axis).
-		AddSeries(ticker.Ticker_symbol, lineData,
+		AddSeries(ticker.TickerSymbol, lineData,
 			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
 	prices.
 		AddSeries("MA5", calcMovingLineAvg(5, lineData),
@@ -120,15 +120,15 @@ func chartHandlerIntradayLine(ticker *Ticker, exchange *Exchange, intradays []In
 	volumeData := make([]opts.BarData, 0, steps)
 	EasternTZ, _ := time.LoadLocation("America/New_York")
 	for x := range intradays {
-		datePart := intradays[x].Price_date[0:10]
+		datePart := intradays[x].PriceDate[0:10]
 		var displayDate string
 		if datePart != intradate {
 			displayDate = datePart
 		} else {
-			timeSlot, _ := time.Parse("15:04", intradays[x].Price_date[11:16])
+			timeSlot, _ := time.Parse("15:04", intradays[x].PriceDate[11:16])
 			displayDate = timeSlot.In(EasternTZ).Format("15:04")
 		}
-		closePrice := intradays[x].Last_price
+		closePrice := intradays[x].LastPrice
 
 		x_axis = append(x_axis, displayDate)
 		hidden_axis = append(hidden_axis, "")
@@ -146,14 +146,14 @@ func chartHandlerIntradayLine(ticker *Ticker, exchange *Exchange, intradays []In
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
 		charts.WithTitleOpts(opts.Title{
-			Title:    fmt.Sprintf("%s (%s) %s", ticker.Ticker_symbol, exchange.Exchange_acronym, ticker.Ticker_name),
+			Title:    fmt.Sprintf("%s (%s) %s", ticker.TickerSymbol, exchange.ExchangeAcronym, ticker.TickerName),
 			Subtitle: "Share Price for " + intradate,
 		}),
 		charts.WithLegendOpts(opts.Legend{
 			Show:     true,
 			Data:     []string{"Closeing Price", "5-Day MA", "10-Day MA", "20-Day MA"},
 			Orient:   "horizontal",
-			Selected: map[string]bool{ticker.Ticker_symbol: true, "MA5": false, "MA10": false, "MA20": false},
+			Selected: map[string]bool{ticker.TickerSymbol: true, "MA5": false, "MA10": false, "MA20": false},
 			Left:     "right",
 			Top:      "top",
 		}),
@@ -190,7 +190,7 @@ func chartHandlerIntradayLine(ticker *Ticker, exchange *Exchange, intradays []In
 
 	// Put data into instance
 	prices.SetXAxis(hidden_axis).
-		AddSeries(ticker.Ticker_symbol, lineData)
+		AddSeries(ticker.TickerSymbol, lineData)
 	prices.
 		AddSeries("MA5", calcMovingLineAvg(5, lineData),
 			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))

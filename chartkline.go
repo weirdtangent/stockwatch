@@ -22,11 +22,11 @@ func chartHandlerDailyKLine(ticker *Ticker, exchange *Exchange, dailies []Daily,
 	candleData := make([]opts.KlineData, 0, days)
 	volumeData := make([]opts.BarData, 0, days)
 	for x := range dailies {
-		displayDate := dailies[x].Price_date[5:10]
+		displayDate := dailies[x].PriceDate[5:10]
 		x_axis = append(x_axis, displayDate)
 		hidden_axis = append(hidden_axis, "")
 
-		candleData = append(candleData, opts.KlineData{Value: [4]float32{dailies[x].Open_price, dailies[x].Close_price, dailies[x].Low_price, dailies[x].High_price}})
+		candleData = append(candleData, opts.KlineData{Value: [4]float32{dailies[x].OpenPrice, dailies[x].ClosePrice, dailies[x].LowPrice, dailies[x].HighPrice}})
 		volumeData = append(volumeData, opts.BarData{Value: dailies[x].Volume / 1000000})
 	}
 
@@ -40,7 +40,7 @@ func chartHandlerDailyKLine(ticker *Ticker, exchange *Exchange, dailies []Daily,
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
 		charts.WithTitleOpts(opts.Title{
-			Title:    fmt.Sprintf("%s (%s) %s", ticker.Ticker_symbol, exchange.Exchange_acronym, ticker.Ticker_name),
+			Title:    fmt.Sprintf("%s (%s) %s", ticker.TickerSymbol, exchange.ExchangeAcronym, ticker.TickerName),
 			Subtitle: "Share Price",
 		}),
 		charts.WithXAxisOpts(opts.XAxis{

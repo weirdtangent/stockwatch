@@ -59,7 +59,7 @@ func loadIntradayData(db *sqlx.DB, ticker_id int64, intradate string) ([]Intrada
 	}
 	preDaily, err := getDaily(db, ticker_id, priorBusinessDay)
 	if err == nil {
-		intradays = append(intradays, Intraday{0, ticker_id, priorBusinessDay, preDaily.Close_price, 0, "", ""})
+		intradays = append(intradays, Intraday{0, ticker_id, priorBusinessDay, preDaily.ClosePrice, 0, "", ""})
 	} else {
 		log.Info().Msg("PriorBusinessDay close price was NOT included")
 	}
@@ -88,7 +88,7 @@ func loadIntradayData(db *sqlx.DB, ticker_id int64, intradate string) ([]Intrada
 	}
 	postDaily, err := getDaily(db, ticker_id, nextBusinessDay)
 	if err == nil {
-		intradays = append(intradays, Intraday{0, ticker_id, nextBusinessDay, postDaily.Open_price, 0, "", ""})
+		intradays = append(intradays, Intraday{0, ticker_id, nextBusinessDay, postDaily.OpenPrice, 0, "", ""})
 	} else {
 		log.Info().Msg("NextBusinessDay open price was NOT included")
 	}
@@ -99,7 +99,7 @@ func loadIntradayData(db *sqlx.DB, ticker_id int64, intradate string) ([]Intrada
 func createIntraday(db *sqlx.DB, intraday *Intraday) (*Intraday, error) {
 	var insert = "INSERT INTO intraday SET ticker_id=?, price_date=?, last_price=?, volume=?"
 
-	res, err := db.Exec(insert, intraday.Ticker_id, intraday.Price_date, intraday.Last_price, intraday.Volume)
+	res, err := db.Exec(insert, intraday.TickerId, intraday.PriceDate, intraday.LastPrice, intraday.Volume)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("table_name", "intraday").
@@ -115,8 +115,8 @@ func createIntraday(db *sqlx.DB, intraday *Intraday) (*Intraday, error) {
 }
 
 func getOrCreateIntraday(db *sqlx.DB, intraday *Intraday) (*Intraday, error) {
-	existing, err := getIntraday(db, intraday.Ticker_id, intraday.Price_date)
-	if err != nil && existing.Intraday_id == 0 {
+	existing, err := getIntraday(db, intraday.TickerId, intraday.PriceDate)
+	if err != nil && existing.IntradayId == 0 {
 		return createIntraday(db, intraday)
 	}
 	return existing, err
@@ -125,16 +125,16 @@ func getOrCreateIntraday(db *sqlx.DB, intraday *Intraday) (*Intraday, error) {
 func createOrUpdateIntraday(db *sqlx.DB, intraday *Intraday) (*Intraday, error) {
 	var update = "UPDATE intraday SET last_price=?, volume=? WHERE ticker_id=? AND price_date=?"
 
-	existing, err := getIntraday(db, intraday.Ticker_id, intraday.Price_date)
+	existing, err := getIntraday(db, intraday.TickerId, intraday.PriceDate)
 	if err != nil {
 		return createIntraday(db, intraday)
 	}
 
-	_, err = db.Exec(update, intraday.Last_price, intraday.Volume, existing.Ticker_id, existing.Price_date)
+	_, err = db.Exec(update, intraday.LastPrice, intraday.Volume, existing.TickerId, existing.PriceDate)
 	if err != nil {
 		log.Warn().Err(err).
 			Str("table_name", "intraday").
 			Msg("Failed on UPDATE")
 	}
-	return getIntradayById(db, existing.Intraday_id)
+	return getIntradayById(db, existing.IntradayId)
 }

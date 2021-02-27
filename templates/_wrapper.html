@@ -66,16 +66,16 @@
 {{- end}}
 
 {{- define "_share_price" -}}
-  {{ printf "$%.2f" .Daily.Close_price }}
+  {{ printf "$%.2f" .Daily.ClosePrice }}
   {{if eq .LastDailyMove "up"}}<i class="fas fa-arrow-up text-success"></i>
   {{else if eq .LastDailyMove "down"}}<i class="fas fa-arrow-down text-danger"></i>
-  {{end}}at close on {{ .Daily.Price_date }}
+  {{end}}at close on {{ .Daily.PriceDate }}
 {{- end}}
 
 {{- define "_ticker_top" -}}
               <header class="bg-dark">
-                  <h3>Symbol: <a class="link-light" href="/view/{{.Ticker.Ticker_symbol}}/{{.Exchange.Exchange_acronym}}">{{.Ticker.Ticker_symbol}}</a> ({{.Exchange.Exchange_acronym}})</h3>
-                  <h5>{{.Ticker.Ticker_name}}</h5>
+                  <h3>Symbol: <a class="link-light" href="/view/{{.Ticker.TickerSymbol}}/{{.Exchange.ExchangeAcronym}}">{{.Ticker.TickerSymbol}}</a> ({{.Exchange.ExchangeAcronym}})</h3>
+                  <h5>{{.Ticker.TickerName}}</h5>
                   <h6 class="small text-info">Share price: <span class="text-light">{{ template "_share_price" . }}</span></h6>
                   <span id="toggle">
                     <button type="button" class="nav-item btn-sm bg-success"><i class="fas fa-chart-line"></i> Line</button>

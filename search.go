@@ -33,12 +33,12 @@ func searchHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 				return
 			}
 
-			exchange, err := getExchangeById(db, ticker.Exchange_id)
+			exchange, err := getExchangeById(db, ticker.ExchangeId)
 			if err != nil {
-				log.Error().Msgf("An error occurred trying to get the exchange for symbol: %s", ticker.Ticker_symbol)
+				log.Error().Msgf("An error occurred trying to get the exchange for symbol: %s", ticker.TickerSymbol)
 				return
 			}
-			http.Redirect(w, r, fmt.Sprintf("/view/%s/%s", ticker.Ticker_symbol, exchange.Exchange_acronym), http.StatusFound)
+			http.Redirect(w, r, fmt.Sprintf("/view/%s/%s", ticker.TickerSymbol, exchange.ExchangeAcronym), http.StatusFound)
 			return
 		default:
 			log.Warn().

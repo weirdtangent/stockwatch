@@ -49,35 +49,35 @@ func updateHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 //  if we don't have the EOD price for the prior business day
 //  OR if we don't have it for the current business day and it's now 7pm or later
 func updateTickerWithEOD(aws *session.Session, db *sqlx.DB, ticker *Ticker) (*Ticker, error) {
-	mostRecentDaily, err := getDailyMostRecent(db, ticker.Ticker_id)
+	mostRecentDaily, err := getDailyMostRecent(db, ticker.TickerId)
 	if err != nil {
 		log.Warn().Err(err).
-			Str("symbol", ticker.Ticker_symbol).
-			Int64("ticker_id", ticker.Ticker_id).
+			Str("symbol", ticker.TickerSymbol).
+			Int64("tickerId", ticker.TickerId).
 			Msg("Error getting most recent EOD date")
 		return ticker, err
 	}
-	mostRecentDailyDate := mostRecentDaily.Price_date
+	mostRecentDailyDate := mostRecentDaily.PriceDate
 	mostRecentAvailable := mostRecentPricesAvailable()
 
 	log.Info().
-		Str("symbol", ticker.Ticker_symbol).
+		Str("symbol", ticker.TickerSymbol).
 		Str("mostRecentDailyDate", mostRecentDailyDate).
 		Str("mostRecentAvailable", mostRecentAvailable).
 		Msg("check if new EOD available for ticker")
 
 	if mostRecentDailyDate < mostRecentAvailable {
-		ticker, err = updateMarketstackTicker(aws, db, ticker.Ticker_symbol)
+		ticker, err = updateMarketstackTicker(aws, db, ticker.TickerSymbol)
 		if err != nil {
 			log.Warn().Err(err).
-				Str("symbol", ticker.Ticker_symbol).
-				Int64("ticker_id", ticker.Ticker_id).
+				Str("symbol", ticker.TickerSymbol).
+				Int64("tickerId", ticker.TickerId).
 				Msg("Error getting EOD prices for ticker")
 			return ticker, err
 		}
 		log.Info().
-			Str("symbol", ticker.Ticker_symbol).
-			Int64("ticker_id", ticker.Ticker_id).
+			Str("symbol", ticker.TickerSymbol).
+			Int64("tickerId", ticker.TickerId).
 			Msg("Updated ticker with latest EOD prices")
 	}
 
@@ -110,11 +110,11 @@ func mostRecentPricesAvailable() string {
 //  if we don't have the intraday prices for the selected date
 //  AND it was a prior business day or today and it's now 7pm or later
 func updateTickerWithIntraday(aws *session.Session, db *sqlx.DB, ticker *Ticker, intradate string) (bool, error) {
-	haveIntradayData, err := gotIntradayData(db, ticker.Ticker_id, intradate)
+	haveIntradayData, err := gotIntradayData(db, ticker.TickerId, intradate)
 	if err != nil {
 		log.Warn().Err(err).
-			Str("symbol", ticker.Ticker_symbol).
-			Int64("ticker_id", ticker.Ticker_id).
+			Str("symbol", ticker.TickerSymbol).
+			Int64("tickerId", ticker.TickerId).
 			Str("intraday", intradate).
 			Msg("Error getting intradate data")
 		return false, err
@@ -123,20 +123,20 @@ func updateTickerWithIntraday(aws *session.Session, db *sqlx.DB, ticker *Ticker,
 		return haveIntradayData, nil
 	}
 
-	exchange, err := getExchangeById(db, ticker.Exchange_id)
+	exchange, err := getExchangeById(db, ticker.ExchangeId)
 	if err != nil {
 		log.Fatal().Err(err).
-			Str("symbol", ticker.Ticker_symbol).
-			Int64("ticker_id", ticker.Ticker_id).
-			Int64("exchange_td", ticker.Exchange_id).
+			Str("symbol", ticker.TickerSymbol).
+			Int64("tickerId", ticker.TickerId).
+			Int64("exchange_td", ticker.ExchangeId).
 			Msg("Failed to find exchange")
 	}
 
 	mostRecentAvailable := mostRecentPricesAvailable()
 
 	log.Info().
-		Str("symbol", ticker.Ticker_symbol).
-		Str("acronym", exchange.Exchange_acronym).
+		Str("symbol", ticker.TickerSymbol).
+		Str("acronym", exchange.ExchangeAcronym).
 		Str("intraday", intradate).
 		Str("mostRecentAvailable", mostRecentAvailable).
 		Msg("check if intraday data available for ticker")
@@ -145,15 +145,15 @@ func updateTickerWithIntraday(aws *session.Session, db *sqlx.DB, ticker *Ticker,
 		err = updateMarketstackIntraday(aws, db, ticker, exchange, intradate)
 		if err != nil {
 			log.Warn().Err(err).
-				Str("symbol", ticker.Ticker_symbol).
-				Int64("ticker_id", ticker.Ticker_id).
+				Str("symbol", ticker.TickerSymbol).
+				Int64("tickerId", ticker.TickerId).
 				Str("intraday", intradate).
 				Msg("Error getting intraday prices for ticker")
 			return false, err
 		}
 		log.Info().
-			Str("symbol", ticker.Ticker_symbol).
-			Int64("ticker_id", ticker.Ticker_id).
+			Str("symbol", ticker.TickerSymbol).
+			Int64("tickerId", ticker.TickerId).
 			Str("intraday", intradate).
 			Msg("Updated ticker with intraday prices")
 	}

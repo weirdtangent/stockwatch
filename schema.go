@@ -8,86 +8,86 @@ import (
 // table schema from aurora ---------------------------------------------------
 
 type Country struct {
-	Country_id      int64
-	Country_code    string
-	Country_name    string
-	Create_datetime string
-	Update_datetime string
+	CountryId      int64  `db:"country_id"`
+	CountryCode    string `db:"country_code"`
+	CountryName    string `db:"country_name"`
+	CreateDatetime string `db:"create_datetime"`
+	UpdateDatetime string `db:"update_datetime"`
 }
 
 type Daily struct {
-	Daily_id        int64
-	Ticker_id       int64
-	Price_date      string
-	Open_price      float32
-	High_price      float32
-	Low_price       float32
-	Close_price     float32
-	Volume          float32
-	Create_datetime string
-	Update_datetime string
+	DailyId        int64   `db:"daily_id"`
+	TickerId       int64   `db:"ticker_id"`
+	PriceDate      string  `db:"price_date"`
+	OpenPrice      float32 `db:"open_price"`
+	HighPrice      float32 `db:"high_price"`
+	LowPrice       float32 `db:"low_price"`
+	ClosePrice     float32 `db:"close_price"`
+	Volume         float32 `db:"volume"`
+	CreateDatetime string  `db:"create_datetime"`
+	UpdateDatetime string  `db:"update_datetime"`
 }
 
 type Exchange struct {
-	Exchange_id      int64
-	Exchange_acronym string
-	Exchange_mic     string
-	Exchange_name    string
-	Country_id       int64
-	City             string
-	Create_datetime  string
-	Update_datetime  string
+	ExchangeId      int64  `db:"exchange_id"`
+	ExchangeAcronym string `db:"exchange_acronym"`
+	ExchangeMic     string `db:"exchange_mic"`
+	ExchangeName    string `db:"exchange_name"`
+	CountryId       int64  `db:"country_id"`
+	City            string `db:"city"`
+	CreateDatetime  string `db:"create_datetime"`
+	UpdateDatetime  string `db:"update_datetime"`
 }
 
 type Intraday struct {
-	Intraday_id     int64
-	Ticker_id       int64
-	Price_date      string
-	Last_price      float32
-	Volume          float32
-	Create_datetime string
-	Update_datetime string
+	IntradayId     int64   `db:"intraday_id"`
+	TickerId       int64   `db:"ticker_id"`
+	PriceDate      string  `db:"price_date"`
+	LastPrice      float32 `db:"last_price"`
+	Volume         float32 `db:"volume"`
+	CreateDatetime string  `db:"create_datetime"`
+	UpdateDatetime string  `db:"update_datetime"`
 }
 
 type OAuth struct {
-	OAuth_id          int64
-	OAuth_vener       string
-	OAuth_user        string
-	Watcher_id        int64
-	OAuth_status      string
-	LastUser_datetime string
-	Create_datetime   string
-	Update_datetime   string
+	OAuthId          int64  `db:"oauth_id"`
+	OAuthVender      string `db:"oauth_vender"`
+	OAuthUser        string `db:"oauth_user"`
+	WatcherId        int64  `db:"watcher_id"`
+	OAuthStatus      string `db:"oauth_status"`
+	LastUsedDatetime string `db:"lastused_datetime"`
+	CreateDatetime   string `db:"create_datetime"`
+	UpdateDatetime   string `db:"update_datetime"`
 }
 
 type Source struct {
-	Source_id       int64
-	Source_company  string
-	Source_name     string
-	Source_website  string
-	Source_email    string
-	Create_datetime string
-	Update_datetime string
+	SourceId       int64  `db:"source_id"`
+	SourceCompany  string `db:"source_company"`
+	SourceName     string `db:"source_name"`
+	SourceWebsite  string `db:"source_website"`
+	SourceEmail    string `db:"source_email"`
+	CreateDatetime string `db:"create_datetime"`
+	UpdateDatetime string `db:"update_datetime"`
 }
 
 type Ticker struct {
-	Ticker_id       int64
-	Ticker_symbol   string
-	Exchange_id     int64
-	Ticker_name     string
-	Create_datetime string
-	Update_datetime string
+	TickerId       int64  `db:"ticker_id"`
+	TickerSymbol   string `db:"ticker_symbol"`
+	ExchangeId     int64  `db:"exchange_id"`
+	TickerName     string `db:"ticker_name"`
+	CreateDatetime string `db:"create_datetime"`
+	UpdateDatetime string `db:"update_datetime"`
 }
 
 type Watch struct {
-	Watch_id        int64
-	Ticker_id       int64
-	Source_id       int64
-	Source_date     string
-	Target_price    float32
-	Target_date     sql.NullString
-	Create_datetime string
-	Update_datetime string
+	WatchId        int64          `db:"watch_id"`
+	TickerId       int64          `db:"ticker_id"`
+	SourceId       int64          `db:"source_id"`
+	SourceDate     string         `db:"source_date"`
+	TargetPrice    float32        `db:"target_price"`
+	TargetDate     sql.NullString `db:"target_date"`
+	CreateDatetime string         `db:"create_datetime"`
+	UpdateDatetime string         `db:"update_datetime"`
 }
 
 // google oauth ---------------------------------------------------------------
@@ -119,11 +119,11 @@ type Message struct {
 }
 
 type WebWatch struct {
-	Source_date    string
-	Target_price   float32
-	Target_date    sql.NullString
-	Source_name    sql.NullString
-	Source_company sql.NullString
+	SourceDate    string
+	TargetPrice   float32
+	TargetDate    sql.NullString
+	SourceName    sql.NullString
+	SourceCompany sql.NullString
 }
 
 type ViewPair struct {
@@ -170,31 +170,31 @@ type MessageView struct {
 // marketstack json data ------------------------------------------------------
 
 type MSExchangeData struct {
-	Name         string `json:"name"`
-	Acronym      string `json:"acronym"`
-	Mic          string `json:"mic"`
-	Country      string `json:"country"`
-	Country_code string `json:"country_code"`
-	City         string `json:"city"`
+	Name        string `json:"name"`
+	Acronym     string `json:"acronym"`
+	Mic         string `json:"mic"`
+	CountryName string `json:"country"`
+	CountryCode string `json:"country_code"`
+	City        string `json:"city"`
 }
 
 type MSIndexData struct {
-	Symbol      string  `json:"symbol"`
-	Exchange    string  `json:"exchange"`
-	Price_date  string  `json:"date"`
-	Open_price  float32 `json:"open"`
-	High_price  float32 `json:"high"`
-	Low_price   float32 `json:"low"`
-	Close_price float32 `json:"close"`
-	Volume      float32 `json:"volume"`
+	Symbol     string  `json:"symbol"`
+	Exchange   string  `json:"exchange"`
+	PriceDate  string  `json:"date"`
+	OpenPrice  float32 `json:"open"`
+	HighPrice  float32 `json:"high"`
+	LowPrice   float32 `json:"low"`
+	ClosePrice float32 `json:"close"`
+	Volume     float32 `json:"volume"`
 }
 
 type MSIntradayData struct {
-	Symbol     string  `json:"symbol"`
-	Exchange   string  `json:"exchange"`
-	Price_date string  `json:"date"`
-	Last_price float32 `json:"last"`
-	Volume     float32 `json:"volume"`
+	Symbol    string  `json:"symbol"`
+	Exchange  string  `json:"exchange"`
+	PriceDate string  `json:"date"`
+	LastPrice float32 `json:"last"`
+	Volume    float32 `json:"volume"`
 }
 
 type MSEndOfDayData struct {
