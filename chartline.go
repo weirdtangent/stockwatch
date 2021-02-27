@@ -13,15 +13,19 @@ import (
 )
 
 const (
-	mainX  = "950px"
-	mainY  = "450px"
-	smallX = "950px"
+	mainX  = "750px"
+	mainY  = "350px"
+	smallX = "750px"
 	smallY = "225px"
 )
 
 func chartHandlerDailyLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwatches []WebWatch) template.HTML {
 	// build data needed
 	days := len(dailies)
+	if days == 0 {
+		html, _ := renderTemplateToString("_emptychart", nil)
+		return html
+	}
 	x_axis := make([]string, 0, days)
 	hidden_axis := make([]string, 0, days)
 	lineData := make([]opts.LineData, 0, days)
@@ -114,6 +118,10 @@ func chartHandlerDailyLine(ticker *Ticker, exchange *Exchange, dailies []Daily, 
 func chartHandlerIntradayLine(ticker *Ticker, exchange *Exchange, intradays []Intraday, webwatches []WebWatch, intradate string) template.HTML {
 	// build data needed
 	steps := len(intradays)
+	if steps == 0 {
+		html, _ := renderTemplateToString("_emptychart", nil)
+		return html
+	}
 	x_axis := make([]string, 0, steps)
 	hidden_axis := make([]string, 0, steps)
 	lineData := make([]opts.LineData, 0, steps)

@@ -17,6 +17,10 @@ type klineData struct {
 func chartHandlerDailyKLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwatches []WebWatch) template.HTML {
 	// build data needed
 	days := len(dailies)
+	if days == 0 {
+		html, _ := renderTemplateToString("_emptychart", nil)
+		return html
+	}
 	x_axis := make([]string, 0, days)
 	hidden_axis := make([]string, 0, days)
 	candleData := make([]opts.KlineData, 0, days)

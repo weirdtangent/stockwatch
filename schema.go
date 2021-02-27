@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"html/template"
 )
 
 // table schema from aurora ---------------------------------------------------
@@ -70,15 +69,6 @@ type Source struct {
 	UpdateDatetime string `db:"update_datetime"`
 }
 
-type Ticker struct {
-	TickerId       int64  `db:"ticker_id"`
-	TickerSymbol   string `db:"ticker_symbol"`
-	ExchangeId     int64  `db:"exchange_id"`
-	TickerName     string `db:"ticker_name"`
-	CreateDatetime string `db:"create_datetime"`
-	UpdateDatetime string `db:"update_datetime"`
-}
-
 type Watch struct {
 	WatchId        int64          `db:"watch_id"`
 	TickerId       int64          `db:"ticker_id"`
@@ -108,16 +98,6 @@ type ConfigData struct {
 	GoogleProfile GoogleProfileData
 }
 
-type DefaultView struct {
-	Config  ConfigData
-	Recents []ViewPair
-}
-
-type Message struct {
-	Config      ConfigData
-	MessageText string
-}
-
 type WebWatch struct {
 	SourceDate    string
 	TargetPrice   float32
@@ -131,40 +111,13 @@ type ViewPair struct {
 	Acronym string
 }
 
-type Dailies struct {
-	Days []Daily
+type Message struct {
+	Text  string
+	Level string
 }
 
-type TickerDailyView struct {
-	Config         ConfigData
-	Ticker         Ticker
-	Exchange       Exchange
-	Daily          Daily
-	LastDailyMove  string
-	Dailies        Dailies
-	Watches        []WebWatch
-	Recents        []ViewPair
-	LineChartHTML  template.HTML
-	KLineChartHTML template.HTML
-}
-
-type TickerIntradayView struct {
-	Config            ConfigData
-	Ticker            Ticker
-	Exchange          Exchange
-	Daily             Daily
-	LastDailyMove     string
-	Intradate         string
-	PriorBusinessDate string
-	NextBusinessDate  string
-	Intradays         []Intraday
-	Watches           []WebWatch
-	Recents           []ViewPair
-	LineChartHTML     template.HTML
-}
-
-type MessageView struct {
-	Messages []string
+type Messages struct {
+	Messages []Message
 }
 
 // marketstack json data ------------------------------------------------------

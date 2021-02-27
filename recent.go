@@ -6,6 +6,10 @@ import (
 	"github.com/gorilla/sessions"
 )
 
+type Recents struct {
+	ViewPairs []ViewPair
+}
+
 func getRecents(session *sessions.Session, r *http.Request) (*[]ViewPair, error) {
 	// get current list (if any) from session
 	recents := session.Values["view_recents"].([]ViewPair)

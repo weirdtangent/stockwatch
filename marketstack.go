@@ -38,6 +38,7 @@ func getMarketstackData(aws *session.Session, action string, params map[string]s
 	req.URL.RawQuery = q.Encode()
 
 	log.Info().
+		Str("path", req.URL.Path).
 		Str("query", logQuery).
 		Msg("Making marketstack API request")
 
@@ -95,6 +96,7 @@ func updateMarketstackExchanges(aws *session.Session, db *sqlx.DB) (bool, error)
 
 func updateMarketstackTicker(aws *session.Session, db *sqlx.DB, symbol string) (*Ticker, error) {
 	params := make(map[string]string)
+	log.Info().Msgf("update ticker: %s", symbol)
 	res, err := getMarketstackData(aws, fmt.Sprintf("tickers/%s/eod", symbol), params)
 	if err != nil {
 		log.Fatal().Err(err).
@@ -154,7 +156,7 @@ func updateMarketstackTicker(aws *session.Session, db *sqlx.DB, symbol string) (
 	return ticker, nil
 }
 
-func updateMarketstackIntraday(aws *session.Session, db *sqlx.DB, ticker *Ticker, exchange *Exchange, intradate string) error {
+func updateMarketstackIntraday(aws *session.Session, db *sqlx.DB, ticker Ticker, exchange *Exchange, intradate string) error {
 	params := make(map[string]string)
 	params["symbols"] = ticker.TickerSymbol
 	params["exchange"] = exchange.ExchangeMic
@@ -211,9 +213,7 @@ func searchMarketstackTicker(aws *session.Session, db *sqlx.DB, search string) (
 
 	res, err := getMarketstackData(aws, "tickers", params)
 	if err != nil {
-		log.Fatal().Err(err).
-			Str("search", search).
-			Msg("Failed to get marketstack data for a search")
+		return nil, err
 	}
 
 	defer res.Body.Close()
@@ -221,7 +221,6 @@ func searchMarketstackTicker(aws *session.Session, db *sqlx.DB, search string) (
 	var apiResponse MSTickerResponse
 	json.NewDecoder(res.Body).Decode(&apiResponse)
 
-	var firstResult Ticker
 	for _, MSTickerData := range apiResponse.Data {
 		if MSTickerData.Symbol != "" {
 			// grab the exchange's countryId we'll need, create new record if needed
@@ -246,15 +245,11 @@ func searchMarketstackTicker(aws *session.Session, db *sqlx.DB, search string) (
 			var ticker = &Ticker{0, MSTickerData.Symbol, exchange.ExchangeId, MSTickerData.Name, "", ""}
 			ticker, err = createOrUpdateTicker(db, ticker)
 			if err != nil {
-				log.Fatal().Err(err).
-					Str("symbol", MSTickerData.Symbol).
-					Msg("Failed to create/update ticker")
+				return nil, err
 			}
-			if firstResult.TickerSymbol == "" {
-				firstResult = *ticker
-			}
+			return updateMarketstackTicker(aws, db, ticker.TickerSymbol)
 		}
 	}
 
-	return updateMarketstackTicker(aws, db, firstResult.TickerSymbol)
+	return nil, err
 }

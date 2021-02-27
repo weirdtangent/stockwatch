@@ -7,6 +7,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type Dailies struct {
+	Days []Daily
+}
+
 type ByPriceDate Dailies
 
 func (a ByPriceDate) Len() int           { return len(a.Days) }
@@ -21,6 +25,10 @@ func (d Dailies) Sort() *Dailies {
 func (d Dailies) Reverse() *Dailies {
 	sort.Sort(sort.Reverse(ByPriceDate(d)))
 	return &d
+}
+
+func (d Dailies) Count() int {
+	return len(d.Days)
 }
 
 func getDaily(db *sqlx.DB, ticker_id int64, daily_date string) (*Daily, error) {
@@ -64,41 +72,6 @@ func getLastDailyMove(db *sqlx.DB, ticker_id int64) (string, error) {
 		ticker_id, ticker_id)
 	err := row.Scan(&lastDailyMove)
 	return lastDailyMove, err
-}
-
-func loadDailies(db *sqlx.DB, ticker_id int64, days int) ([]Daily, error) {
-	rows, err := db.Queryx(
-		`SELECT * FROM (
-       SELECT * FROM daily WHERE ticker_id=? AND volume > 0
-		   ORDER BY price_date DESC LIMIT ?) DT1
-		 ORDER BY price_date`,
-		ticker_id, days)
-	if err != nil {
-		log.Fatal().Err(err).
-			Str("table_name", "daily").
-			Msg("Failed on SELECT")
-	}
-	defer rows.Close()
-
-	var daily Daily
-	dailies := make([]Daily, 0, days)
-	for rows.Next() {
-		err = rows.StructScan(&daily)
-		if err != nil {
-			log.Warn().Err(err).
-				Str("table_name", "daily").
-				Msg("Error reading result rows")
-		} else {
-			dailies = append(dailies, daily)
-		}
-	}
-	if err := rows.Err(); err != nil {
-		log.Fatal().Err(err).
-			Str("table_name", "daily").
-			Msg("Error reading result rows")
-	}
-
-	return dailies, err
 }
 
 func createDaily(db *sqlx.DB, daily *Daily) (*Daily, error) {

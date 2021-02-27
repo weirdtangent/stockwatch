@@ -1,22 +1,61 @@
 package main
 
 import (
+	"bytes"
 	"html/template"
 	"net/http"
 
 	"github.com/rs/zerolog/log"
 )
 
-func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname string, data *DefaultView) {
+type DefaultView struct {
+	Config   ConfigData
+	Recents  []ViewPair
+	Messages []Message
+}
+
+type TickerDailyView struct {
+	Config         ConfigData
+	Ticker         Ticker
+	Exchange       Exchange
+	Daily          Daily
+	LastDailyMove  string
+	Dailies        Dailies
+	Watches        []WebWatch
+	Recents        []ViewPair
+	LineChartHTML  template.HTML
+	KLineChartHTML template.HTML
+	Messages       []Message
+}
+
+type TickerIntradayView struct {
+	Config            ConfigData
+	Ticker            Ticker
+	Exchange          Exchange
+	Daily             Daily
+	LastDailyMove     string
+	Intradate         string
+	PriorBusinessDate string
+	NextBusinessDate  string
+	Intradays         Intradays
+	Watches           []WebWatch
+	Recents           []ViewPair
+	LineChartHTML     template.HTML
+	Messages          []Message
+}
+
+func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname string, Data map[string]interface{}) {
 	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/_wrapper.html")
 	if err != nil {
-		log.Warn().Err(err).
-			Str("template", tmplname).Msg("Failed to parse template")
+		log.Warn().Err(err).Str("template", tmplname).Msg("Failed to parse template")
 		http.NotFound(w, r)
 	}
 
-	data.Config.TmplName = tmplname
-	err = tmpl.ExecuteTemplate(w, tmplname, data)
+	config := Data["config"].(ConfigData)
+	config.TmplName = tmplname
+	Data["config"] = config
+
+	err = tmpl.ExecuteTemplate(w, tmplname, Data)
 	if err != nil {
 		log.Error().Err(err).
 			Str("template", tmplname).
@@ -24,56 +63,29 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 	}
 }
 
-func renderTemplateMessages(w http.ResponseWriter, r *http.Request, tmplname string, data *Message) {
+func renderTemplateToString(tmplname string, data interface{}) (template.HTML, error) {
 	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/_wrapper.html")
 	if err != nil {
 		log.Warn().Err(err).
 			Str("template", tmplname).
 			Msg("Failed to parse template")
-		http.NotFound(w, r)
+		return "", err
 	}
 
-	data.Config.TmplName = tmplname
-	err = tmpl.ExecuteTemplate(w, tmplname, data)
-	if err != nil {
-		log.Error().Err(err).
-			Str("template", tmplname).
-			Msg("Failed to execute template")
-	}
-}
-
-func renderTemplateDailyView(w http.ResponseWriter, r *http.Request, tmplname string, data *TickerDailyView) {
-	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/_wrapper.html")
+	var html bytes.Buffer
+	err = tmpl.ExecuteTemplate(&html, tmplname, nil)
 	if err != nil {
 		log.Warn().Err(err).
 			Str("template", tmplname).
-			Msg("Failed to parse template")
-		http.NotFound(w, r)
-	}
-
-	data.Config.TmplName = tmplname
-	err = tmpl.ExecuteTemplate(w, tmplname, data)
-	if err != nil {
-		log.Error().Err(err).
-			Str("template", tmplname).
 			Msg("Failed to execute template")
-	}
-}
-
-func renderTemplateIntradayView(w http.ResponseWriter, r *http.Request, tmplname string, data *TickerIntradayView) {
-	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/_wrapper.html")
-	if err != nil {
-		log.Warn().Err(err).
-			Str("template", tmplname).
-			Msg("Failed to parse template")
-		http.NotFound(w, r)
+		return "", err
 	}
 
-	data.Config.TmplName = tmplname
-	err = tmpl.ExecuteTemplate(w, tmplname, data)
-	if err != nil {
-		log.Error().Err(err).
-			Str("template", tmplname).
-			Msg("Failed to execute template")
-	}
+	//tpl := template.
+	//	Must(template.New(tmplname).
+	//		ParseFiles("templates/" + tmplname + ".html"),
+	//	)
+	//err := tpl.ExecuteTemplate(&html, tplName, r.c)
+
+	return template.HTML(html.String()), nil
 }

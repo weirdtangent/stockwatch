@@ -1,5 +1,5 @@
 {{- define "update" -}}
-{{ template "header" }}
+{{ template "_header" . }}
     <div class="container">
       <section>
         <h1>Update from Marketstack</h1>
@@ -8,5 +8,5 @@
         </ul>
       </section>
     </div>
-{{ template "footer" }}
+{{ template "_footer" . }}
 {{- end }}
