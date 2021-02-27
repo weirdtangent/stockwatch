@@ -8,42 +8,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type DefaultView struct {
-	Config   ConfigData
-	Recents  []ViewPair
-	Messages []Message
-}
-
-type TickerDailyView struct {
-	Config         ConfigData
-	Ticker         Ticker
-	Exchange       Exchange
-	Daily          Daily
-	LastDailyMove  string
-	Dailies        Dailies
-	Watches        []WebWatch
-	Recents        []ViewPair
-	LineChartHTML  template.HTML
-	KLineChartHTML template.HTML
-	Messages       []Message
-}
-
-type TickerIntradayView struct {
-	Config            ConfigData
-	Ticker            Ticker
-	Exchange          Exchange
-	Daily             Daily
-	LastDailyMove     string
-	Intradate         string
-	PriorBusinessDate string
-	NextBusinessDate  string
-	Intradays         Intradays
-	Watches           []WebWatch
-	Recents           []ViewPair
-	LineChartHTML     template.HTML
-	Messages          []Message
-}
-
 func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname string, Data map[string]interface{}) {
 	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/_wrapper.html")
 	if err != nil {
