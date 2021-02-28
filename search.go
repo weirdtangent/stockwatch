@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func searchHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
+func searchHandler(awssess *session.Session, db *sqlx.DB) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
 		searchType := params["type"]
@@ -29,7 +29,7 @@ func searchHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 				Str("search_string", searchString).
 				Msg("Search performed")
 
-			ticker, err := searchMarketstackTicker(aws, db, searchString)
+			ticker, err := searchMarketstackTicker(awssess, db, searchString)
 			if err != nil {
 				messages = append(messages, Message{fmt.Sprintf("Sorry, error returned for that search"), "danger"})
 				break

@@ -7,6 +7,7 @@ require (
 	github.com/alexedwards/scs v1.4.1
 	github.com/alexedwards/scs/mysqlstore v0.0.0-20210131110750-3ca38f9a41cc
 	github.com/aws/aws-sdk-go v1.37.20
+	github.com/aws/aws-sdk-go-v2 v1.2.0
 	github.com/go-echarts/go-echarts/v2 v2.2.3
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/securecookie v1.1.1

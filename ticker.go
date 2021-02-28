@@ -109,7 +109,7 @@ func (t Ticker) LoadIntraday(db *sqlx.DB, intradate string) ([]Intraday, error) 
 // see if we need to pull a daily update:
 //  if we don't have the EOD price for the prior business day
 //  OR if we don't have it for the current business day and it's now 7pm or later
-func (t Ticker) updateDailies(aws *session.Session, db *sqlx.DB) (bool, error) {
+func (t Ticker) updateDailies(awssess *session.Session, db *sqlx.DB) (bool, error) {
 	mostRecentDaily, err := getDailyMostRecent(db, t.TickerId)
 	if err != nil {
 		return false, err
@@ -124,7 +124,7 @@ func (t Ticker) updateDailies(aws *session.Session, db *sqlx.DB) (bool, error) {
 		Msg("check if new EOD available for ticker")
 
 	if mostRecentDailyDate < mostRecentAvailable {
-		_, err = updateMarketstackTicker(aws, db, t.TickerSymbol)
+		_, err = updateMarketstackTicker(awssess, db, t.TickerSymbol)
 		if err != nil {
 			return false, err
 		}
@@ -141,7 +141,7 @@ func (t Ticker) updateDailies(aws *session.Session, db *sqlx.DB) (bool, error) {
 // see if we need to pull intradays for the selected date:
 //  if we don't have the intraday prices for the selected date
 //  AND it was a prior business day or today and it's now 7pm or later
-func (t Ticker) updateIntradays(aws *session.Session, db *sqlx.DB, intradate string) (bool, error) {
+func (t Ticker) updateIntradays(awssess *session.Session, db *sqlx.DB, intradate string) (bool, error) {
 	haveIntradayData, err := gotIntradayData(db, t.TickerId, intradate)
 	if err != nil {
 		return false, err
@@ -165,7 +165,7 @@ func (t Ticker) updateIntradays(aws *session.Session, db *sqlx.DB, intradate str
 		Msg("check if intraday data available for ticker")
 
 	if intradate <= mostRecentAvailable {
-		err = updateMarketstackIntraday(aws, db, t, exchange, intradate)
+		err = updateMarketstackIntraday(awssess, db, t, exchange, intradate)
 		if err != nil {
 			return false, err
 		}

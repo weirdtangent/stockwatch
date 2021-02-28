@@ -59,13 +59,13 @@ func getUserInfo(oauthConfig *oauth2.Config, oauthStateString string, state stri
 }
 
 // validate idtoken the user has
-func googleTokenSigninHandler(aws *session.Session, googleClientId *string) http.HandlerFunc {
+func googleTokenSigninHandler(awssess *session.Session, googleClientId *string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session := getSession(r)
 		id_token := r.FormValue("idtoken")
 
 		// go get svc account JSON
-		google_svc_acct, err := myaws.AWSGetSecretValue(aws, "stockwatch_google_svc_acct")
+		google_svc_acct, err := myaws.AWSGetSecretValue(awssess, "stockwatch_google_svc_acct")
 		if err != nil {
 			log.Fatal().Err(err).
 				Msg("Failed to retrieve secret")

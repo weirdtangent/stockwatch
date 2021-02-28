@@ -27,29 +27,29 @@ func main() {
 	awsConfig, err := myaws.AWSConfig("us-east-1")
 
 	// connect to AWS
-	aws, err := myaws.AWSConnect("us-east-1", "stockwatch")
+	awssess, err := myaws.AWSConnect("us-east-1", "stockwatch")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to AWS")
 	}
 
 	// connect to Aurora
-	db, err := myaws.DBConnect(aws, "stockwatch_rds", "stockwatch")
+	db, err := myaws.DBConnect(awssess, "stockwatch_rds", "stockwatch")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to RDS")
 	}
 
 	// connect to Dynamo
-	ddb, err := myaws.DDBConnect(aws)
+	ddb, err := myaws.DDBConnect(awssess)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to DDB")
 	}
 
 	// config Google OAuth
-	clientId, err := myaws.AWSGetSecretKV(aws, "stockwatch_google_oauth", "client_id")
+	clientId, err := myaws.AWSGetSecretKV(awssess, "stockwatch_google_oauth", "client_id")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
-	clientSecret, err := myaws.AWSGetSecretKV(aws, "stockwatch_google_oauth", "client_secret")
+	clientSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch_google_oauth", "client_secret")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
@@ -60,17 +60,17 @@ func main() {
 		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
 		Endpoint:     google.Endpoint,
 	}
-	oAuthStateStr, err := myaws.AWSGetSecretKV(aws, "stockwatch_oauth_state", "oauth_state")
+	oAuthStateStr, err := myaws.AWSGetSecretKV(awssess, "stockwatch_oauth_state", "oauth_state")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
 
 	// Cookie setup for sessionID
-	cookieAuthKey, err := myaws.AWSGetSecretKV(aws, "stockwatch_cookie", "auth_key")
+	cookieAuthKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch_cookie", "auth_key")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
-	cookieEncryptionKey, err := myaws.AWSGetSecretKV(aws, "stockwatch_cookie", "encryption_key")
+	cookieEncryptionKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch_cookie", "encryption_key")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
@@ -106,12 +106,12 @@ func main() {
 
 	router.HandleFunc("/login", googleLoginHandler(oAuthConfig, *oAuthStateStr))
 	router.HandleFunc("/callback", googleCallbackHandler(oAuthConfig, *oAuthStateStr))
-	router.HandleFunc("/tokensignin", googleTokenSigninHandler(aws, clientId))
-	router.HandleFunc("/view/{symbol}/{acronym}", viewDailyHandler(aws, db))
-	router.HandleFunc("/view/{symbol}/{acronym}/{intradate}", viewIntradayHandler(aws, db))
-	router.HandleFunc("/search/{type}", searchHandler(aws, db))
-	router.HandleFunc("/update/{action}", updateHandler(aws, db))
-	router.HandleFunc("/update/{action}/{symbol}", updateHandler(aws, db))
+	router.HandleFunc("/tokensignin", googleTokenSigninHandler(awssess, clientId))
+	router.HandleFunc("/view/{symbol}/{acronym}", viewDailyHandler(awssess, db))
+	router.HandleFunc("/view/{symbol}/{acronym}/{intradate}", viewIntradayHandler(awssess, db))
+	router.HandleFunc("/search/{type}", searchHandler(awssess, db))
+	router.HandleFunc("/update/{action}", updateHandler(awssess, db))
+	router.HandleFunc("/update/{action}/{symbol}", updateHandler(awssess, db))
 	router.HandleFunc("/", homeHandler())
 
 	// middleware chain

@@ -12,14 +12,14 @@ import (
 	"github.com/weirdtangent/mytime"
 )
 
-func updateHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
+func updateHandler(awssess *session.Session, db *sqlx.DB) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
 		action := params["action"]
 
 		switch action {
 		case "exchanges":
-			success, err := updateMarketstackExchanges(aws, db)
+			success, err := updateMarketstackExchanges(awssess, db)
 			if err != nil {
 				log.Error().Msgf("Bulk update of Exchanges failed: %s", err)
 				return
@@ -30,7 +30,7 @@ func updateHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 			}
 		case "ticker":
 			symbol := params["symbol"]
-			_, err := updateMarketstackTicker(aws, db, symbol)
+			_, err := updateMarketstackTicker(awssess, db, symbol)
 			if err != nil {
 				log.Error().Msgf("Update of ticket symbol %s failed: %s", symbol, err)
 				return

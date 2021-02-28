@@ -5,7 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
+	aws "github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
@@ -14,10 +18,10 @@ import (
 
 const marketstack_url = "https://api.marketstack.com/v1/"
 
-func getMarketstackData(aws *session.Session, action string, params map[string]string) (*http.Response, error) {
+func getMarketstackData(awssess *session.Session, action string, params map[string]string) (string, string, *http.Response, error) {
 	httpClient := http.Client{}
 
-	api_access_key, err := myaws.AWSGetSecretKV(aws, "marketstack", "api_access_key")
+	api_access_key, err := myaws.AWSGetSecretKV(awssess, "marketstack", "api_access_key")
 	if err != nil {
 		log.Fatal().Err(err).
 			Msg("Failed to get marketstack API key")
@@ -33,7 +37,9 @@ func getMarketstackData(aws *session.Session, action string, params map[string]s
 	for key, val := range params {
 		q.Add(key, val)
 	}
+	logPath := req.URL.Path
 	logQuery := q.Encode()
+
 	q.Add("access_key", *api_access_key)
 	req.URL.RawQuery = q.Encode()
 
@@ -54,12 +60,12 @@ func getMarketstackData(aws *session.Session, action string, params map[string]s
 			Msg("Failed to receive 200 success code from HTTP request")
 	}
 
-	return res, nil
+	return logPath, logQuery, res, nil
 }
 
-func updateMarketstackExchanges(aws *session.Session, db *sqlx.DB) (bool, error) {
+func updateMarketstackExchanges(awssess *session.Session, db *sqlx.DB) (bool, error) {
 	params := make(map[string]string)
-	res, err := getMarketstackData(aws, "exchanges", params)
+	logPath, logQuery, res, err := getMarketstackData(awssess, "exchanges", params)
 	if err != nil {
 		log.Fatal().Err(err).
 			Msg("Failed to get marketstack data for exchanges")
@@ -69,6 +75,9 @@ func updateMarketstackExchanges(aws *session.Session, db *sqlx.DB) (bool, error)
 
 	var apiResponse MSExchangeResponse
 	json.NewDecoder(res.Body).Decode(&apiResponse)
+
+	logData, err := json.Marshal(apiResponse.Data)
+	recordHistory(awssess, logPath, logQuery, string(logData))
 
 	for _, MSExchangeData := range apiResponse.Data {
 		if MSExchangeData.Acronym != "" {
@@ -94,10 +103,10 @@ func updateMarketstackExchanges(aws *session.Session, db *sqlx.DB) (bool, error)
 	return true, nil
 }
 
-func updateMarketstackTicker(aws *session.Session, db *sqlx.DB, symbol string) (*Ticker, error) {
+func updateMarketstackTicker(awssess *session.Session, db *sqlx.DB, symbol string) (*Ticker, error) {
 	params := make(map[string]string)
 	log.Info().Msgf("update ticker: %s", symbol)
-	res, err := getMarketstackData(aws, fmt.Sprintf("tickers/%s/eod", symbol), params)
+	logPath, logQuery, res, err := getMarketstackData(awssess, fmt.Sprintf("tickers/%s/eod", symbol), params)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("symbol", symbol).
@@ -108,6 +117,9 @@ func updateMarketstackTicker(aws *session.Session, db *sqlx.DB, symbol string) (
 
 	var apiResponse MSEndOfDayResponse
 	json.NewDecoder(res.Body).Decode(&apiResponse)
+
+	logData, err := json.Marshal(apiResponse.Data)
+	recordHistory(awssess, logPath, logQuery, string(logData))
 
 	var MSEndOfDayData MSEndOfDayData = apiResponse.Data
 
@@ -156,7 +168,7 @@ func updateMarketstackTicker(aws *session.Session, db *sqlx.DB, symbol string) (
 	return ticker, nil
 }
 
-func updateMarketstackIntraday(aws *session.Session, db *sqlx.DB, ticker Ticker, exchange *Exchange, intradate string) error {
+func updateMarketstackIntraday(awssess *session.Session, db *sqlx.DB, ticker Ticker, exchange *Exchange, intradate string) error {
 	params := make(map[string]string)
 	params["symbols"] = ticker.TickerSymbol
 	params["exchange"] = exchange.ExchangeMic
@@ -165,7 +177,7 @@ func updateMarketstackIntraday(aws *session.Session, db *sqlx.DB, ticker Ticker,
 	params["date_from"] = intradate + "T14:30:00Z" // 9:30 AM ET open
 	params["date_to"] = intradate + "T21:05:00Z"   // 4:00 PM ET close
 
-	res, err := getMarketstackData(aws, fmt.Sprintf("intraday/%s", intradate), params)
+	logPath, logQuery, res, err := getMarketstackData(awssess, fmt.Sprintf("intraday/%s", intradate), params)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("symbol", ticker.TickerSymbol).
@@ -177,6 +189,9 @@ func updateMarketstackIntraday(aws *session.Session, db *sqlx.DB, ticker Ticker,
 
 	var apiResponse MSIntradayResponse
 	json.NewDecoder(res.Body).Decode(&apiResponse)
+
+	logData, err := json.Marshal(apiResponse.Data)
+	recordHistory(awssess, logPath, logQuery, string(logData))
 
 	//log.Fatal().
 	//	Str("response", fmt.Sprintf("%#v", apiResponse)).
@@ -207,11 +222,11 @@ func updateMarketstackIntraday(aws *session.Session, db *sqlx.DB, ticker Ticker,
 	return nil
 }
 
-func searchMarketstackTicker(aws *session.Session, db *sqlx.DB, search string) (*Ticker, error) {
+func searchMarketstackTicker(awssess *session.Session, db *sqlx.DB, search string) (*Ticker, error) {
 	params := make(map[string]string)
 	params["search"] = search
 
-	res, err := getMarketstackData(aws, "tickers", params)
+	logPath, logQuery, res, err := getMarketstackData(awssess, "tickers", params)
 	if err != nil {
 		return nil, err
 	}
@@ -220,6 +235,9 @@ func searchMarketstackTicker(aws *session.Session, db *sqlx.DB, search string) (
 
 	var apiResponse MSTickerResponse
 	json.NewDecoder(res.Body).Decode(&apiResponse)
+
+	logData, err := json.Marshal(apiResponse.Data)
+	recordHistory(awssess, logPath, logQuery, string(logData))
 
 	for _, MSTickerData := range apiResponse.Data {
 		if MSTickerData.Symbol != "" {
@@ -247,9 +265,62 @@ func searchMarketstackTicker(aws *session.Session, db *sqlx.DB, search string) (
 			if err != nil {
 				return nil, err
 			}
-			return updateMarketstackTicker(aws, db, ticker.TickerSymbol)
+			return updateMarketstackTicker(awssess, db, ticker.TickerSymbol)
 		}
 	}
 
 	return nil, err
+}
+
+func recordHistory(awssess *session.Session, logPath string, logQuery string, logData string) {
+	// write to DDB
+	// connect to Dynamo
+	//ddb, err := myaws.DDBConnect(aws)
+	ddb := dynamodb.New(awssess)
+	if len(logQuery) == 0 {
+		logQuery = "[none]"
+	}
+	inputReq := &dynamodb.PutItemInput{
+		Item: map[string]*dynamodb.AttributeValue{
+			"path": {
+				S: aws.String(logPath),
+			},
+			"query": {
+				S: aws.String(logQuery),
+			},
+			"response": {
+				S: aws.String(logData),
+			},
+		},
+		ReturnConsumedCapacity: aws.String("TOTAL"),
+		TableName:              aws.String("marketstack-history"),
+	}
+	result, err := ddb.PutItem(inputReq)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case dynamodb.ErrCodeConditionalCheckFailedException:
+				fmt.Println(dynamodb.ErrCodeConditionalCheckFailedException, aerr.Error())
+			case dynamodb.ErrCodeProvisionedThroughputExceededException:
+				fmt.Println(dynamodb.ErrCodeProvisionedThroughputExceededException, aerr.Error())
+			case dynamodb.ErrCodeResourceNotFoundException:
+				fmt.Println(dynamodb.ErrCodeResourceNotFoundException, aerr.Error())
+			case dynamodb.ErrCodeItemCollectionSizeLimitExceededException:
+				fmt.Println(dynamodb.ErrCodeItemCollectionSizeLimitExceededException, aerr.Error())
+			case dynamodb.ErrCodeTransactionConflictException:
+				fmt.Println(dynamodb.ErrCodeTransactionConflictException, aerr.Error())
+			case dynamodb.ErrCodeRequestLimitExceeded:
+				fmt.Println(dynamodb.ErrCodeRequestLimitExceeded, aerr.Error())
+			case dynamodb.ErrCodeInternalServerError:
+				fmt.Println(dynamodb.ErrCodeInternalServerError, aerr.Error())
+			default:
+				fmt.Println(aerr.Error())
+			}
+		} else {
+			// Print the error, cast err to awserr.Error to get the Code and
+			// Message from an error.
+			fmt.Println(err.Error())
+		}
+	}
+	fmt.Println(result)
 }

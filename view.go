@@ -12,7 +12,7 @@ import (
 	"github.com/weirdtangent/mytime"
 )
 
-func viewDailyHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
+func viewDailyHandler(awssess *session.Session, db *sqlx.DB) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session := getSession(r)
 		params := mux.Vars(r)
@@ -33,7 +33,7 @@ func viewDailyHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 		// find ticker specifically at that exchange (since there are overlaps)
 		ticker, err := getTicker(db, symbol, exchange.ExchangeId)
 		if err != nil {
-			ticker, err = updateMarketstackTicker(aws, db, symbol)
+			ticker, err = updateMarketstackTicker(awssess, db, symbol)
 			if err != nil {
 				log.Warn().Err(err).
 					Str("symbol", symbol).
@@ -43,7 +43,7 @@ func viewDailyHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 			}
 		}
 
-		updated, err := ticker.updateDailies(aws, db)
+		updated, err := ticker.updateDailies(awssess, db)
 		if err != nil {
 			messages = append(messages, Message{fmt.Sprintf("Failed to update End-of-day data for %s", ticker.TickerSymbol), "danger"})
 			log.Warn().Err(err).
@@ -122,7 +122,7 @@ func viewDailyHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 	})
 }
 
-func viewIntradayHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
+func viewIntradayHandler(awssess *session.Session, db *sqlx.DB) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session := getSession(r)
 		params := mux.Vars(r)
@@ -152,7 +152,7 @@ func viewIntradayHandler(aws *session.Session, db *sqlx.DB) http.HandlerFunc {
 			return
 		}
 
-		updated, err := ticker.updateIntradays(aws, db, intradate)
+		updated, err := ticker.updateIntradays(awssess, db, intradate)
 		if err != nil {
 			messages = append(messages, Message{fmt.Sprintf("Failed to update intraday data for %s for %s", ticker.TickerSymbol, intradate), "danger"})
 			log.Warn().Err(err).
