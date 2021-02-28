@@ -52,6 +52,7 @@ func chartHandlerDailyLine(ticker *Ticker, exchange *Exchange, dailies []Daily, 
 		charts.WithTitleOpts(opts.Title{
 			Title:    fmt.Sprintf("%s (%s) %s", ticker.TickerSymbol, exchange.ExchangeAcronym, ticker.TickerName),
 			Subtitle: "Share Price",
+			Target:   global_nonce, // crazy hack to get nonce into scripts
 		}),
 		charts.WithLegendOpts(opts.Legend{
 			Show:     true,
@@ -78,7 +79,9 @@ func chartHandlerDailyLine(ticker *Ticker, exchange *Exchange, dailies []Daily, 
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
 		charts.WithTitleOpts(opts.Title{
-			Subtitle: "Volume in mil"}),
+			Subtitle: "Volume in mil",
+			Target:   global_nonce, // crazy hack to get nonce into scripts
+		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			AxisLabel: &opts.AxisLabel{
 				Rotate: 45,
@@ -156,6 +159,7 @@ func chartHandlerIntradayLine(ticker *Ticker, exchange *Exchange, intradays []In
 		charts.WithTitleOpts(opts.Title{
 			Title:    fmt.Sprintf("%s (%s) %s", ticker.TickerSymbol, exchange.ExchangeAcronym, ticker.TickerName),
 			Subtitle: "Share Price for " + intradate,
+			Target:   global_nonce, // crazy hack to get nonce into scripts
 		}),
 		charts.WithLegendOpts(opts.Legend{
 			Show:     true,
@@ -182,7 +186,9 @@ func chartHandlerIntradayLine(ticker *Ticker, exchange *Exchange, intradays []In
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
 		charts.WithTitleOpts(opts.Title{
-			Subtitle: "Volume"}),
+			Subtitle: "Volume",
+			Target:   global_nonce, // crazy hack to get nonce into scripts
+		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			AxisLabel: &opts.AxisLabel{
 				Rotate: 60,

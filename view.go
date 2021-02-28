@@ -6,19 +6,25 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/securecookie"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
 	"github.com/weirdtangent/mytime"
 )
 
-func viewDailyHandler(awssess *session.Session, db *sqlx.DB) http.HandlerFunc {
+func viewDailyHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.SecureCookie) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		webdata := make(map[string]interface{})
+		messages := make([]Message, 0)
 		session := getSession(r)
+		if ok := checkAuthState(r, sc, webdata); ok == false {
+			http.Redirect(w, r, "/", 401)
+		}
+
 		params := mux.Vars(r)
 		symbol := params["symbol"]
 		acronym := params["acronym"]
-		var messages = make([]Message, 0)
 
 		// grab exchange they asked for
 		exchange, err := getExchange(db, acronym)
@@ -104,11 +110,8 @@ func viewDailyHandler(awssess *session.Session, db *sqlx.DB) http.HandlerFunc {
 			}
 		}
 
-		webdata := make(map[string]interface{})
-		webdata["config"] = ConfigData{}
 		webdata["recents"] = recents
 		webdata["messages"] = messages
-
 		webdata["ticker"] = ticker
 		webdata["exchange"] = exchange
 		webdata["daily"] = daily
@@ -122,14 +125,19 @@ func viewDailyHandler(awssess *session.Session, db *sqlx.DB) http.HandlerFunc {
 	})
 }
 
-func viewIntradayHandler(awssess *session.Session, db *sqlx.DB) http.HandlerFunc {
+func viewIntradayHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.SecureCookie) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		webdata := make(map[string]interface{})
+		messages := make([]Message, 0)
 		session := getSession(r)
+		if ok := checkAuthState(r, sc, webdata); ok == false {
+			http.Redirect(w, r, "/", 401)
+		}
+
 		params := mux.Vars(r)
 		symbol := params["symbol"]
 		acronym := params["acronym"]
 		intradate := params["intradate"]
-		var messages = make([]Message, 0)
 
 		// grab exchange they asked for
 		exchange, err := getExchange(db, acronym)
@@ -215,11 +223,8 @@ func viewIntradayHandler(awssess *session.Session, db *sqlx.DB) http.HandlerFunc
 		nextBusinessDay, _ := mytime.NextBusinessDayStr(intradate + " 13:55:00")
 		log.Info().Str("prior", priorBusinessDay).Str("next", nextBusinessDay).Msg("")
 
-		webdata := make(map[string]interface{})
-		webdata["config"] = ConfigData{}
 		webdata["recents"] = recents
 		webdata["messages"] = messages
-
 		webdata["ticker"] = ticker
 		webdata["exchange"] = exchange
 		webdata["daily"] = daily

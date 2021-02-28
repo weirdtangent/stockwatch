@@ -1,14 +1,16 @@
 package main
 
 import (
+	"crypto/sha1"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 
-	aws "github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
@@ -77,7 +79,7 @@ func updateMarketstackExchanges(awssess *session.Session, db *sqlx.DB) (bool, er
 	json.NewDecoder(res.Body).Decode(&apiResponse)
 
 	logData, err := json.Marshal(apiResponse.Data)
-	recordHistory(awssess, logPath, logQuery, string(logData))
+	recordHistoryS3(awssess, logPath, logQuery, string(logData))
 
 	for _, MSExchangeData := range apiResponse.Data {
 		if MSExchangeData.Acronym != "" {
@@ -119,7 +121,7 @@ func updateMarketstackTicker(awssess *session.Session, db *sqlx.DB, symbol strin
 	json.NewDecoder(res.Body).Decode(&apiResponse)
 
 	logData, err := json.Marshal(apiResponse.Data)
-	recordHistory(awssess, logPath, logQuery, string(logData))
+	recordHistoryS3(awssess, logPath, logQuery, string(logData))
 
 	var MSEndOfDayData MSEndOfDayData = apiResponse.Data
 
@@ -191,7 +193,7 @@ func updateMarketstackIntraday(awssess *session.Session, db *sqlx.DB, ticker Tic
 	json.NewDecoder(res.Body).Decode(&apiResponse)
 
 	logData, err := json.Marshal(apiResponse.Data)
-	recordHistory(awssess, logPath, logQuery, string(logData))
+	recordHistoryS3(awssess, logPath, logQuery, string(logData))
 
 	//log.Fatal().
 	//	Str("response", fmt.Sprintf("%#v", apiResponse)).
@@ -237,7 +239,7 @@ func searchMarketstackTicker(awssess *session.Session, db *sqlx.DB, search strin
 	json.NewDecoder(res.Body).Decode(&apiResponse)
 
 	logData, err := json.Marshal(apiResponse.Data)
-	recordHistory(awssess, logPath, logQuery, string(logData))
+	recordHistoryS3(awssess, logPath, logQuery, string(logData))
 
 	for _, MSTickerData := range apiResponse.Data {
 		if MSTickerData.Symbol != "" {
@@ -272,55 +274,24 @@ func searchMarketstackTicker(awssess *session.Session, db *sqlx.DB, search strin
 	return nil, err
 }
 
-func recordHistory(awssess *session.Session, logPath string, logQuery string, logData string) {
-	// write to DDB
-	// connect to Dynamo
-	//ddb, err := myaws.DDBConnect(aws)
-	ddb := dynamodb.New(awssess)
-	if len(logQuery) == 0 {
-		logQuery = "[none]"
+func recordHistoryS3(awssess *session.Session, logPath string, logQuery string, logData string) {
+	s3svc := s3.New(awssess)
+
+	sha1Hash := sha1.New()
+	io.WriteString(sha1Hash, logPath+"?"+logQuery)
+	logKey := fmt.Sprintf("marketstack/%s/%x", logPath[1:], string(sha1Hash.Sum(nil)))
+
+	inputPutObj := &s3.PutObjectInput{
+		Body:   aws.ReadSeekCloser(strings.NewReader(logData)),
+		Bucket: aws.String("graystorm-stockwatch"),
+		Key:    aws.String(logKey),
 	}
-	inputReq := &dynamodb.PutItemInput{
-		Item: map[string]*dynamodb.AttributeValue{
-			"path": {
-				S: aws.String(logPath),
-			},
-			"query": {
-				S: aws.String(logQuery),
-			},
-			"response": {
-				S: aws.String(logData),
-			},
-		},
-		ReturnConsumedCapacity: aws.String("TOTAL"),
-		TableName:              aws.String("marketstack-history"),
-	}
-	result, err := ddb.PutItem(inputReq)
+
+	_, err := s3svc.PutObject(inputPutObj)
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case dynamodb.ErrCodeConditionalCheckFailedException:
-				fmt.Println(dynamodb.ErrCodeConditionalCheckFailedException, aerr.Error())
-			case dynamodb.ErrCodeProvisionedThroughputExceededException:
-				fmt.Println(dynamodb.ErrCodeProvisionedThroughputExceededException, aerr.Error())
-			case dynamodb.ErrCodeResourceNotFoundException:
-				fmt.Println(dynamodb.ErrCodeResourceNotFoundException, aerr.Error())
-			case dynamodb.ErrCodeItemCollectionSizeLimitExceededException:
-				fmt.Println(dynamodb.ErrCodeItemCollectionSizeLimitExceededException, aerr.Error())
-			case dynamodb.ErrCodeTransactionConflictException:
-				fmt.Println(dynamodb.ErrCodeTransactionConflictException, aerr.Error())
-			case dynamodb.ErrCodeRequestLimitExceeded:
-				fmt.Println(dynamodb.ErrCodeRequestLimitExceeded, aerr.Error())
-			case dynamodb.ErrCodeInternalServerError:
-				fmt.Println(dynamodb.ErrCodeInternalServerError, aerr.Error())
-			default:
-				fmt.Println(aerr.Error())
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-		}
+		log.Warn().Err(err).
+			Str("bucket", "graystorm-stockwatch").
+			Str("key", logKey).
+			Msg("Failed to upload to S3 bucket")
 	}
-	fmt.Println(result)
 }

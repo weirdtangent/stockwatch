@@ -48,17 +48,6 @@ type Intraday struct {
 	UpdateDatetime string  `db:"update_datetime"`
 }
 
-type OAuth struct {
-	OAuthId          int64  `db:"oauth_id"`
-	OAuthVender      string `db:"oauth_vender"`
-	OAuthUser        string `db:"oauth_user"`
-	WatcherId        int64  `db:"watcher_id"`
-	OAuthStatus      string `db:"oauth_status"`
-	LastUsedDatetime string `db:"lastused_datetime"`
-	CreateDatetime   string `db:"create_datetime"`
-	UpdateDatetime   string `db:"update_datetime"`
-}
-
 type Source struct {
 	SourceId       int64  `db:"source_id"`
 	SourceCompany  string `db:"source_company"`

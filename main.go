@@ -12,10 +12,11 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/savaki/dynastore"
 
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-
 	"github.com/weirdtangent/myaws"
+)
+
+var (
+	global_nonce string
 )
 
 func main() {
@@ -46,21 +47,6 @@ func main() {
 
 	// config Google OAuth
 	clientId, err := myaws.AWSGetSecretKV(awssess, "stockwatch_google_oauth", "client_id")
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to retrieve secret")
-	}
-	clientSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch_google_oauth", "client_secret")
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to retrieve secret")
-	}
-	oAuthConfig := &oauth2.Config{
-		RedirectURL:  "https://stockwatch.graystorm.com/callback",
-		ClientID:     *clientId,
-		ClientSecret: *clientSecret,
-		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
-		Endpoint:     google.Endpoint,
-	}
-	oAuthStateStr, err := myaws.AWSGetSecretKV(awssess, "stockwatch_oauth_state", "oauth_state")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
@@ -102,25 +88,27 @@ func main() {
 	router := mux.NewRouter()
 
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
+	router.PathPrefix("/favicon.ico").Handler(http.FileServer(http.Dir("static/images")))
 	//router.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 
-	router.HandleFunc("/login", googleLoginHandler(oAuthConfig, *oAuthStateStr))
-	router.HandleFunc("/callback", googleCallbackHandler(oAuthConfig, *oAuthStateStr))
-	router.HandleFunc("/tokensignin", googleTokenSigninHandler(awssess, clientId))
-	router.HandleFunc("/view/{symbol}/{acronym}", viewDailyHandler(awssess, db))
-	router.HandleFunc("/view/{symbol}/{acronym}/{intradate}", viewIntradayHandler(awssess, db))
+	router.HandleFunc("/internal/cspviolations", JSONReportHandler(awssess))
+	router.HandleFunc("/login", googleLoginHandler(awssess, db, secureCookie, clientId))
+	router.HandleFunc("/desktop", desktopHandler(awssess, db, secureCookie))
+	router.HandleFunc("/view/{symbol}/{acronym}", viewDailyHandler(awssess, db, secureCookie))
+	router.HandleFunc("/view/{symbol}/{acronym}/{intradate}", viewIntradayHandler(awssess, db, secureCookie))
 	router.HandleFunc("/search/{type}", searchHandler(awssess, db))
 	router.HandleFunc("/update/{action}", updateHandler(awssess, db))
 	router.HandleFunc("/update/{action}/{symbol}", updateHandler(awssess, db))
-	router.HandleFunc("/", homeHandler())
+	router.HandleFunc("/", homeHandler(secureCookie))
 
 	// middleware chain
 	chainedMux1 := withSession(store, router)
-	chainedMux2 := withLogging(chainedMux1)
+	chainedMux2 := withAddHeader(chainedMux1)
+	chainedMux3 := withLogging(chainedMux2)
 
 	// starup or die
 	server := &http.Server{
-		Handler:      chainedMux2,
+		Handler:      chainedMux3,
 		Addr:         ":3001",
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,

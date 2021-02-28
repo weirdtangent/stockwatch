@@ -1,0 +1,28 @@
+{{- define "desktop" -}}
+{{ template "_header" . }}
+          <div class="row">
+            <header class="col-12">
+              <div class="float-middle">
+                <h1 class="text-center text-dark">Desktop</h1>
+              </div>
+              <ul class="list-group">
+                {{if .messages }}
+                  {{range .messages }}
+                    {{if .Text}}<li class="list-group-item text-{{.Level}}">{{.Text}}</li>{{end}}
+                  {{end}}
+                {{end}}
+              </ul>
+            </header>
+            <div class="main-content">
+              <div class="row">
+                <div class="col-10 offset-1 bg-dark opacity-4 mt-3 px-3 py-2">
+                  <p>Lorem ipsum dolor sit amet consectetuer In turpis ac netus Mauris. In laoreet orci quam scelerisque orci penatibus quis justo condimentum Curabitur. Ullamcorper mauris leo sed magna pede non tellus at Pellentesque augue. Libero odio urna Vestibulum velit turpis at porta risus Phasellus sit. Aenean feugiat non Vestibulum sed ut vitae sagittis adipiscing eu condimentum. Libero quam elit Nunc orci pretium libero In Nam laoreet arcu. At sapien gravida libero cursus nunc sem et aliquet amet aliquet. Congue justo auctor Phasellus justo nunc libero consequat nec lacus natoque. Turpis nec pellentesque at ridiculus tincidunt ipsum id mauris Nam a. Orci id nascetur Cum a nibh Pellentesque turpis volutpat orci et. Laoreet In nulla lorem Curabitur id Quisque ante convallis felis Nulla. Cursus felis odio elit turpis sit lorem mi nec fames turpis. Et molestie Morbi odio nibh dictumst sollicitudin turpis ac Pellentesque adipiscing. Auctor consequat vel Vestibulum montes Vestibulum eget Fusce hendrerit mauris at. </p>
+                </div><!-- col-8 -->
+              </div><!-- row -->
+            </div><!-- main-content -->
+          </div><!-- row -->
+        </div><!-- wrapper col -->
+      </div><!-- wrapper row -->
+    </div><!-- wrapper container -->
+{{ template "_footer" . }}
+{{- end }}

@@ -1,5 +1,5 @@
 {{- define "_header" -}}
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!DOCTYPE html>
 <html>
   <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
@@ -12,14 +12,13 @@
 
   <body id="page-top" class="{{.config.TmplName}}">
     <script src="/static/vendor/jquery/jquery-3.5.1.min.js"></script>
-    <script src="https://apis.google.com/js/platform.js?onload=init" async defer></script>
-    <script src="/static/js/wrapper.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <!-- Navigation -->
-    <nav class="nav navbar-dark bg-primary" style="min-height: 98px;">
+    <nav class="nav navbar-dark bg-primary brand-banner">
       <div class="container-fluid">
         <div class="row">
-          <h1 class="display-3 mt-3"><a href="/" class="navbar-brand text-decoration-none">Graystorm StockWatch</a></h1>
+          <h1 class=""><img src="/static/images/rocket.png"><a href="/" class="navbar-brand text-decoration-none ps-2 align-middle">Graystorm StockWatch</a></h1>
         </div><!-- row -->
         <div class="row">
           <div class="col-8 col-lg-9 col-xl-10 float-start">
@@ -37,11 +36,15 @@
             </ul>
             {{end -}}
           </div><!-- float-start -->
-          <div class="col-4 col-lg-3 col-xl-2 my-2 showOnProfile align-self-center flush-right">
+          <div class="col-4 col-lg-3 col-xl-2 my-2 align-self-center flush-right">
             <img class="image-fluid rounded" src="{{.Config.GoogleProfile.PictureURL}}">
-          </div><!-- showOnProfile -->
-          <div class="col-4 col-lg-3 col-xl-2 g-signin2 hideOnProfile align-self-center flush-right" data-longtitle="true" data-onsuccess="onSignIn">
-          </div><!-- hideOnProfile -->
+          </div>
+          {{if .loggedout}}
+          <div id="g_id_onload"
+             data-client_id="602086455575-vj2spkou0ucsntgol9srfkf8mka3o5i2.apps.googleusercontent.com"
+             data-auto_select="true" data-context="use" data-login_uri="https://stockwatch.graystorm.com/login">
+          </div>
+          {{end}}
         </div><!-- row -->
       </div>
     </nav>
@@ -55,7 +58,7 @@
 {{- end}}
 
 {{- define "_messages" -}}
-                  {{if .messages }}
+                  {{if .messages}}
                     {{range .messages}}
                       <div class="text-{{.Level}}">{{.Text}}</div>
                     {{end}}
@@ -68,13 +71,15 @@
               <input class="row mx-0 my-2 form-control-sm" name="searchString" type="search" placeholder="Search" aria-label="Search">
               <button class="row mx-0 my-2 form-control-sm bg-light text-dark" type="submit">Search</button>
             </form>
-            <ul class="nav me-auto mb-2 mb-lg-0 showOnProfile">
+            {{if .WID}}
+            <ul class="nav me-auto mb-2 mb-lg-0">
               <li class="nav-item me-1 text-warning">Welcome back<br><span class="profileName"></span>!</li>
               <li class="nav-item"><a class="nav-link" href="#section1">Account</a></li>
               <li class="nav-item"><a class="nav-link" href="#section2">Holdings</a></li>
               <li class="nav-item"><a class="nav-link" href="#section3">Preferences</a></li>
-              <li class="nav-item"><a class="nav-link" href="#" class="signout">Disconnect Google</a></li>
+              <li class="nav-item"><a class="nav-link" href="#" class="signout g_id_signout">Disconnect Google</a></li>
             </ul>
+            {{end}}
           </div>
 {{- end}}
 

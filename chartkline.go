@@ -46,6 +46,7 @@ func chartHandlerDailyKLine(ticker *Ticker, exchange *Exchange, dailies []Daily,
 		charts.WithTitleOpts(opts.Title{
 			Title:    fmt.Sprintf("%s (%s) %s", ticker.TickerSymbol, exchange.ExchangeAcronym, ticker.TickerName),
 			Subtitle: "Share Price",
+			Target:   global_nonce, // crazy hack to get nonce into scripts
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			Show: false,
@@ -68,7 +69,10 @@ func chartHandlerDailyKLine(ticker *Ticker, exchange *Exchange, dailies []Daily,
 			Theme:      types.ThemeVintage,
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
-		charts.WithTitleOpts(opts.Title{Subtitle: "Volume in mil"}),
+		charts.WithTitleOpts(opts.Title{
+			Subtitle: "Volume in mil",
+			Target:   global_nonce, // crazy hack to get nonce into scripts
+		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			AxisLabel: &opts.AxisLabel{
 				Rotate: 45,

@@ -25,6 +25,7 @@ func renderToHtml(c interface{}) template.HTML {
 
 type snippetRenderer struct {
 	c      interface{}
+	nonce  string
 	before []func()
 }
 
