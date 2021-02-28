@@ -18,7 +18,7 @@ func viewDailyHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.Se
 		webdata := make(map[string]interface{})
 		messages := make([]Message, 0)
 		session := getSession(r)
-		if ok := checkAuthState(r, sc, webdata); ok == false {
+		if ok := checkAuthState(r, db, sc, webdata); ok == false {
 			http.Redirect(w, r, "/", 401)
 		}
 
@@ -130,7 +130,7 @@ func viewIntradayHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie
 		webdata := make(map[string]interface{})
 		messages := make([]Message, 0)
 		session := getSession(r)
-		if ok := checkAuthState(r, sc, webdata); ok == false {
+		if ok := checkAuthState(r, db, sc, webdata); ok == false {
 			http.Redirect(w, r, "/", 401)
 		}
 

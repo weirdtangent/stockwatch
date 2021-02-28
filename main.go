@@ -93,13 +93,14 @@ func main() {
 
 	router.HandleFunc("/internal/cspviolations", JSONReportHandler(awssess))
 	router.HandleFunc("/login", googleLoginHandler(awssess, db, secureCookie, clientId))
+	router.HandleFunc("/logout", googleLogoutHandler(awssess, db, secureCookie, clientId))
 	router.HandleFunc("/desktop", desktopHandler(awssess, db, secureCookie))
 	router.HandleFunc("/view/{symbol}/{acronym}", viewDailyHandler(awssess, db, secureCookie))
 	router.HandleFunc("/view/{symbol}/{acronym}/{intradate}", viewIntradayHandler(awssess, db, secureCookie))
 	router.HandleFunc("/search/{type}", searchHandler(awssess, db))
 	router.HandleFunc("/update/{action}", updateHandler(awssess, db))
 	router.HandleFunc("/update/{action}/{symbol}", updateHandler(awssess, db))
-	router.HandleFunc("/", homeHandler(secureCookie))
+	router.HandleFunc("/", homeHandler(awssess, db, secureCookie))
 
 	// middleware chain
 	chainedMux1 := withSession(store, router)

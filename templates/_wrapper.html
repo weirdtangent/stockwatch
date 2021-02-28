@@ -52,7 +52,7 @@
     <div class="container-fluid"><!-- wrapper container -->
       <div class="row"><!-- wrapper row -->
         <div class="col-6 col-sm-5 col-md-4 col-lg-3 col-xxl-2 bg-dark">
-          {{ template "_sidemenu" }}
+          {{ template "_sidemenu" . }}
         </div><!-- col-2 -->
         <div class="col-6 col-sm-7 col-md-8 col-lg-9 col-xxl-10 mb-n5"><!-- wrapper col -->
 {{- end}}
@@ -68,16 +68,16 @@
 {{- define "_sidemenu" -}}
           <div class="">
             <form method="POST" action="/search/ticker" class="form-control bg-primary mt-3">
-              <input class="row mx-0 my-2 form-control-sm" name="searchString" type="search" placeholder="Search" aria-label="Search">
+              <input class="row mx-0 my-2 form-control-sm" name="searchString" type="search" placeholder="Symbol or company name" aria-label="Symbol Search">
               <button class="row mx-0 my-2 form-control-sm bg-light text-dark" type="submit">Search</button>
             </form>
             {{if .WID}}
             <ul class="nav me-auto mb-2 mb-lg-0">
-              <li class="nav-item me-1 text-warning">Welcome back<br><span class="profileName"></span>!</li>
+              <li class="nav-item me-1 text-warning">Welcome back<br>{{.watcher.WatcherName}}!</li>
               <li class="nav-item"><a class="nav-link" href="#section1">Account</a></li>
               <li class="nav-item"><a class="nav-link" href="#section2">Holdings</a></li>
               <li class="nav-item"><a class="nav-link" href="#section3">Preferences</a></li>
-              <li class="nav-item"><a class="nav-link" href="#" class="signout g_id_signout">Disconnect Google</a></li>
+              <li class="nav-item g_id_signout"><a class="nav-link" href="/logout" class="signout">Disconnect Google</a></li>
             </ul>
             {{end}}
           </div>

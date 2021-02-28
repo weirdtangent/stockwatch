@@ -29,9 +29,10 @@ func (ah *AddHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"font-src 'self' fonts.gstatic.com",
 		"frame-src 'self' accounts.google.com",
 		"report-uri /internal/cspviolations",
-		//"report-to default",
+		"report-to default",
 	}
 	header.Set("Content-Security-Policy", strings.Join(csp, "; "))
+
 	reportTo := `{"group":"default","max-age":1800,"endpoints":[{"url":"https://stockwatch.graystorm.com/internal/cspviolations"}],"include_subdomains":true}`
 	header.Set("Report-To", reportTo)
 	ah.handler.ServeHTTP(w, r)

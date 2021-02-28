@@ -9,6 +9,7 @@ type Watcher struct {
 	WatcherId      int64  `db:"watcher_id"`
 	WatcherName    string `db:"watcher_name"`
 	WatcherEmail   string `db:"watcher_email"`
+	WatcherStatus  string `db:"watcher_status"`
 	OAuthId        int64  `db:"oauth_id"`
 	CreateDatetime string `db:"create_datetime"`
 	UpdateDatetime string `db:"update_datetime"`
@@ -39,9 +40,9 @@ func getWatcherById(db *sqlx.DB, watcherId int64) (*Watcher, error) {
 }
 
 func createWatcher(db *sqlx.DB, watcher *Watcher) (*Watcher, error) {
-	var insert = "INSERT INTO watcher SET watcher_name=?, watcher_email=?, oauth_id=?"
+	var insert = "INSERT INTO watcher SET watcher_name=?, watcher_email=?, watcher_status=?, oauth_id=?"
 
-	res, err := db.Exec(insert, watcher.WatcherName, watcher.WatcherEmail, watcher.OAuthId)
+	res, err := db.Exec(insert, watcher.WatcherName, watcher.WatcherEmail, watcher.WatcherStatus, watcher.OAuthId)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("table_name", "watcher").
@@ -65,14 +66,14 @@ func getOrCreateWatcher(db *sqlx.DB, watcher *Watcher) (*Watcher, error) {
 }
 
 func createOrUpdateWatcher(db *sqlx.DB, watcher *Watcher) (*Watcher, error) {
-	var update = "UPDATE watcher SET watcher_name=?, watcher_email=?, oauth_id=? WHERE watcher_id=?"
+	var update = "UPDATE watcher SET watcher_name=?, watcher_email=?, watcher_status=?, oauth_id=? WHERE watcher_id=?"
 
 	existing, err := getWatcher(db, watcher.WatcherEmail)
 	if err != nil {
 		return createWatcher(db, watcher)
 	}
 
-	_, err = db.Exec(update, watcher.WatcherName, watcher.WatcherEmail, watcher.OAuthId, existing.WatcherId)
+	_, err = db.Exec(update, watcher.WatcherName, watcher.WatcherEmail, watcher.WatcherStatus, watcher.OAuthId, existing.WatcherId)
 	if err != nil {
 		log.Warn().Err(err).
 			Str("table_name", "watcher").

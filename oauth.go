@@ -20,6 +20,18 @@ type OAuth struct {
 	UpdateDatetime  string `db:"update_datetime"`
 }
 
+func (o OAuth) Delete(db *sqlx.DB, watcherId int64) error {
+	var deleteSQL = "DELETE FROM oauth WHERE oauth_id=? AND watcher_id=?"
+
+	_, err := db.Exec(deleteSQL, o.OAuthId, watcherId)
+	if err != nil {
+		log.Warn().Err(err).
+			Str("table_name", "oauth").
+			Msg("Failed on DELETE")
+	}
+	return err
+}
+
 func getOAuth(db *sqlx.DB, emailAddress string) (*OAuth, error) {
 	var oauth OAuth
 	err := db.QueryRowx("SELECT * FROM oauth WHERE oauth_email=?", emailAddress).StructScan(&oauth)
@@ -29,6 +41,12 @@ func getOAuth(db *sqlx.DB, emailAddress string) (*OAuth, error) {
 func getOAuthById(db *sqlx.DB, oauthId int64) (*OAuth, error) {
 	var oauth OAuth
 	err := db.QueryRowx("SELECT * FROM oauth WHERE oauth_id=?", oauthId).StructScan(&oauth)
+	return &oauth, err
+}
+
+func getOAuthByWatcherId(db *sqlx.DB, watcherId int64) (*OAuth, error) {
+	var oauth OAuth
+	err := db.QueryRowx("SELECT * FROM oauth WHERE watcher_id=?", watcherId).StructScan(&oauth)
 	return &oauth, err
 }
 
