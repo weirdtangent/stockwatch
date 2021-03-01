@@ -11,7 +11,8 @@ header {
   min-height: calc(100vh - 104px);
 }
 
-body.home .main-content {
+body.home .main-content,
+body.desktop .main-content {
   background: url("/static/images/front-page.jpg") no-repeat top/cover scroll;
 }
 

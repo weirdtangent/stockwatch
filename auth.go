@@ -134,7 +134,7 @@ func googleLogoutHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		webdata := make(map[string]interface{})
 
-		if ok := checkAuthState(r, db, sc, webdata); ok {
+		if ok := checkAuthState(w, r, db, sc, webdata); ok {
 			var watcher = webdata["watcher"].(*Watcher)
 			if encoded, err := sc.Encode("WID", fmt.Sprintf("%d", watcher.WatcherId)); err == nil {
 				cookie := &http.Cookie{
@@ -157,7 +157,7 @@ func googleLogoutHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie
 
 // check for WID cookie, set above when authenticated with Google 1-Tap
 // plus set some standard webdata keys we'll need for all/most pages
-func checkAuthState(r *http.Request, db *sqlx.DB, sc *securecookie.SecureCookie, webdata map[string]interface{}) bool {
+func checkAuthState(w http.ResponseWriter, r *http.Request, db *sqlx.DB, sc *securecookie.SecureCookie, webdata map[string]interface{}) bool {
 	session := getSession(r)
 	recents, _ := getRecents(session, r)
 	webdata["config"] = ConfigData{}
@@ -195,6 +195,17 @@ func checkAuthState(r *http.Request, db *sqlx.DB, sc *securecookie.SecureCookie,
 				if unixTimeNow > oauth.OAuthExpires {
 					log.Error().Err(err).Int64("wid", WIDvalue).Msg("OAuth record has expired")
 					oauth.Delete(db, WIDvalue)
+					if encoded, err := sc.Encode("WID", fmt.Sprintf("%d", watcher.WatcherId)); err == nil {
+						cookie := &http.Cookie{
+							Name:     "WID",
+							Value:    encoded,
+							Path:     "/",
+							Secure:   true,
+							HttpOnly: true,
+							MaxAge:   -1,
+						}
+						http.SetCookie(w, cookie)
+					}
 					break
 				}
 				log.Info().Msg("Authenticated visitor found")

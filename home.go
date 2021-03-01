@@ -15,7 +15,7 @@ func homeHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.SecureC
 		//session := getSession(r)
 
 		// the opposite of normal, for authenticated visits we redirect
-		if ok := checkAuthState(r, db, sc, webdata); ok {
+		if ok := checkAuthState(w, r, db, sc, webdata); ok {
 			http.Redirect(w, r, "/desktop", 302)
 		} else {
 			webdata["messages"] = messages
