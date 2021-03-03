@@ -1,0 +1,29 @@
+[Unit]
+Description=Stockwatch
+ConditionPathExists=/www/stockwatch
+After=network.target
+ 
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+LimitNOFILE=1024
+
+Restart=on-failure
+RestartSec=10
+startLimitIntervalSec=60
+
+WorkingDirectory=/www/stockwatch
+ExecStart=/www/stockwatch/stockwatch
+
+# make sure log directory exists and owned by syslog
+PermissionsStartOnly=true
+ExecStartPre=/bin/mkdir -p /www/stockwatch/logs
+ExecStartPre=/bin/chown ubuntu:ubuntu /www/stockwatch/logs
+ExecStartPre=/bin/chmod 777 /www/stockwatch/logs
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=stockwatch
+ 
+[Install]
+WantedBy=multi-user.target

@@ -1,4 +1,3 @@
 #!/bin/bash
 
-pkill stockwatch
-/www/stockwatch/stockwatch 2>>logs/stockwatch.log &
+sudo systemctl restart stockwatch
