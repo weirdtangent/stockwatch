@@ -1,17 +1,11 @@
 {{- define "desktop" -}}
 {{ template "_header" . }}
           <div class="row">
-            <header class="col-12">
-              <div class="float-middle">
-                <h1 class="text-center text-dark">Desktop</h1>
+            <div class="col-12">
+              <div class="bg-light float-middle">
+                <h1 class="mt-2 text-center text-dark">Desktop</h1>
               </div>
-              <ul class="list-group">
-                {{if .messages }}
-                  {{range .messages }}
-                    {{if .Text}}<li class="list-group-item text-{{.Level}}">{{.Text}}</li>{{end}}
-                  {{end}}
-                {{end}}
-              </ul>
+              {{ template "_messageblock" . }}
             </header>
             <div class="main-content">
               <div class="row">

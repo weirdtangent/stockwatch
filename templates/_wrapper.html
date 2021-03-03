@@ -83,11 +83,14 @@
             </form>
             {{if .WID}}
             <ul class="nav me-auto mb-2 mb-lg-0">
-              <li class="nav-item me-1 text-warning">Welcome back<br>{{.watcher.WatcherName}}!</li>
+              <li class="nav-item me-1 w-100 text-warning text-center welcome">Welcome back<br>{{.watcher.WatcherName}}!</li>
               <li class="nav-item"><a class="nav-link" href="#section1">Account</a></li>
               <li class="nav-item"><a class="nav-link" href="#section2">Holdings</a></li>
               <li class="nav-item"><a class="nav-link" href="#section3">Preferences</a></li>
               <li class="nav-item g_id_signout"><a class="nav-link" href="/logout" class="signout">Disconnect Google</a></li>
+              {{if .watcher.IsAdmin}}
+              <li class="nav-item"><a class="nav-link link-warning" href="/update/exchanges">Update Exchanges</a></li>
+              {{end}}
             </ul>
             {{end}}
           </div>

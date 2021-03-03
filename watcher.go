@@ -10,6 +10,7 @@ type Watcher struct {
 	WatcherName    string `db:"watcher_name"`
 	WatcherEmail   string `db:"watcher_email"`
 	WatcherStatus  string `db:"watcher_status"`
+	WatcherLevel   string `db:"watcher_level"`
 	OAuthId        int64  `db:"oauth_id"`
 	CreateDatetime string `db:"create_datetime"`
 	UpdateDatetime string `db:"update_datetime"`
@@ -25,6 +26,14 @@ func (w Watcher) Update(db *sqlx.DB) error {
 			Msg("Failed on UPDATE")
 	}
 	return err
+}
+
+func (w Watcher) IsAdmin() bool {
+	return w.WatcherLevel == "admin" || w.WatcherLevel == "root"
+}
+
+func (w Watcher) IsRoot() bool {
+	return w.WatcherLevel == "root"
 }
 
 func getWatcher(db *sqlx.DB, emailAddress string) (*Watcher, error) {

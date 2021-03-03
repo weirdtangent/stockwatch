@@ -89,7 +89,7 @@ func googleLoginHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.
 
 		// get (or create) watcher account based on oauth properties
 		var emailAddress = payload.Claims["email"].(string)
-		var watcher = &Watcher{0, payload.Claims["name"].(string), emailAddress, "active", 0, "", ""}
+		var watcher = &Watcher{0, payload.Claims["name"].(string), emailAddress, "active", "standard", 0, "", ""}
 		watcher, err = getOrCreateWatcher(db, watcher)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to get/create watcher from one-tap")
