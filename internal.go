@@ -17,6 +17,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+func pingHandler() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		return
+	})
+}
+
 func JSONReportHandler(awssess *session.Session) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s3svc := s3.New(awssess)

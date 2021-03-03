@@ -35,6 +35,7 @@ func (ah *AddHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	reportTo := `{"group":"default","max-age":1800,"endpoints":[{"url":"https://stockwatch.graystorm.com/internal/cspviolations"}],"include_subdomains":true}`
 	header.Set("Report-To", reportTo)
+
 	ah.handler.ServeHTTP(w, r)
 }
 func withAddHeader(h http.Handler) *AddHeader {
@@ -49,12 +50,17 @@ type Logger struct {
 
 func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t := time.Now()
+
 	l.handler.ServeHTTP(w, r)
-	log.Info().
-		Stringer("url", r.URL).
-		Int("status_code", 200).
-		Int64("response_time", time.Since(t).Nanoseconds()).
-		Msg("")
+
+	if r.URL.String() != "/ping" {
+		log.Info().
+			Stringer("url", r.URL).
+			Int("status_code", 200).
+			Str("method", r.Method).
+			Int64("response_time", time.Since(t).Nanoseconds()).
+			Msg("")
+	}
 }
 func withLogging(h http.Handler) *Logger {
 	return &Logger{h}

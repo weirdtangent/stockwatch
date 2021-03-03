@@ -91,6 +91,7 @@ func main() {
 	router.PathPrefix("/favicon.ico").Handler(http.FileServer(http.Dir("static/images")))
 	//router.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 
+	router.HandleFunc("/ping", pingHandler())
 	router.HandleFunc("/internal/cspviolations", JSONReportHandler(awssess))
 	router.HandleFunc("/login", googleLoginHandler(awssess, db, secureCookie, clientId))
 	router.HandleFunc("/logout", googleLogoutHandler(awssess, db, secureCookie, clientId))
