@@ -1,9 +1,0 @@
-mysql -b --user=stockwatch  --password -h mydbcluster-instance-1.cocoxheuvnrz.us-east-1.rds.amazonaws.com \
-  -e "SELECT * FROM ticker;" stockwatch | sed "s/\"/\"\"/g;s/'/\'/;s/\t/\",\"/g;s/^/\"/;s/$/\"/;s/\n//g"   > /tmp/ticker.txt
-
-mysql -b --user=stockwatch  --password -h mydbcluster-instance-1.cocoxheuvnrz.us-east-1.rds.amazonaws.com \
-  -e "SELECT * FROM exchange;" stockwatch | sed "s/\"/\"\"/g;s/'/\'/;s/\t/\",\"/g;s/^/\"/;s/$/\"/;s/\n//g" > /tmp/exchange.txt
-
-mysql --user=stockwatch  --password -h mydbcluster-instance-1.cocoxheuvnrz.us-east-1.rds.amazonaws.com stockwatch < /tmp/daily.sql
-
-mysql --user=stockwatch  --password -h mydbcluster-instance-1.cocoxheuvnrz.us-east-1.rds.amazonaws.com stockwatch < /tmp/tickers.sql
