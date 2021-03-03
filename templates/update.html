@@ -1,12 +1,10 @@
 {{- define "update" -}}
 {{ template "_header" . }}
-    <div class="container">
-      <section>
-        <h1>Update from Marketstack</h1>
-        <ul class="list-group">
-          <li class="list-group-item">Exchanges - update complete</li>
-        </ul>
-      </section>
-    </div>
+          <div class="row">
+            <div class="col-12 main-content">
+              <h4 class="mx-2 mt-2">Update from Marketstack</h4>
+              {{ template "_messageblock" . }}
+            </div>
+          </div>
 {{ template "_footer" . }}
 {{- end }}

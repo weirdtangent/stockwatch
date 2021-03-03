@@ -97,8 +97,7 @@ func chartHandlerDailyLine(ticker *Ticker, exchange *Exchange, dailies []Daily, 
 
 	// Put data into instance
 	prices.SetXAxis(hidden_axis).
-		AddSeries(ticker.TickerSymbol, lineData,
-			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
+		AddSeries(ticker.TickerSymbol, lineData)
 	prices.
 		AddSeries("MA5", calcMovingLineAvg(5, lineData),
 			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))

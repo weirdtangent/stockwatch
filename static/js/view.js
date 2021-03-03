@@ -18,4 +18,12 @@ $(document).ready(function() {
 
     showing = clicked;
   });
+
+
+  $("input[name=pickTimespan]").on("change", function() {
+    console.log("radio button clicked")
+    href = $("input[name=pickTimespan]:checked").data("href")
+    console.log(href)
+    window.document.location = href;
+  });
 });

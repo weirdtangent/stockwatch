@@ -15,7 +15,7 @@ func desktopHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.Secu
 		messages := make([]Message, 0)
 		//session := getSession(r)
 		if ok := checkAuthState(w, r, db, sc, webdata); ok {
-			webdata["messages"] = messages
+			webdata["messages"] = Messages{messages}
 			renderTemplateDefault(w, r, "desktop", webdata)
 		} else {
 			http.Redirect(w, r, "/", 307)

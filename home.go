@@ -18,7 +18,7 @@ func homeHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.SecureC
 		if ok := checkAuthState(w, r, db, sc, webdata); ok {
 			http.Redirect(w, r, "/desktop", 302)
 		} else {
-			webdata["messages"] = messages
+			webdata["messages"] = Messages{messages}
 			renderTemplateDefault(w, r, "home", webdata)
 		}
 		return

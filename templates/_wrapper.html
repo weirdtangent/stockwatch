@@ -49,20 +49,30 @@
       </div>
     </nav>
 
-    <div class="container-fluid"><!-- wrapper container -->
-      <div class="row"><!-- wrapper row -->
-        <div class="col-6 col-sm-5 col-md-4 col-lg-3 col-xxl-2 bg-dark">
+    <div class="screen"><!-- wrapper screen -->
+      <div class="row g-0"><!-- wrapper row -->
+        <div class="col-6 col-sm-5 col-md-4 col-lg-3 col-xxl-2 bg-dark px-1 px-md-3">
           {{ template "_sidemenu" . }}
         </div><!-- col-2 -->
         <div class="col-6 col-sm-7 col-md-8 col-lg-9 col-xxl-10 mb-n5"><!-- wrapper col -->
 {{- end}}
 
 {{- define "_messages" -}}
-                  {{if .messages}}
-                    {{range .messages}}
+                  {{if .messages.Messages }}
+                    {{range .messages.Messages }}
                       <div class="text-{{.Level}}">{{.Text}}</div>
                     {{end}}
                   {{end}}
+{{- end}}
+
+{{- define "_messageblock" -}}
+            {{if .messages.Messages }}
+              <ul class="mx-2 list-group">
+                  {{range .messages.Messages }}
+                    {{if .Text}}<li class="list-group-item text-{{.Level}}">{{.Text}}</li>{{end}}
+                  {{end}}
+              </ul>
+            {{end}}
 {{- end}}
 
 {{- define "_sidemenu" -}}
@@ -126,10 +136,14 @@
 {{- end}}
 
 {{- define "_footer" -}}
+        </div><!-- wrapper col -->
+      </div><!-- wrapper row -->
+    </div><!-- wrapper screen -->
+
     <!-- Footer -->
     <footer class="footer fixed-bottom fs-6 align-middle text-light row">
         <div class="col-2">
-          <p class="lh-1 small">&copy;2021
+          <p class="lh-1 small">&copy;2021 -
             <a href="mailto:jeff@graystorm.com" class="text-decoration-none">jeff@graystorm.com</a>
           </p>
         </div>

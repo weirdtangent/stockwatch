@@ -6,13 +6,7 @@
                 <h1 class="text-center text-dark">Welcome to <em>Graystorm StockWatch</em>!</h1>
                 <p class="text-center lead text-primary">powered by <a href="https://marketstack.com/" target="_blank">marketstack</a> data</p>
               </div>
-              <ul class="list-group">
-                {{if .messages }}
-                  {{range .messages }}
-                    {{if .Text}}<li class="list-group-item text-{{.Level}}">{{.Text}}</li>{{end}}
-                  {{end}}
-                {{end}}
-              </ul>
+              {{ template "_messageblock" . }}
             </header>
             <div class="main-content">
               <div class="row">
@@ -25,8 +19,5 @@
               </div><!-- row -->
             </div><!-- main-content -->
           </div><!-- row -->
-        </div><!-- wrapper col -->
-      </div><!-- wrapper row -->
-    </div><!-- wrapper container -->
 {{ template "_footer" . }}
 {{- end }}

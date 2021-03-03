@@ -20,6 +20,66 @@ import (
 
 const marketstack_url = "https://api.marketstack.com/v1/"
 
+type MSExchangeData struct {
+	Name        string `json:"name"`
+	Acronym     string `json:"acronym"`
+	Mic         string `json:"mic"`
+	CountryName string `json:"country"`
+	CountryCode string `json:"country_code"`
+	City        string `json:"city"`
+}
+
+type MSIndexData struct {
+	Symbol     string  `json:"symbol"`
+	Exchange   string  `json:"exchange"`
+	PriceDate  string  `json:"date"`
+	OpenPrice  float32 `json:"open"`
+	HighPrice  float32 `json:"high"`
+	LowPrice   float32 `json:"low"`
+	ClosePrice float32 `json:"close"`
+	Volume     float32 `json:"volume"`
+}
+
+type MSIntradayData struct {
+	Symbol    string  `json:"symbol"`
+	Exchange  string  `json:"exchange"`
+	PriceDate string  `json:"date"`
+	LastPrice float32 `json:"last"`
+	Volume    float32 `json:"volume"`
+}
+
+type MSEndOfDayData struct {
+	Symbol        string         `json:"symbol"`
+	Name          string         `json:"name"`
+	StockExchange MSExchangeData `json:"stock_exchange"`
+	EndOfDay      []MSIndexData  `json:"eod"`
+}
+
+type MSTickerData struct {
+	Symbol        string         `json:"symbol"`
+	Name          string         `json:"name"`
+	StockExchange MSExchangeData `json:"stock_exchange"`
+}
+
+type MSEndOfDayResponse struct {
+	Data MSEndOfDayData `json:"data"`
+}
+
+type MSExchangeResponse struct {
+	Data []MSExchangeData `json:"data"`
+}
+
+type MSIndexResponse struct {
+	Data []MSIndexData `json:"data"`
+}
+
+type MSIntradayResponse struct {
+	Data []MSIntradayData `json:"data"`
+}
+type MSTickerResponse struct {
+	Data []MSTickerData `json:"data"`
+}
+
 func getMarketstackData(awssess *session.Session, action string, params map[string]string) (string, string, *http.Response, error) {
 	httpClient := http.Client{}
 
@@ -65,7 +125,7 @@ func getMarketstackData(awssess *session.Session, action string, params map[stri
 	return logPath, logQuery, res, nil
 }
 
-func updateMarketstackExchanges(awssess *session.Session, db *sqlx.DB) (bool, error) {
+func updateMarketstackExchanges(awssess *session.Session, db *sqlx.DB) (int, error) {
 	params := make(map[string]string)
 	logPath, logQuery, res, err := getMarketstackData(awssess, "exchanges", params)
 	if err != nil {
@@ -81,28 +141,37 @@ func updateMarketstackExchanges(awssess *session.Session, db *sqlx.DB) (bool, er
 	logData, err := json.Marshal(apiResponse.Data)
 	recordHistoryS3(awssess, logPath, logQuery, string(logData))
 
+	count := 0
 	for _, MSExchangeData := range apiResponse.Data {
-		if MSExchangeData.Acronym != "" {
+		switch MSExchangeData.Acronym {
+		case "":
+			break
+		default:
 			// grab the countryId we'll need, create new record if needed
 			var country = &Country{0, MSExchangeData.CountryCode, MSExchangeData.CountryName, "", ""}
 			country, err := createOrUpdateCountry(db, country)
 			if err != nil {
-				log.Fatal().Err(err).
+				log.Error().Err(err).
 					Str("country_code", MSExchangeData.CountryCode).
 					Msg("Failed to create/update country for exchange")
+				break
 			}
 
 			// use marketstack data to create or update exchange
 			var exchange = &Exchange{0, MSExchangeData.Acronym, MSExchangeData.Mic, MSExchangeData.Name, country.CountryId, MSExchangeData.City, "", ""}
 			_, err = createOrUpdateExchange(db, exchange)
 			if err != nil {
-				log.Fatal().Err(err).
+				log.Error().Err(err).
 					Str("acronym", MSExchangeData.Acronym).
 					Msg("Failed to create/update exchange")
+				break
 			}
+			log.Info().Str("acronym", exchange.ExchangeAcronym).Msg("Exchange created/updated")
+			count += 1
 		}
 	}
-	return true, nil
+	log.Info().Int("count", count).Msg("Exchanges updated from marketstack")
+	return count, nil
 }
 
 func updateMarketstackTicker(awssess *session.Session, db *sqlx.DB, symbol string) (*Ticker, error) {

@@ -58,8 +58,8 @@ func searchHandler(awssess *session.Session, db *sqlx.DB) http.HandlerFunc {
 
 		webdata := make(map[string]interface{})
 		webdata["config"] = ConfigData{}
-		webdata["recents"] = *recents
-		webdata["messages"] = messages
+		webdata["recents"] = recents
+		webdata["messages"] = Messages{messages}
 		renderTemplateDefault(w, r, "home", webdata)
 	})
 }

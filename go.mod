@@ -18,6 +18,7 @@ require (
 	github.com/rs/zerolog v1.20.0
 	github.com/savaki/dynastore v0.0.0-20171109173440-28d8558bb429
 	github.com/weirdtangent/myaws v0.0.0-20210224154653-f2b382eab9b4
+	github.com/weirdtangent/mymath v0.0.0-20210303035455-ff8ba7263033
 	github.com/weirdtangent/mytime v0.0.0-20210226042935-122d6f89231b
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect

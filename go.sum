@@ -195,6 +195,9 @@ github.com/weirdtangent/myaws v0.0.0-20210224061440-72f19ea85712 h1:Ji9thAP75rvZ
 github.com/weirdtangent/myaws v0.0.0-20210224061440-72f19ea85712/go.mod h1:9q1iFAQ3HuK3sG+v/32T0z7zyJBlgCo0nGVZ1EUr4dc=
 github.com/weirdtangent/myaws v0.0.0-20210224154653-f2b382eab9b4 h1:oECN0YzDWAykTWIny9oeypXANa8BycVsKaqnh9mro7g=
 github.com/weirdtangent/myaws v0.0.0-20210224154653-f2b382eab9b4/go.mod h1:9q1iFAQ3HuK3sG+v/32T0z7zyJBlgCo0nGVZ1EUr4dc=
+github.com/weirdtangent/mymath v0.0.0-20210303035350-05a9459735ac h1:RQ6l9/y1iqnUgf4Bm4ESiHW+mp1/hCmWpNTqgLVcotw=
+github.com/weirdtangent/mymath v0.0.0-20210303035455-ff8ba7263033 h1:2piLOr/goH4ICOkLzzlrjboJr66Z8onq8Q10ZtF/WSY=
+github.com/weirdtangent/mymath v0.0.0-20210303035455-ff8ba7263033/go.mod h1:wkMYAvjtjbEuuvX/fes61TQYmYpFcyqebwfF9blhqgo=
 github.com/weirdtangent/mytime v0.0.0-20210224061513-24b00e12c7eb h1:rM0fq3VHtENLeYYDceEMM+I9TKainDtId5UP+qZ3AL8=
 github.com/weirdtangent/mytime v0.0.0-20210224061513-24b00e12c7eb/go.mod h1:UqDaTF+gcU1lEZ3GQZaS0sGjmYuYiGwcVVoaNXd9V0w=
 github.com/weirdtangent/mytime v0.0.0-20210226041443-d3a6006b5375 h1:gkGOeSuEuNGNDrhJFIs/zpeT7rSESW+pe7bPdFC6u+Y=

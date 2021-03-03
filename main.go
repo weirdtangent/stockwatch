@@ -99,8 +99,8 @@ func main() {
 	router.HandleFunc("/view/{symbol}/{acronym}", viewDailyHandler(awssess, db, secureCookie))
 	router.HandleFunc("/view/{symbol}/{acronym}/{intradate}", viewIntradayHandler(awssess, db, secureCookie))
 	router.HandleFunc("/search/{type}", searchHandler(awssess, db))
-	router.HandleFunc("/update/{action}", updateHandler(awssess, db))
-	router.HandleFunc("/update/{action}/{symbol}", updateHandler(awssess, db))
+	router.HandleFunc("/update/{action}", updateHandler(awssess, db, secureCookie))
+	router.HandleFunc("/update/{action}/{symbol}", updateHandler(awssess, db, secureCookie))
 	router.HandleFunc("/", homeHandler(awssess, db, secureCookie))
 
 	// middleware chain
