@@ -16,13 +16,11 @@ body.desktop .main-content {
   background: url("/static/images/front-page.jpg") no-repeat top/cover scroll;
 }
 
-#lineChart > div:first-of-type {
+.doubleChart > div:first-of-type {
   margin-bottom: -60px;
 }
-#klineChart > div:first-of-type {
-  margin-bottom: -60px;
-}
-.chartSecondary {
+
+.extraChart {
   display: none;
 }
 
@@ -35,24 +33,12 @@ footer {
   line-height: 3rem;
 }
 
-.opacity-0 {
-  opacity:0!important;
-}
-.opacity-1 {
-  opacity:0.2!important;
-}
-.opacity-2 {
-  opacity:0.4!important;
-}
-.opacity-3 {
-  opacity:0.6!important;
-}
-.opacity-4 {
-  opacity:0.8!important;
-}
-.opacity-5 {
-  opacity:1!important;
-}
+.opacity-0 { opacity:0!important; }
+.opacity-1 { opacity:0.2!important; }
+.opacity-2 { opacity:0.4!important; }
+.opacity-3 { opacity:0.6!important; }
+.opacity-4 { opacity:0.8!important; }
+.opacity-5 { opacity:1!important; }
 
 .flush-left {
   text-align: -webkit-left;

@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -124,7 +125,16 @@ func googleLoginHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.
 			return
 		}
 
-		http.Redirect(w, r, "/desktop", 302)
+		// if the user was on /home, send them to /desktop
+		// if they were somewhere else on the site, redirect them back
+		// otherwise, they were from off site, send them to /desktop
+		if ref := r.Referer(); ref == "https://stockwatch.graystorm.com/" {
+			http.Redirect(w, r, "/desktop", 302)
+		} else if strings.Contains(ref, "https://stockwatch.graystorm.com/") {
+			http.Redirect(w, r, ref, 302)
+		} else {
+			http.Redirect(w, r, "/desktop", 302)
+		}
 		return
 	})
 }

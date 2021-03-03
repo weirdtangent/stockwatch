@@ -87,23 +87,35 @@
   {{ printf "$%.2f" .daily.ClosePrice }}
   {{if eq .lastDailyMove "up"}}<i class="fas fa-arrow-up text-success"></i>
   {{else if eq .lastDailyMove "down"}}<i class="fas fa-arrow-down text-danger"></i>
-  {{end}}at close on {{ .daily.PriceDate }}
+  {{end}}at close on <a href="/view/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeAcronym}}/{{.daily.PriceDate}}">{{ .daily.PriceDate }}</a>
 {{- end}}
 
 {{- define "_ticker_top" -}}
-              <header class="bg-dark d-flex pt-2">
-                <div class="">
-                  <h3>Symbol: <a class="link-light" href="/view/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeAcronym}}">{{.ticker.TickerSymbol}}</a> ({{.exchange.ExchangeAcronym}})</h3>
-                  <h5>{{.ticker.TickerName}}</h5>
-                  <h6 class="small text-info">Share price: <span class="text-light">{{ template "_share_price" . }}</span></h6>
-                  <span id="toggle">
-                    <button type="button" class="nav-item btn-sm bg-success"><i class="fas fa-chart-line"></i> Line</button>
-                    <button type="button" class="nav-item btn-sm bg-success"><i class="far fa-chart-bar"></i> Candlestick</button>
-                    <button type="button" class="nav-item btn-sm bg-danger py-2"><i class="far fa-window-close"></i></button>
-                  </span>
+              <header class="bg-dark pt-2">
+                <div class="d-flex">
+                  <div>
+                    <h3>Symbol: <a class="link-light" href="/view/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeAcronym}}">{{.ticker.TickerSymbol}}</a> ({{.exchange.ExchangeAcronym}})</h3>
+                    <h5>{{.ticker.TickerName}}</h5>
+                    <h6 class="small text-info">Share price: <span class="text-light">{{ template "_share_price" . }}</span></h6>
+                  </div>
+                  <div class="flex-grow-1 text-end">
+                    {{ template "_messages" . }}
+                  </div>
                 </div>
-                <div class="flex-grow-1 text-end">
-                  {{ template "_messages" . }}
+                <div class="d-flex">
+                  <div class="flex-grow-1" id="toggle">
+                    <hr class="my-1 text-white opacity-3">
+                    <div class="btn-group" role="group" aria-label="Chart or table to show">
+                      <input type="radio" class="btn-check" name="pickChart" id="tickerChart1" autocomplete="off" checked>
+                      <label class="btn-sm btn-outline-success mx-1" for="tickerChart1"><i class="fas fa-chart-line"></i> Line</label>
+
+                      <input type="radio" class="btn-check" name="pickChart" id="tickerChart2" autocomplete="off">
+                      <label class="btn-sm btn-outline-success mx-1" for="tickerChart2"><i class="fas fa-chart-bar"></i> Candlestick</label>
+
+                      <input type="radio" class="btn-check" name="pickChart" id="tickerChart3" autocomplete="off">
+                      <label class="btn-sm btn-outline-success mx-1" for="tickerChart3"><i class="fas fa-table"></i> Table</label>
+                    </div>
+                  </div>
                 </div>
               </header>
 {{- end}}

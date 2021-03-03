@@ -1,19 +1,21 @@
-$(function() {
-  // line vs kline chart
-  $('#toggle > button').click(function() {
-    var count = $(this).index();
+var showing = "tickerChart1";
 
-    if (count === 0 ) {
-      $('#klineChart').fadeOut('fast', function() {
-        $('#lineChart').fadeIn('fast');
-      });
-    } else if (count === 1) {
-      $('#lineChart').fadeOut('fast', function() {
-        $('#klineChart').fadeIn('fast');
-      });
-    } else if (count === 2) {
-      $('#lineChart').fadeOut('fast');
-      $('#klineChart').fadeOut('fast');
+$(document).ready(function() { 
+  $("input[name=pickChart]").each(function (e) {
+    elem = $('#' + this.id + 'elem');
+    if (elem.length == 0) {
+      this.remove()
     }
+  });
+
+
+  $("input[name=pickChart]").on("change", function() {
+    clicked = $("input[name=pickChart]:checked").attr("id");
+
+    $('#' + showing + "elem").fadeOut('fast', function() {
+      $('#' + clicked + "elem").fadeIn('fast');
+    });
+
+    showing = clicked;
   });
 });
