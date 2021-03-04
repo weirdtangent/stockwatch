@@ -29,12 +29,14 @@ func viewDailyHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.Se
 		acronym := params["acronym"]
 
 		timespan := 90
-		if param, err := strconv.ParseInt(r.FormValue("ts"), 10, 32); err == nil {
-			timespan = int(mymath.MinMax(param, 15, 180))
-		} else if err != nil {
-			log.Error().Err(err).Msg("Failed to interpret timespan (ts) param")
+		if tsParam := r.FormValue("ts"); tsParam != "" {
+			if tsValue, err := strconv.ParseInt(tsParam, 10, 32); err == nil {
+				timespan = int(mymath.MinMax(tsValue, 15, 180))
+			} else if err != nil {
+				log.Error().Err(err).Str("ts", tsParam).Msg("Failed to interpret timespan (ts) param")
+			}
+			log.Info().Int("timespan", timespan).Msg("")
 		}
-		log.Info().Int("timespan", timespan).Msg("")
 
 		// grab exchange they asked for
 		exchange, err := getExchange(db, acronym)
@@ -112,7 +114,7 @@ func viewDailyHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.Se
 
 		recents, err := addTickerToRecents(session, r, ticker.TickerSymbol, exchange.ExchangeAcronym)
 
-		webdata["recents"] = recents
+		webdata["recents"] = Recents{*recents}
 		webdata["messages"] = Messages{messages}
 		webdata["ticker"] = ticker
 		webdata["exchange"] = exchange
@@ -226,7 +228,7 @@ func viewIntradayHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie
 		nextBusinessDay, _ := mytime.NextBusinessDayStr(intradate + " 13:55:00")
 		log.Info().Str("prior", priorBusinessDay).Str("next", nextBusinessDay).Msg("")
 
-		webdata["recents"] = recents
+		webdata["recents"] = Recents{*recents}
 		webdata["messages"] = Messages{messages}
 		webdata["ticker"] = ticker
 		webdata["exchange"] = exchange

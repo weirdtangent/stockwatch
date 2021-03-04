@@ -101,7 +101,9 @@ func main() {
 	router.HandleFunc("/search/{type}", searchHandler(awssess, db))
 	router.HandleFunc("/update/{action}", updateHandler(awssess, db, secureCookie))
 	router.HandleFunc("/update/{action}/{symbol}", updateHandler(awssess, db, secureCookie))
-	router.HandleFunc("/", homeHandler(awssess, db, secureCookie))
+	router.HandleFunc("/terms", homeHandler(awssess, db, secureCookie, "terms"))
+	router.HandleFunc("/privacy", homeHandler(awssess, db, secureCookie, "privacy"))
+	router.HandleFunc("/", homeHandler(awssess, db, secureCookie, "home"))
 
 	// middleware chain
 	chainedMux1 := withSession(store, router)

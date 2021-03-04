@@ -26,6 +26,7 @@ func (ah *AddHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"connect-src 'self' accounts.google.com",
 		"style-src 'self' fonts.googleapis.com accounts.google.com 'unsafe-inline'",
 		"script-src 'self' apis.google.com accounts.google.com 'nonce-" + global_nonce + "'",
+		"img-src 'self' *.googleusercontent.com",
 		"font-src 'self' fonts.gstatic.com",
 		"frame-src 'self' accounts.google.com",
 		"report-uri /internal/cspviolations",
@@ -50,6 +51,8 @@ type Logger struct {
 
 func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t := time.Now()
+	header := r.Header
+	rid := header.Get("X-Request-ID")
 
 	l.handler.ServeHTTP(w, r)
 
@@ -57,6 +60,7 @@ func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Info().
 			Stringer("url", r.URL).
 			Int("status_code", 200).
+			Str("request_id", rid).
 			Str("method", r.Method).
 			Int64("response_time", time.Since(t).Nanoseconds()).
 			Msg("")

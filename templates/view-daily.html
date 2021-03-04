@@ -2,10 +2,10 @@
 {{ template "_header" . }}
           <script src="/static/js/view.js"></script>
 
-          <div class="row">
-            <div class="col-12 main-content">
+          <div class="row g-0">
+            <div class="col-12">
               {{ template "_ticker_top" . }}
-              <h4 class="mx-2 mt-2">Daily Activity
+              <h4 class="ms-2 mt-2">Daily Activity
                 <div class="btn-group" role="group" aria-label="Chart or table to show">
                   <input type="radio" class="btn-check" name="pickTimespan" id="timespan15" data-href="?ts=15" autocomplete="off" {{if eq .timespan 15}}checked{{end}} >
                   <label class="btn-sm btn-outline-success mx-1" for="timespan15">15</label>

@@ -9,7 +9,7 @@ import (
 )
 
 func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname string, Data map[string]interface{}) {
-	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/_wrapper.html")
+	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/_wrapper.html", "templates/_tos_v1_0.html")
 	if err != nil {
 		log.Warn().Err(err).Str("template", tmplname).Msg("Failed to parse template")
 		http.NotFound(w, r)
@@ -28,7 +28,7 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 }
 
 func renderTemplateToString(tmplname string, data interface{}) (template.HTML, error) {
-	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/_wrapper.html")
+	tmpl, err := template.ParseFiles("templates/" + tmplname + ".html")
 	if err != nil {
 		log.Warn().Err(err).
 			Str("template", tmplname).
@@ -44,12 +44,6 @@ func renderTemplateToString(tmplname string, data interface{}) (template.HTML, e
 			Msg("Failed to execute template")
 		return "", err
 	}
-
-	//tpl := template.
-	//	Must(template.New(tmplname).
-	//		ParseFiles("templates/" + tmplname + ".html"),
-	//	)
-	//err := tpl.ExecuteTemplate(&html, tplName, r.c)
 
 	return template.HTML(html.String()), nil
 }

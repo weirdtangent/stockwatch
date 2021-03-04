@@ -1,14 +1,20 @@
-header {
-  background-color: #BDBDBD !important;
-  padding: 0 5rem 1rem 5rem;
+body {
+  min-height: 880px;
 }
 
+.logo {
+  background-color: #375a7f;
+}
+
+.full-height,
 .main-content {
-  min-height: calc(100vh - 104px);
+  min-height: 100vh;
 }
 
 body.home .main-content,
-body.desktop .main-content {
+body.desktop .main-content,
+body.terms .main-content,
+body.privacy .main-content {
   background: url("/static/images/front-page.jpg") no-repeat top/cover scroll;
 }
 
@@ -22,6 +28,16 @@ body.desktop .main-content {
 
 .price-table {
   max-width: 950px;
+}
+
+form.no-border {
+  border: 0;
+  box-shadow: none;
+}
+
+.menubar {
+  border-bottom: 1px solid gray;
+  padding-bottom: 0.75em;
 }
 
 li.welcome,

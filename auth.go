@@ -171,7 +171,7 @@ func checkAuthState(w http.ResponseWriter, r *http.Request, db *sqlx.DB, sc *sec
 	session := getSession(r)
 	recents, _ := getRecents(session, r)
 	webdata["config"] = ConfigData{}
-	webdata["recents"] = recents
+	webdata["recents"] = Recents{*recents}
 	webdata["nonce"] = global_nonce
 
 	if wid, err := r.Cookie("WID"); err == nil {
@@ -221,6 +221,7 @@ func checkAuthState(w http.ResponseWriter, r *http.Request, db *sqlx.DB, sc *sec
 				log.Info().Msg("Authenticated visitor found")
 				webdata["WID"] = wid
 				webdata["watcher"] = watcher
+				webdata["profilePicURL"] = oauth.PictureURL
 				return true
 			}
 		}
