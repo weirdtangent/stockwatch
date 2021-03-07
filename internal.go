@@ -23,8 +23,12 @@ func pingHandler() http.HandlerFunc {
 	})
 }
 
-func JSONReportHandler(awssess *session.Session) http.HandlerFunc {
+func JSONReportHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		logger := log.Ctx(ctx)
+		awssess := ctx.Value("awssess").(*session.Session)
+
 		s3svc := s3.New(awssess)
 
 		EasternTZ, _ := time.LoadLocation("America/New_York")
@@ -46,7 +50,7 @@ func JSONReportHandler(awssess *session.Session) http.HandlerFunc {
 
 		_, err := s3svc.PutObject(inputPutObj)
 		if err != nil {
-			log.Warn().Err(err).
+			logger.Warn().Err(err).
 				Str("bucket", "graystorm-stockwatch").
 				Str("key", logKey).
 				Msg("Failed to upload to S3 bucket")

@@ -7,19 +7,23 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
 	"github.com/weirdtangent/mytime"
 )
 
-func updateHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.SecureCookie) http.HandlerFunc {
+func updateHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		webdata := make(map[string]interface{})
+		ctx := r.Context()
+		logger := log.Ctx(ctx)
+		awssess := ctx.Value("awssess").(*session.Session)
+		db := ctx.Value("db").(*sqlx.DB)
+		webdata := ctx.Value("webdata").(map[string]interface{})
+
 		messages := make([]Message, 0)
 
-		if ok := checkAuthState(w, r, db, sc, webdata); ok == false {
+		if ok := checkAuthState(w, r); ok == false {
 			http.Redirect(w, r, "/", 307)
 		} else {
 			params := mux.Vars(r)
@@ -29,31 +33,31 @@ func updateHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.Secur
 			case "exchanges":
 				count, err := updateMarketstackExchanges(awssess, db)
 				if err != nil {
-					log.Error().Msgf("Bulk update of Exchanges failed: %s", err)
+					logger.Error().Msgf("Bulk update of Exchanges failed: %s", err)
 					messages = append(messages, Message{fmt.Sprintf("Bulk update of Exchanges failed: %s", err.Error()), "danger"})
 				} else if count == 0 {
-					log.Error().Msgf("Bulk update of Exchanges failed, no error msg but 0 exchanges retrieved")
+					logger.Error().Msgf("Bulk update of Exchanges failed, no error msg but 0 exchanges retrieved")
 					messages = append(messages, Message{fmt.Sprintf("Bulk update of Exchanges failed: no error msg but 0 exchanges retrieved"), "danger"})
 				} else {
-					log.Info().Int("count", count).Msg("Update of exchanges completed")
+					logger.Info().Int("count", count).Msg("Update of exchanges completed")
 					messages = append(messages, Message{fmt.Sprintf("Bulk update of Exchanges succeeded: %d exchanges updates", count), "success"})
 				}
 			case "ticker":
 				symbol := params["symbol"]
 				_, err := updateMarketstackTicker(awssess, db, symbol)
 				if err != nil {
-					log.Error().Msgf("Update of ticker symbol %s failed: %s", symbol, err)
+					logger.Error().Msgf("Update of ticker symbol %s failed: %s", symbol, err)
 					messages = append(messages, Message{fmt.Sprintf("Update of ticker symbol %s failed: %s", symbol, err), "danger"})
 				} else {
-					log.Info().Str("symbol", symbol).Msg("Update of ticker symbol completed")
+					logger.Info().Str("symbol", symbol).Msg("Update of ticker symbol completed")
 					messages = append(messages, Message{fmt.Sprintf("Update of ticker symbol %s succeeded", symbol), "success"})
 				}
 			default:
-				log.Error().Str("action", action).Msg("Unknown update action")
+				logger.Error().Str("action", action).Msg("Unknown update action")
 				messages = append(messages, Message{fmt.Sprintf("Unknown update action: %s", action), "danger"})
 			}
 
-			log.Info().Msgf("Update operation ended normally")
+			logger.Info().Msgf("Update operation ended normally")
 
 			webdata["messages"] = Messages{messages}
 			renderTemplateDefault(w, r, "update", webdata)

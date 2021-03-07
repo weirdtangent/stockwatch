@@ -11,6 +11,7 @@ type Recents struct {
 }
 
 func getRecents(session *sessions.Session, r *http.Request) (*[]ViewPair, error) {
+	//logger := log.Ctx(r.Context())
 	// get current list (if any) from session
 	recents := session.Values["view_recents"].([]ViewPair)
 
@@ -18,6 +19,7 @@ func getRecents(session *sessions.Session, r *http.Request) (*[]ViewPair, error)
 }
 
 func addTickerToRecents(session *sessions.Session, r *http.Request, symbol string, acronym string) (*[]ViewPair, error) {
+	//logger := log.Ctx(r.Context())
 	// get current list (if any) from session
 	recents := session.Values["view_recents"].([]ViewPair)
 

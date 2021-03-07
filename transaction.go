@@ -3,10 +3,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
-	"github.com/jmoiron/sqlx"
 )
 
 type Transaction struct {
@@ -21,13 +18,15 @@ type Transaction struct {
 	UpdateDatetime      string  `db:"update_datetime"`
 }
 
-func transactionHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.SecureCookie) http.HandlerFunc {
+func transactionHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		webdata := make(map[string]interface{})
+		ctx := r.Context()
+		webdata := ctx.Value("webdata").(map[string]interface{})
+
 		messages := make([]Message, 0)
 
 		// only authenticate can record bought or sold
-		if ok := checkAuthState(w, r, db, sc, webdata); ok == false {
+		if ok := checkAuthState(w, r); ok == false {
 			http.NotFound(w, r)
 		} else {
 			params := mux.Vars(r)

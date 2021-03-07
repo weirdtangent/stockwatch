@@ -2,16 +2,13 @@ package main
 
 import (
 	"net/http"
-
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/gorilla/securecookie"
-	"github.com/jmoiron/sqlx"
-	//"github.com/rs/zerolog/log"
 )
 
-func homeHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.SecureCookie, tmplname string) http.HandlerFunc {
+func homeHandler(tmplname string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		webdata := make(map[string]interface{})
+		ctx := r.Context()
+		webdata := ctx.Value("webdata").(map[string]interface{})
+
 		messages := make([]Message, 0)
 		params := r.URL.Query()
 		nextParam := params.Get("next")
@@ -27,7 +24,7 @@ func homeHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.SecureC
 		}
 
 		// the opposite of normal, for authenticated visits we redirect if they were on "home"
-		if ok := checkAuthState(w, r, db, sc, webdata); ok && tmplname == "home" {
+		if ok := checkAuthState(w, r); ok && tmplname == "home" {
 			http.Redirect(w, r, "/desktop", 302)
 		} else {
 			webdata["messages"] = Messages{messages}

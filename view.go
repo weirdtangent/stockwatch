@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
@@ -15,12 +14,17 @@ import (
 	"github.com/weirdtangent/mytime"
 )
 
-func viewDailyHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.SecureCookie) http.HandlerFunc {
+func viewDailyHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		webdata := make(map[string]interface{})
+		ctx := r.Context()
+		logger := log.Ctx(ctx)
+		awssess := ctx.Value("awssess").(*session.Session)
+		db := ctx.Value("db").(*sqlx.DB)
+		webdata := ctx.Value("webdata").(map[string]interface{})
+
 		messages := make([]Message, 0)
 		session := getSession(r)
-		if ok := checkAuthState(w, r, db, sc, webdata); ok == false {
+		if ok := checkAuthState(w, r); ok == false {
 			encoded, err := encryptURL(awssess, ([]byte(r.URL.String())))
 			if err == nil {
 				http.Redirect(w, r, "/?next="+string(encoded), 302)
@@ -39,15 +43,15 @@ func viewDailyHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.Se
 			if tsValue, err := strconv.ParseInt(tsParam, 10, 32); err == nil {
 				timespan = int(mymath.MinMax(tsValue, 15, 180))
 			} else if err != nil {
-				log.Error().Err(err).Str("ts", tsParam).Msg("Failed to interpret timespan (ts) param")
+				logger.Error().Err(err).Str("ts", tsParam).Msg("Failed to interpret timespan (ts) param")
 			}
-			log.Info().Int("timespan", timespan).Msg("")
+			logger.Info().Int("timespan", timespan).Msg("")
 		}
 
 		// grab exchange they asked for
 		exchange, err := getExchange(db, acronym)
 		if err != nil {
-			log.Warn().Err(err).
+			logger.Warn().Err(err).
 				Str("acronym", acronym).
 				Msg("Invalid table key")
 			http.NotFound(w, r)
@@ -59,7 +63,7 @@ func viewDailyHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.Se
 		if err != nil {
 			ticker, err = updateMarketstackTicker(awssess, db, symbol)
 			if err != nil {
-				log.Warn().Err(err).
+				logger.Warn().Err(err).
 					Str("symbol", symbol).
 					Msg("Failed to update EOD for ticker")
 				http.NotFound(w, r)
@@ -67,10 +71,10 @@ func viewDailyHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.Se
 			}
 		}
 
-		updated, err := ticker.updateDailies(awssess, db)
+		updated, err := ticker.updateDailies(ctx)
 		if err != nil {
 			messages = append(messages, Message{fmt.Sprintf("Failed to update End-of-day data for %s", ticker.TickerSymbol), "danger"})
-			log.Warn().Err(err).
+			logger.Warn().Err(err).
 				Str("symbol", ticker.TickerSymbol).
 				Int64("ticker_id", ticker.TickerId).
 				Msg("Failed to update EOD for ticker")
@@ -82,7 +86,7 @@ func viewDailyHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.Se
 		daily, err := getDailyMostRecent(db, ticker.TickerId)
 		if err != nil {
 			messages = append(messages, Message{fmt.Sprintf("No End-of-day data found for %s", ticker.TickerSymbol), "warning"})
-			log.Warn().Err(err).
+			logger.Warn().Err(err).
 				Str("symbol", ticker.TickerSymbol).
 				Int64("ticker_id", ticker.TickerId).
 				Msg("Failed to load most recent daily price for ticker")
@@ -95,7 +99,7 @@ func viewDailyHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.Se
 		// load up to last 100 days of EOD data
 		dailies, err := ticker.LoadDailies(db, timespan)
 		if err != nil {
-			log.Warn().Err(err).
+			logger.Warn().Err(err).
 				Str("symbol", ticker.TickerSymbol).
 				Int("timespan", timespan).
 				Int64("ticker_id", ticker.TickerId).
@@ -107,7 +111,7 @@ func viewDailyHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.Se
 		// load any active watches about this ticker
 		webwatches, err := loadWebWatches(db, ticker.TickerId)
 		if err != nil {
-			log.Warn().Err(err).
+			logger.Warn().Err(err).
 				Str("symbol", ticker.TickerSymbol).
 				Int64("ticker_id", ticker.TickerId).
 				Msg("Failed to load watches for ticker")
@@ -115,8 +119,8 @@ func viewDailyHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.Se
 			return
 		}
 
-		var lineChartHTML = chartHandlerDailyLine(ticker, exchange, dailies, webwatches)
-		var klineChartHTML = chartHandlerDailyKLine(ticker, exchange, dailies, webwatches)
+		var lineChartHTML = chartHandlerDailyLine(ctx, ticker, exchange, dailies, webwatches)
+		var klineChartHTML = chartHandlerDailyKLine(ctx, ticker, exchange, dailies, webwatches)
 
 		recents, err := addTickerToRecents(session, r, ticker.TickerSymbol, exchange.ExchangeAcronym)
 
@@ -136,12 +140,17 @@ func viewDailyHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.Se
 	})
 }
 
-func viewIntradayHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.SecureCookie) http.HandlerFunc {
+func viewIntradayHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		webdata := make(map[string]interface{})
+		ctx := r.Context()
+		logger := log.Ctx(ctx)
+		awssess := ctx.Value("awssess").(*session.Session)
+		db := ctx.Value("db").(*sqlx.DB)
+		webdata := ctx.Value("webdata").(map[string]interface{})
+
 		messages := make([]Message, 0)
 		session := getSession(r)
-		if ok := checkAuthState(w, r, db, sc, webdata); ok == false {
+		if ok := checkAuthState(w, r); ok == false {
 			encoded, err := encryptURL(awssess, ([]byte(r.URL.String())))
 			if err == nil {
 				http.Redirect(w, r, "/?next="+string(encoded), 302)
@@ -159,7 +168,7 @@ func viewIntradayHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie
 		// grab exchange they asked for
 		exchange, err := getExchange(db, acronym)
 		if err != nil {
-			log.Warn().Err(err).
+			logger.Warn().Err(err).
 				Str("acronym", acronym).
 				Msg("Invalid table key")
 			http.NotFound(w, r)
@@ -169,7 +178,7 @@ func viewIntradayHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie
 		// find ticker specifically at that exchange (since there are overlaps)
 		ticker, err := getTicker(db, symbol, exchange.ExchangeId)
 		if err != nil {
-			log.Warn().Err(err).
+			logger.Warn().Err(err).
 				Str("symbol", symbol).
 				Int64("exchange_id", exchange.ExchangeId).
 				Msg("Failed to find existing ticker")
@@ -177,10 +186,10 @@ func viewIntradayHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie
 			return
 		}
 
-		updated, err := ticker.updateIntradays(awssess, db, intradate)
+		updated, err := ticker.updateIntradays(ctx, intradate)
 		if err != nil {
 			messages = append(messages, Message{fmt.Sprintf("Failed to update intraday data for %s for %s", ticker.TickerSymbol, intradate), "danger"})
-			log.Warn().Err(err).
+			logger.Warn().Err(err).
 				Str("symbol", ticker.TickerSymbol).
 				Int64("tickerId", ticker.TickerId).
 				Str("intradate", intradate).
@@ -192,7 +201,7 @@ func viewIntradayHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie
 
 		daily, err := getDailyMostRecent(db, ticker.TickerId)
 		if err != nil {
-			log.Warn().Err(err).
+			logger.Warn().Err(err).
 				Str("symbol", ticker.TickerSymbol).
 				Int64("tickerId", ticker.TickerId).
 				Msg("Failed to load most recent daily price for ticker")
@@ -208,7 +217,7 @@ func viewIntradayHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie
 		intradays, err := ticker.LoadIntraday(db, intradate)
 		if err != nil {
 			messages = append(messages, Message{fmt.Sprintf("No Intraday data found for %s", ticker.TickerSymbol), "warning"})
-			log.Warn().Err(err).
+			logger.Warn().Err(err).
 				Str("symbol", ticker.TickerSymbol).
 				Int64("tickerId", ticker.TickerId).
 				Str("intradate", intradate).
@@ -224,7 +233,7 @@ func viewIntradayHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie
 		// load any active watches about this ticker
 		webwatches, err := loadWebWatches(db, ticker.TickerId)
 		if err != nil {
-			log.Warn().Err(err).
+			logger.Warn().Err(err).
 				Str("symbol", ticker.TickerSymbol).
 				Int64("tickerId", ticker.TickerId).
 				Msg("Failed to load watches for ticker")
@@ -232,13 +241,13 @@ func viewIntradayHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie
 			return
 		}
 
-		var lineChartHTML = chartHandlerIntradayLine(ticker, exchange, intradays, webwatches, intradate)
+		var lineChartHTML = chartHandlerIntradayLine(ctx, ticker, exchange, intradays, webwatches, intradate)
 
 		recents, err := addTickerToRecents(session, r, ticker.TickerSymbol, exchange.ExchangeAcronym)
 
 		priorBusinessDay, _ := mytime.PriorBusinessDayStr(intradate + " 21:05:00")
 		nextBusinessDay, _ := mytime.NextBusinessDayStr(intradate + " 13:55:00")
-		log.Info().Str("prior", priorBusinessDay).Str("next", nextBusinessDay).Msg("")
+		logger.Info().Str("prior", priorBusinessDay).Str("next", nextBusinessDay).Msg("")
 
 		webdata["recents"] = Recents{*recents}
 		webdata["messages"] = Messages{messages}

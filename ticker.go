@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -109,7 +110,11 @@ func (t Ticker) LoadIntraday(db *sqlx.DB, intradate string) ([]Intraday, error) 
 // see if we need to pull a daily update:
 //  if we don't have the EOD price for the prior business day
 //  OR if we don't have it for the current business day and it's now 7pm or later
-func (t Ticker) updateDailies(awssess *session.Session, db *sqlx.DB) (bool, error) {
+func (t Ticker) updateDailies(ctx context.Context) (bool, error) {
+	logger := log.Ctx(ctx)
+	awssess := ctx.Value("awssess").(*session.Session)
+	db := ctx.Value("db").(*sqlx.DB)
+
 	mostRecentDaily, err := getDailyMostRecent(db, t.TickerId)
 	if err != nil {
 		return false, err
@@ -117,7 +122,7 @@ func (t Ticker) updateDailies(awssess *session.Session, db *sqlx.DB) (bool, erro
 	mostRecentDailyDate := mostRecentDaily.PriceDate
 	mostRecentAvailable := mostRecentPricesAvailable()
 
-	log.Info().
+	logger.Info().
 		Str("symbol", t.TickerSymbol).
 		Str("mostRecentDailyDate", mostRecentDailyDate).
 		Str("mostRecentAvailable", mostRecentAvailable).
@@ -128,7 +133,7 @@ func (t Ticker) updateDailies(awssess *session.Session, db *sqlx.DB) (bool, erro
 		if err != nil {
 			return false, err
 		}
-		log.Info().
+		logger.Info().
 			Str("symbol", t.TickerSymbol).
 			Int64("tickerId", t.TickerId).
 			Msg("Updated ticker with latest EOD prices")
@@ -141,7 +146,11 @@ func (t Ticker) updateDailies(awssess *session.Session, db *sqlx.DB) (bool, erro
 // see if we need to pull intradays for the selected date:
 //  if we don't have the intraday prices for the selected date
 //  AND it was a prior business day or today and it's now 7pm or later
-func (t Ticker) updateIntradays(awssess *session.Session, db *sqlx.DB, intradate string) (bool, error) {
+func (t Ticker) updateIntradays(ctx context.Context, intradate string) (bool, error) {
+	logger := log.Ctx(ctx)
+	awssess := ctx.Value("awssess").(*session.Session)
+	db := ctx.Value("db").(*sqlx.DB)
+
 	haveIntradayData, err := gotIntradayData(db, t.TickerId, intradate)
 	if err != nil {
 		return false, err
@@ -157,7 +166,7 @@ func (t Ticker) updateIntradays(awssess *session.Session, db *sqlx.DB, intradate
 
 	mostRecentAvailable := mostRecentPricesAvailable()
 
-	log.Info().
+	logger.Info().
 		Str("symbol", t.TickerSymbol).
 		Str("acronym", exchange.ExchangeAcronym).
 		Str("intradate", intradate).
@@ -169,7 +178,7 @@ func (t Ticker) updateIntradays(awssess *session.Session, db *sqlx.DB, intradate
 		if err != nil {
 			return false, err
 		}
-		log.Info().
+		logger.Info().
 			Str("symbol", t.TickerSymbol).
 			Int64("tickerId", t.TickerId).
 			Str("intradate", intradate).

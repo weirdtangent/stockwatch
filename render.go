@@ -9,15 +9,16 @@ import (
 )
 
 func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname string, Data map[string]interface{}) {
+	logger := log.Ctx(r.Context())
 	tmpl, err := template.ParseGlob("templates/includes/_*.gohtml")
 	if err != nil {
-		log.Warn().Err(err).Msg("Failed to parse_glob template fragments")
+		logger.Warn().Err(err).Msg("Failed to parse_glob template fragments")
 		http.NotFound(w, r)
 	}
 
 	tmpl.ParseFiles("templates/" + tmplname + ".gohtml")
 	if err != nil {
-		log.Warn().Err(err).Str("template", tmplname).Msg("Failed to parse template")
+		logger.Warn().Err(err).Str("template", tmplname).Msg("Failed to parse template")
 		http.NotFound(w, r)
 	}
 
@@ -27,7 +28,7 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 
 	err = tmpl.ExecuteTemplate(w, tmplname, Data)
 	if err != nil {
-		log.Error().Err(err).
+		logger.Error().Err(err).
 			Str("template", tmplname).
 			Msg("Failed to execute template")
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"reflect"
@@ -19,7 +20,9 @@ const (
 	smallY = "225px"
 )
 
-func chartHandlerDailyLine(ticker *Ticker, exchange *Exchange, dailies []Daily, webwatches []WebWatch) template.HTML {
+func chartHandlerDailyLine(ctx context.Context, ticker *Ticker, exchange *Exchange, dailies []Daily, webwatches []WebWatch) template.HTML {
+	nonce := ctx.Value("nonce").(string)
+
 	// build data needed
 	days := len(dailies)
 	if days == 0 {
@@ -52,7 +55,7 @@ func chartHandlerDailyLine(ticker *Ticker, exchange *Exchange, dailies []Daily, 
 		charts.WithTitleOpts(opts.Title{
 			Title:    fmt.Sprintf("%s (%s) %s", ticker.TickerSymbol, exchange.ExchangeAcronym, ticker.TickerName),
 			Subtitle: "Share Price",
-			Target:   global_nonce, // crazy hack to get nonce into scripts
+			Target:   nonce, // crazy hack to get nonce into scripts
 		}),
 		charts.WithLegendOpts(opts.Legend{
 			Show:     true,
@@ -80,7 +83,7 @@ func chartHandlerDailyLine(ticker *Ticker, exchange *Exchange, dailies []Daily, 
 		}),
 		charts.WithTitleOpts(opts.Title{
 			Subtitle: "Volume in mil",
-			Target:   global_nonce, // crazy hack to get nonce into scripts
+			Target:   nonce, // crazy hack to get nonce into scripts
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			AxisLabel: &opts.AxisLabel{
@@ -117,7 +120,9 @@ func chartHandlerDailyLine(ticker *Ticker, exchange *Exchange, dailies []Daily, 
 	return renderToHtml(prices) + renderToHtml(volume)
 }
 
-func chartHandlerIntradayLine(ticker *Ticker, exchange *Exchange, intradays []Intraday, webwatches []WebWatch, intradate string) template.HTML {
+func chartHandlerIntradayLine(ctx context.Context, ticker *Ticker, exchange *Exchange, intradays []Intraday, webwatches []WebWatch, intradate string) template.HTML {
+	nonce := ctx.Value("nonce").(string)
+
 	// build data needed
 	steps := len(intradays)
 	if steps == 0 {
@@ -158,7 +163,7 @@ func chartHandlerIntradayLine(ticker *Ticker, exchange *Exchange, intradays []In
 		charts.WithTitleOpts(opts.Title{
 			Title:    fmt.Sprintf("%s (%s) %s", ticker.TickerSymbol, exchange.ExchangeAcronym, ticker.TickerName),
 			Subtitle: "Share Price for " + intradate,
-			Target:   global_nonce, // crazy hack to get nonce into scripts
+			Target:   nonce, // crazy hack to get nonce into scripts
 		}),
 		charts.WithLegendOpts(opts.Legend{
 			Show:     true,
@@ -186,7 +191,7 @@ func chartHandlerIntradayLine(ticker *Ticker, exchange *Exchange, intradays []In
 		}),
 		charts.WithTitleOpts(opts.Title{
 			Subtitle: "Volume",
-			Target:   global_nonce, // crazy hack to get nonce into scripts
+			Target:   nonce, // crazy hack to get nonce into scripts
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			AxisLabel: &opts.AxisLabel{
