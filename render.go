@@ -9,7 +9,13 @@ import (
 )
 
 func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname string, Data map[string]interface{}) {
-	tmpl, err := template.ParseFiles("templates/"+tmplname+".html", "templates/_wrapper.html", "templates/_tos_v1_0.html")
+	tmpl, err := template.ParseGlob("templates/includes/_*.gohtml")
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to parse_glob template fragments")
+		http.NotFound(w, r)
+	}
+
+	tmpl.ParseFiles("templates/" + tmplname + ".gohtml")
 	if err != nil {
 		log.Warn().Err(err).Str("template", tmplname).Msg("Failed to parse template")
 		http.NotFound(w, r)
@@ -28,7 +34,7 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 }
 
 func renderTemplateToString(tmplname string, data interface{}) (template.HTML, error) {
-	tmpl, err := template.ParseFiles("templates/" + tmplname + ".html")
+	tmpl, err := template.ParseFiles("templates/" + tmplname + ".gohtml")
 	if err != nil {
 		log.Warn().Err(err).
 			Str("template", tmplname).

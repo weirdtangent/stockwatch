@@ -1,0 +1,58 @@
+{{- define "_header" -}}
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="google-signin-client_id" content="602086455575-vj2spkou0ucsntgol9srfkf8mka3o5i2.apps.googleusercontent.com">
+    <link href="/static/css/custom-dark.css" rel="stylesheet">
+    <link href="/static/vendor/fontawesome/css/all.css" rel="stylesheet">
+    <link href="/static/css/internal.css" rel="stylesheet">
+    <title>Graystorm StockWatch</title>
+  </head>
+
+  <body id="page-top" class="{{.config.TmplName}}">
+    <script src="/static/vendor/jquery/jquery-3.5.1.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <!-- Navigation -->
+    <div class="">
+      <div class="row g-0"><!-- row -->
+        <div class="col-6 col-sm-5 col-md-4 col-lg-3 col-xxl-2 bg-dark full-height left-column"><!-- left column -->
+          <div class="logo">
+            <a href="/"><img class="img-fluid mx-auto d-block logo" src="/static/images/logo/stockwatch-t200.png"></a>
+          </div>
+          {{ template "_sidemenu" . }}
+        </div><!-- left column -->
+
+        <div class="col-6 col-sm-7 col-md-8 col-lg-9 col-xxl-10 top-box"><!-- content -->
+        {{if .WID}}
+          <div class="d-flex bg-dark menubar">
+          {{if not .hideRecents}}
+            <ul class="flex-grow-1 nav me-auto mb-2 mb-lg-0 pt-2 ps-2">
+            {{if .recents.ViewPairs}}
+              <li class="nav-item me-1 pt-2">Recent:</li>
+              {{range .recents.ViewPairs -}}
+              <li class="nav-item me-1 pt-2 recent"><a href="/view/{{.Symbol}}/{{.Acronym}}"><button type="button" class="badge text-dark bg-warning"><i class="fas fa-dollar-sign"></i>{{.Symbol}}</button></a></li>
+              {{end -}}
+            {{end -}}
+            </ul>
+          {{end -}}
+            <div class="bg-dark text-success align-self-center mx-2 pt-2 ps-2">
+              <a class="text-decoration-none" href="/account">
+                <span class="pe-2 align-items-baseline">My Account</span>
+              {{if .watcher.IsRoot}}
+                <span><i class="fas fa-user-secret fa-2x"></i></span>
+              {{else if .watcher.IsAdmin}}
+                <span><i class="fas fa-user-cog fa-2x"></i></span>
+              {{else if .watcher.IsModerator}}
+                <span><i class="fas fa-user-shield fa-2x"></i></span>
+              {{else if .watcher.IsProfessional}}
+                <span><i class="fas fa-user-plus fa-2x"></i></span>
+              {{else}}
+                <span><i class="far fa-user fa-2x"></i></span>
+              {{end}}
+              </a>
+            </div>
+          </div>
+        {{end}}
+{{- end}}

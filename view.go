@@ -21,7 +21,13 @@ func viewDailyHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.Se
 		messages := make([]Message, 0)
 		session := getSession(r)
 		if ok := checkAuthState(w, r, db, sc, webdata); ok == false {
-			http.Redirect(w, r, "/", 401)
+			encoded, err := encryptURL(awssess, ([]byte(r.URL.String())))
+			if err == nil {
+				http.Redirect(w, r, "/?next="+string(encoded), 302)
+			} else {
+				http.Redirect(w, r, "/", 302)
+			}
+			return
 		}
 
 		params := mux.Vars(r)
@@ -136,7 +142,13 @@ func viewIntradayHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie
 		messages := make([]Message, 0)
 		session := getSession(r)
 		if ok := checkAuthState(w, r, db, sc, webdata); ok == false {
-			http.Redirect(w, r, "/", 401)
+			encoded, err := encryptURL(awssess, ([]byte(r.URL.String())))
+			if err == nil {
+				http.Redirect(w, r, "/?next="+string(encoded), 302)
+			} else {
+				http.Redirect(w, r, "/", 302)
+			}
+			return
 		}
 
 		params := mux.Vars(r)

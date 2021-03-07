@@ -1,0 +1,40 @@
+{{- define "_sidemenu" -}}
+          <div class="pt-1">
+        {{- if .WID -}}
+          {{- if .profilePicURL}}
+            <div class="my-1 text-center">
+              <img class="image-fluid rounded" src="{{.profilePicURL}}">
+            </div>
+          {{- end}}
+            <ul class="nav flex-column me-auto mb-2 mb-lg-0">
+              <li class="nav-item w-100 text-warning text-center welcome">Welcome back<br>{{.watcher.WatcherName}}!</li>
+              <li class="nav-item"><a class="nav-link ps-3" href="#section1">
+                  {{- if .watcher.IsRoot}}<i class="fas fa-user-secret myyellow pe-2"></i>
+                  {{- else if .watcher.IsAdmin}}<i class="fas fa-user-cog"></i>
+                  {{- else if .watcher.IsModerator}}<i class="fas fa-user-shield"></i>
+                  {{- else if .watcher.IsProfessional}}<i class="fas fa-user-plus"></i>
+                  {{- else}}<i class="far fa-user"></i>
+                  {{- end}}
+                  My Account</a></li>
+              <li class="nav-item"><a class="nav-link ps-3" href="#section2"><i class="fas fa-briefcase myyellow pe-2"></i>Holding</a></li>
+              <li class="nav-item"><a class="nav-link ps-3" href="#section3"><i class="far fa-eye myyellow pe-2"></i>Watching</a></li>
+              <li class="nav-item g_id_signout"><a class="nav-link ps-3" href="/logout" class="signout"><i class="fas fa-door-open myyellow pe-2"></i>Logout</a></li>
+            {{- if .watcher.IsAdmin}}
+              <li class="nav-item"><a class="nav-link link-warning ps-2" href="/update/exchanges">Update Exchanges</a></li>
+            {{- end}}
+            </ul>
+            <div class="bg-primary my-2 p-2 g-0 search-box">
+              <form method="POST" action="/search/ticker" class="form-control bg-primary no-border ps-4">
+                <input class="row mb-2 form-control-sm" name="searchString" type="search" placeholder="Symbol/Company name" aria-label="Symbol Search">
+                <button class="row mt-2 form-control-sm bg-light text-dark" type="submit">Search</button>
+              </form>
+            </div>
+        {{end -}}
+        {{- if .allowLogin }}
+            <div id="g_id_onload"
+               data-client_id="602086455575-vj2spkou0ucsntgol9srfkf8mka3o5i2.apps.googleusercontent.com" data-auto_select="true"
+               data-context="use" data-login_uri="https://stockwatch.graystorm.com/login"{{if .next}} data-next="{{.next}}"{{end}}>
+            </div>
+        {{- end}}
+          </div>
+{{- end}}

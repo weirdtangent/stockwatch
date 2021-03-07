@@ -2,7 +2,13 @@ package main
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	crand "crypto/rand"
+	"encoding/base64"
+	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -125,16 +131,28 @@ func googleLoginHandler(awssess *session.Session, db *sqlx.DB, sc *securecookie.
 			return
 		}
 
+		// if they came in with `next` param, that says where to go,
 		// if the user was on /home, send them to /desktop
 		// if they were somewhere else on the site, redirect them back
 		// otherwise, they were from off site, send them to /desktop
+		nextParam := r.FormValue("next")
+		if len(nextParam) > 0 {
+			if nextURL, err := decryptURL(awssess, ([]byte(nextParam))); err == nil {
+				log.Info().Str("nextURL", string(nextURL)).Msg("Decoded nextURL found")
+				http.Redirect(w, r, string(nextURL), 302)
+				return
+			} else {
+				log.Error().Str("nextParam", nextParam).Err(err).Msg("Failed to decode next param")
+			}
+		}
 		if ref := r.Referer(); ref == "https://stockwatch.graystorm.com/" {
 			http.Redirect(w, r, "/desktop", 302)
+			return
 		} else if strings.Contains(ref, "https://stockwatch.graystorm.com/") {
 			http.Redirect(w, r, ref, 302)
-		} else {
-			http.Redirect(w, r, "/desktop", 302)
+			return
 		}
+		http.Redirect(w, r, "/desktop", 302)
 		return
 	})
 }
@@ -249,4 +267,55 @@ func RandStringBytesMask(n int) string {
 		}
 	}
 	return string(b)
+}
+
+func encryptURL(awssess *session.Session, text []byte) ([]byte, error) {
+	secret, err := myaws.AWSGetSecretKV(awssess, "stockwatch_misc", "stockwatch_next_url_key")
+	if err != nil {
+		return nil, err
+	}
+	key := []byte(*secret)
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	b := base64.StdEncoding.EncodeToString(text)
+	ciphertext := make([]byte, aes.BlockSize+len(b))
+	iv := ciphertext[:aes.BlockSize]
+	if _, err := io.ReadFull(crand.Reader, iv); err != nil {
+		return nil, err
+	}
+	cfb := cipher.NewCFBEncrypter(block, iv)
+	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
+	cipherstring := ([]byte(base64.URLEncoding.EncodeToString(ciphertext)))
+	return cipherstring, nil
+}
+
+func decryptURL(awssess *session.Session, cipherstring []byte) ([]byte, error) {
+	secret, err := myaws.AWSGetSecretKV(awssess, "stockwatch_misc", "stockwatch_next_url_key")
+	if err != nil {
+		return nil, err
+	}
+	key := []byte(*secret)
+	textstr, err := base64.URLEncoding.DecodeString(string(cipherstring))
+	if err != nil {
+		return nil, err
+	}
+	text := ([]byte(textstr))
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	if len(text) < aes.BlockSize {
+		return nil, errors.New("ciphertext too short")
+	}
+	iv := text[:aes.BlockSize]
+	text = text[aes.BlockSize:]
+	cfb := cipher.NewCFBDecrypter(block, iv)
+	cfb.XORKeyStream(text, text)
+	data, err := base64.StdEncoding.DecodeString(string(text))
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }

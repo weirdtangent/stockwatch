@@ -46,7 +46,7 @@ func (r *snippetRenderer) Render(w io.Writer) error {
 					return template.JS(fmt.Sprint(s))
 				},
 			}).
-			ParseFiles("templates/_chart.html"),
+			ParseFiles("templates/charts/_chart.gohtml"),
 		)
 
 	err := tpl.ExecuteTemplate(w, tplName, r.c)
