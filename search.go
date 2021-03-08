@@ -16,7 +16,6 @@ func searchHandler() http.HandlerFunc {
 		logger := log.Ctx(ctx)
 		awssess := ctx.Value("awssess").(*session.Session)
 		db := ctx.Value("db").(*sqlx.DB)
-		webdata := ctx.Value("webdata").(map[string]interface{})
 
 		params := mux.Vars(r)
 		searchType := params["type"]
@@ -69,7 +68,6 @@ func searchHandler() http.HandlerFunc {
 			messages = append(messages, Message{fmt.Sprintf("Sorry, invalid search request"), "danger"})
 		}
 
-		webdata["messages"] = Messages{messages}
-		renderTemplateDefault(w, r, "home", webdata)
+		renderTemplateDefault(w, r, "home")
 	})
 }

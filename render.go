@@ -8,25 +8,32 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname string, Data map[string]interface{}) {
-	logger := log.Ctx(r.Context())
-	tmpl, err := template.ParseGlob("templates/includes/_*.gohtml")
-	if err != nil {
-		logger.Warn().Err(err).Msg("Failed to parse_glob template fragments")
-		http.NotFound(w, r)
-	}
+func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname string) {
+	ctx := r.Context()
+	config := ctx.Value("config").(ConfigData)
+	webdata := ctx.Value("webdata").(map[string]interface{})
+	messages := ctx.Value("messages").(*[]Message)
+	logger := log.Ctx(ctx)
 
-	tmpl.ParseFiles("templates/" + tmplname + ".gohtml")
-	if err != nil {
-		logger.Warn().Err(err).Str("template", tmplname).Msg("Failed to parse template")
-		http.NotFound(w, r)
-	}
-
-	config := Data["config"].(ConfigData)
 	config.TmplName = tmplname
-	Data["config"] = config
+	webdata["messages"] = Messages{*messages}
+	webdata["config"] = config
 
-	err = tmpl.ExecuteTemplate(w, tmplname, Data)
+	tmpl := template.New("blank")
+	tmpl, err := tmpl.ParseGlob("templates/includes/*.gohtml")
+	if err != nil {
+		logger.Error().Err(err).Str("template_dir", "includes").Msg("Failed to parse template(s)")
+	}
+	tmpl, err = tmpl.ParseGlob("templates/modals/*.gohtml")
+	if err != nil {
+		logger.Error().Err(err).Str("template_dir", "modals").Msg("Failed to parse template(s)")
+	}
+	tmpl, err = tmpl.ParseFiles("templates/" + tmplname + ".gohtml")
+	if err != nil {
+		logger.Error().Err(err).Str("template", tmplname).Msg("Failed to parse template")
+	}
+
+	err = tmpl.ExecuteTemplate(w, tmplname, webdata)
 	if err != nil {
 		logger.Error().Err(err).
 			Str("template", tmplname).

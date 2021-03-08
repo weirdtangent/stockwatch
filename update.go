@@ -20,8 +20,7 @@ func updateHandler() http.HandlerFunc {
 		awssess := ctx.Value("awssess").(*session.Session)
 		db := ctx.Value("db").(*sqlx.DB)
 		webdata := ctx.Value("webdata").(map[string]interface{})
-
-		messages := make([]Message, 0)
+		messages := ctx.Value("messages").(*[]Message)
 
 		if ok := checkAuthState(w, r); ok == false {
 			http.Redirect(w, r, "/", 307)
@@ -34,33 +33,32 @@ func updateHandler() http.HandlerFunc {
 				count, err := updateMarketstackExchanges(awssess, db)
 				if err != nil {
 					logger.Error().Msgf("Bulk update of Exchanges failed: %s", err)
-					messages = append(messages, Message{fmt.Sprintf("Bulk update of Exchanges failed: %s", err.Error()), "danger"})
+					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Exchanges failed: %s", err.Error()), "danger"})
 				} else if count == 0 {
 					logger.Error().Msgf("Bulk update of Exchanges failed, no error msg but 0 exchanges retrieved")
-					messages = append(messages, Message{fmt.Sprintf("Bulk update of Exchanges failed: no error msg but 0 exchanges retrieved"), "danger"})
+					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Exchanges failed: no error msg but 0 exchanges retrieved"), "danger"})
 				} else {
 					logger.Info().Int("count", count).Msg("Update of exchanges completed")
-					messages = append(messages, Message{fmt.Sprintf("Bulk update of Exchanges succeeded: %d exchanges updates", count), "success"})
+					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Exchanges succeeded: %d exchanges updates", count), "success"})
 				}
 			case "ticker":
 				symbol := params["symbol"]
 				_, err := updateMarketstackTicker(awssess, db, symbol)
 				if err != nil {
 					logger.Error().Msgf("Update of ticker symbol %s failed: %s", symbol, err)
-					messages = append(messages, Message{fmt.Sprintf("Update of ticker symbol %s failed: %s", symbol, err), "danger"})
+					*messages = append(*messages, Message{fmt.Sprintf("Update of ticker symbol %s failed: %s", symbol, err), "danger"})
 				} else {
 					logger.Info().Str("symbol", symbol).Msg("Update of ticker symbol completed")
-					messages = append(messages, Message{fmt.Sprintf("Update of ticker symbol %s succeeded", symbol), "success"})
+					*messages = append(*messages, Message{fmt.Sprintf("Update of ticker symbol %s succeeded", symbol), "success"})
 				}
 			default:
 				logger.Error().Str("action", action).Msg("Unknown update action")
-				messages = append(messages, Message{fmt.Sprintf("Unknown update action: %s", action), "danger"})
+				*messages = append(*messages, Message{fmt.Sprintf("Unknown update action: %s", action), "danger"})
 			}
 
 			logger.Info().Msgf("Update operation ended normally")
 
-			webdata["messages"] = Messages{messages}
-			renderTemplateDefault(w, r, "update", webdata)
+			renderTemplateDefault(w, r, "update")
 		}
 	})
 }

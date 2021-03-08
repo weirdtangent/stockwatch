@@ -26,4 +26,12 @@ $(document).ready(function() {
     console.log(href)
     window.document.location = href;
   });
+
+  Date.prototype.toDateInputValue = (function() {
+    var local = new Date(this);
+    local.setMinutes(this.getMinutes() - this.getTimezoneOffset());
+    return local.toJSON().slice(0,10);
+  });
+
+  $('#PurchaseDate').val(new Date().toDateInputValue());
 });

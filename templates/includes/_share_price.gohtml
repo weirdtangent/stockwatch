@@ -1,6 +1,7 @@
 {{- define "_share_price" -}}
-  {{ printf "$%.2f" .daily.ClosePrice }}
-  {{if eq .lastDailyMove "up"}}<i class="fas fa-arrow-up text-success"></i>
-  {{else if eq .lastDailyMove "down"}}<i class="fas fa-arrow-down text-danger"></i>
-  {{end}}at close on <a href="/view/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeAcronym}}/{{.daily.PriceDate}}">{{ .daily.PriceDate }}</a>
+                    {{ printf "$%.2f" .daily.ClosePrice }}
+                    {{if eq .lastDailyMove "up"}}<i class="fas fa-arrow-up text-success"></i>
+                    {{else if eq .lastDailyMove "down"}}<i class="fas fa-arrow-down text-danger"></i>
+                    {{end}}
+                    at close on <a href="/view/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeAcronym}}/{{.daily.PriceDate}}">{{ .daily.PriceDate }}</a>
 {{- end}}

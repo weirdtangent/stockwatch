@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog/log"
 )
 
 type Transaction struct {
@@ -21,25 +24,38 @@ type Transaction struct {
 func transactionHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		logger := log.Ctx(ctx)
 		webdata := ctx.Value("webdata").(map[string]interface{})
-
-		messages := make([]Message, 0)
+		messages := ctx.Value("messages").(*[]Message)
 
 		// only authenticate can record bought or sold
 		if ok := checkAuthState(w, r); ok == false {
 			http.NotFound(w, r)
 		} else {
+			watcher := webdata["watcher"].(*Watcher)
+
 			params := mux.Vars(r)
 			action := params["action"]
-			submit := params["submit"]
+			symbol := params["symbol"]
+			acronym := params["acronym"]
 
-			if submit == "" {
-				webdata["messages"] = Messages{messages}
-				renderTemplateDefault(w, r, action, webdata)
-			} else {
+			Shares, _ := strconv.ParseFloat(r.FormValue("Shares"), 64)
+			SharePrice, _ := strconv.ParseFloat(r.FormValue("SharePrice"), 64)
+			PurchaseDate := r.FormValue("PurchaseDate")
 
-			}
+			*messages = append(*messages, Message{fmt.Sprintf("Got it! Recorded that you %s %f shares of %s (%s) at %f/share on %s",
+				action, Shares, symbol, acronym, SharePrice, PurchaseDate), "success"})
+			logger.Info().
+				Int64("watcher_id", watcher.WatcherId).
+				Str("action", action).
+				Float64("shares", Shares).
+				Float64("share_price", SharePrice).
+				Str("purchase_date", PurchaseDate).
+				Str("symbol", symbol).
+				Str("acronym", acronym).
+				Msg("transaction recorded")
 
+			renderTemplateDefault(w, r, "update")
 		}
 		return
 	})

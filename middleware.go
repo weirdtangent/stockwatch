@@ -58,10 +58,14 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return c.Str("request_id", rid)
 	})
 
+	messages := make([]Message, 0)
+
 	r = r.Clone(context.WithValue(r.Context(), "awssess", ac.awssess))
 	r = r.Clone(context.WithValue(r.Context(), "db", ac.db))
 	r = r.Clone(context.WithValue(r.Context(), "sc", ac.sc))
+	r = r.Clone(context.WithValue(r.Context(), "config", ConfigData{}))
 	r = r.Clone(context.WithValue(r.Context(), "webdata", make(map[string]interface{})))
+	r = r.Clone(context.WithValue(r.Context(), "messages", &messages))
 	r = r.Clone(context.WithValue(r.Context(), "nonce", RandStringMask(32)))
 
 	ac.handler.ServeHTTP(w, r)
@@ -86,7 +90,7 @@ func (ah *AddHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"connect-src 'self' accounts.google.com",
 		"style-src 'self' fonts.googleapis.com accounts.google.com 'unsafe-inline'",
 		"script-src 'self' apis.google.com accounts.google.com 'nonce-" + nonce + "'",
-		"img-src 'self' *.googleusercontent.com",
+		"img-src 'self' data: *.googleusercontent.com",
 		"font-src 'self' fonts.gstatic.com",
 		"frame-src 'self' accounts.google.com",
 		"report-uri /internal/cspviolations",

@@ -9,7 +9,6 @@ func homeHandler(tmplname string) http.HandlerFunc {
 		ctx := r.Context()
 		webdata := ctx.Value("webdata").(map[string]interface{})
 
-		messages := make([]Message, 0)
 		params := r.URL.Query()
 		nextParam := params.Get("next")
 
@@ -27,8 +26,7 @@ func homeHandler(tmplname string) http.HandlerFunc {
 		if ok := checkAuthState(w, r); ok && tmplname == "home" {
 			http.Redirect(w, r, "/desktop", 302)
 		} else {
-			webdata["messages"] = Messages{messages}
-			renderTemplateDefault(w, r, tmplname, webdata)
+			renderTemplateDefault(w, r, tmplname)
 		}
 		return
 	})

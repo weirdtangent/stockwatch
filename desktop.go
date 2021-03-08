@@ -6,14 +6,10 @@ import (
 
 func desktopHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		webdata := ctx.Value("webdata").(map[string]interface{})
-
-		messages := make([]Message, 0)
+		//ctx := r.Context()
 
 		if ok := checkAuthState(w, r); ok {
-			webdata["messages"] = Messages{messages}
-			renderTemplateDefault(w, r, "desktop", webdata)
+			renderTemplateDefault(w, r, "desktop")
 		} else {
 			http.Redirect(w, r, "/", 307)
 		}

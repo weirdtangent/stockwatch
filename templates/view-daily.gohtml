@@ -1,32 +1,31 @@
 {{- define "view-daily" -}}
-{{ template "_header" . }}
+{{- template "_header" . }}
           <script src="/static/js/view.js"></script>
 
           <div class="row g-0 bg-secondary">
             <div class="col-12">
               {{ template "_ticker_top" . }}
-              <h4 class="ms-2 mt-2">Daily Activity
-                <div class="btn-group" role="group" aria-label="Chart or table to show">
-                  <input type="radio" class="btn-check" name="pickTimespan" id="timespan15" data-href="?ts=15" autocomplete="off" {{if eq .timespan 15}}checked{{end}} >
-                  <label class="btn-sm btn-outline-success mx-1" for="timespan15">15</label>
-                  <input type="radio" class="btn-check" name="pickTimespan" id="timespan30" data-href="?ts=30" autocomplete="off" {{if eq .timespan 30}}checked{{end}} >
-                  <label class="btn-sm btn-outline-success mx-1" for="timespan30">30</label>
-                  <input type="radio" class="btn-check" name="pickTimespan" id="timespan45" data-href="?ts=45" autocomplete="off" {{if eq .timespan 45}}checked{{end}} >
-                  <label class="btn-sm btn-outline-success mx-1" for="timespan45">45</label>
-                  <input type="radio" class="btn-check" name="pickTimespan" id="timespan90" data-href="?ts=90" autocomplete="off" {{if eq .timespan 90}}checked{{end}} >
-                  <label class="btn-sm btn-outline-success mx-1" for="timespan90">90</label>
-                  <input type="radio" class="btn-check" name="pickTimespan" id="timespan180" data-href="?ts=180" autocomplete="off" {{if eq .timespan 180}}checked{{end}} >
-                  <label class="btn-sm btn-outline-success mx-1" for="timespan180">180</label>
-                </div>
-              </h4>
-              <section class="mt-3 d-flex">
+              <span class="h4 ms-2 align-middle">Daily Activity</span>
+              <div class="btn-group align-middle" role="group" aria-label="Chart or table to show">
+                <input type="radio" class="btn-check" name="pickTimespan" id="timespan15" data-href="?ts=15" {{if eq .timespan 15}}checked{{end}} >
+                <label class="btn-sm btn-outline-success mx-1" for="timespan15">15</label>
+                <input type="radio" class="btn-check" name="pickTimespan" id="timespan30" data-href="?ts=30" {{if eq .timespan 30}}checked{{end}} >
+                <label class="btn-sm btn-outline-success mx-1" for="timespan30">30</label>
+                <input type="radio" class="btn-check" name="pickTimespan" id="timespan45" data-href="?ts=45" {{if eq .timespan 45}}checked{{end}} >
+                <label class="btn-sm btn-outline-success mx-1" for="timespan45">45</label>
+                <input type="radio" class="btn-check" name="pickTimespan" id="timespan90" data-href="?ts=90" {{if eq .timespan 90}}checked{{end}} >
+                <label class="btn-sm btn-outline-success mx-1" for="timespan90">90</label>
+                <input type="radio" class="btn-check" name="pickTimespan" id="timespan180" data-href="?ts=180" {{if eq .timespan 180}}checked{{end}} >
+                <label class="btn-sm btn-outline-success mx-1" for="timespan180">180</label>
+              </div>
+              <div class="mt-3 d-flex">
                 {{ template "_chart_js" }}
-                <article id="tickerChart1elem" class="flex-fill doubleChart">{{.lineChart}}</article>
-                <article id="tickerChart2elem" class="flex-fill doubleChart extraChart">{{.klineChart}}</article>
-              </section>
+                <div id="tickerChart1elem" class="flex-fill doubleChart">{{.lineChart}}</div>
+                <div id="tickerChart2elem" class="flex-fill doubleChart extraChart">{{.klineChart}}</div>
+              </div><!-- d-flex -->
 
               {{if gt .dailies.Count 0}}
-              <section id="tickerChart3elem" class="mx-2 mt-3 extraChart">
+              <div id="tickerChart3elem" class="mx-2 mt-3 extraChart">
                 <div class="mx-auto price-table">
                   <table class="table table-dark table-striped table-sm">
                     <tr>
@@ -49,9 +48,11 @@
                   {{end}}
                   </table>
                 </div>
-              </section>
-              {{end}}
+              </div><!-- tickerChart3elem -->
+              {{- end -}}
             </div><!-- col-12 -->
           </div><!-- row -->
 {{ template "_footer" . }}
+{{ template "_bought" . }}
+{{ template "_end" . }}
 {{- end }}
