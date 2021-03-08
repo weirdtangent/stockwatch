@@ -7,6 +7,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
+
+	"github.com/weirdtangent/mymath"
 )
 
 type Transaction struct {
@@ -43,8 +45,11 @@ func transactionHandler() http.HandlerFunc {
 			SharePrice, _ := strconv.ParseFloat(r.FormValue("SharePrice"), 64)
 			PurchaseDate := r.FormValue("PurchaseDate")
 
-			*messages = append(*messages, Message{fmt.Sprintf("Got it! Recorded that you %s %f shares of %s (%s) at %f/share on %s",
-				action, Shares, symbol, acronym, SharePrice, PurchaseDate), "success"})
+			shares, _ := mymath.FloatPrec(Shares, 2, 6)
+			sharePrice, _ := mymath.FloatPrec(SharePrice, 2, 6)
+
+			*messages = append(*messages, Message{fmt.Sprintf("Got it! Recorded that you %s %s shares of %s (%s) at $%s/share on %s",
+				action, shares, symbol, acronym, sharePrice, PurchaseDate), "success"})
 			logger.Info().
 				Int64("watcher_id", watcher.WatcherId).
 				Str("action", action).

@@ -19,7 +19,6 @@ func updateHandler() http.HandlerFunc {
 		logger := log.Ctx(ctx)
 		awssess := ctx.Value("awssess").(*session.Session)
 		db := ctx.Value("db").(*sqlx.DB)
-		webdata := ctx.Value("webdata").(map[string]interface{})
 		messages := ctx.Value("messages").(*[]Message)
 
 		if ok := checkAuthState(w, r); ok == false {

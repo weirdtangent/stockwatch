@@ -56,6 +56,8 @@ github.com/aws/aws-sdk-go v1.37.21 h1:h3DUhpeOT0TQIwaSzXsBl+jwppfNR/Pc2T5k3SHVKP
 github.com/aws/aws-sdk-go v1.37.21/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
 github.com/aws/aws-sdk-go v1.37.22 h1:cyZp8TvUbH9rrShdrwULtCj4pB5szddrw9aKHUsw1Ic=
 github.com/aws/aws-sdk-go v1.37.22/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
+github.com/aws/aws-sdk-go v1.37.25 h1:q1C/ILIVusSmqgWG4tFU0uVt3Zm+1I3L2BmNCd2Ug4Q=
+github.com/aws/aws-sdk-go v1.37.25/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
 github.com/aws/aws-sdk-go-v2 v1.2.0 h1:BS+UYpbsElC82gB+2E2jiCBg36i8HlubTB/dO/moQ9c=
 github.com/aws/aws-sdk-go-v2 v1.2.0/go.mod h1:zEQs02YRBw1DjK0PoJv3ygDYOFTre1ejlJWl8FwAuQo=
 github.com/aws/smithy-go v1.1.0 h1:D6CSsM3gdxaGaqXnPgOBCeL6Mophqzu7KJOu7zW78sU=
@@ -198,6 +200,8 @@ github.com/weirdtangent/myaws v0.0.0-20210224154653-f2b382eab9b4/go.mod h1:9q1iF
 github.com/weirdtangent/mymath v0.0.0-20210303035350-05a9459735ac h1:RQ6l9/y1iqnUgf4Bm4ESiHW+mp1/hCmWpNTqgLVcotw=
 github.com/weirdtangent/mymath v0.0.0-20210303035455-ff8ba7263033 h1:2piLOr/goH4ICOkLzzlrjboJr66Z8onq8Q10ZtF/WSY=
 github.com/weirdtangent/mymath v0.0.0-20210303035455-ff8ba7263033/go.mod h1:wkMYAvjtjbEuuvX/fes61TQYmYpFcyqebwfF9blhqgo=
+github.com/weirdtangent/mymath v0.0.0-20210308164027-2117a2491499 h1:36i//6zrTewI82VhAqYQce7lCP3cf8Zr00kzqEA/vtk=
+github.com/weirdtangent/mymath v0.0.0-20210308164027-2117a2491499/go.mod h1:wkMYAvjtjbEuuvX/fes61TQYmYpFcyqebwfF9blhqgo=
 github.com/weirdtangent/mytime v0.0.0-20210224061513-24b00e12c7eb h1:rM0fq3VHtENLeYYDceEMM+I9TKainDtId5UP+qZ3AL8=
 github.com/weirdtangent/mytime v0.0.0-20210224061513-24b00e12c7eb/go.mod h1:UqDaTF+gcU1lEZ3GQZaS0sGjmYuYiGwcVVoaNXd9V0w=
 github.com/weirdtangent/mytime v0.0.0-20210226041443-d3a6006b5375 h1:gkGOeSuEuNGNDrhJFIs/zpeT7rSESW+pe7bPdFC6u+Y=
@@ -365,6 +369,8 @@ golang.org/x/sys v0.0.0-20210228012217-479acdf4ea46 h1:V066+OYJ66oTjnhm4Yrn7SXIw
 golang.org/x/sys v0.0.0-20210228012217-479acdf4ea46/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20210301091718-77cc2087c03b h1:kHlr0tATeLRMEiZJu5CknOw/E8V6h69sXXQFGoPtjcc=
 golang.org/x/sys v0.0.0-20210301091718-77cc2087c03b/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20210305230114-8fe3ee5dd75b h1:ggRgirZABFolTmi3sn6Ivd9SipZwLedQ5wR0aAKnFxU=
+golang.org/x/sys v0.0.0-20210305230114-8fe3ee5dd75b/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/term v0.0.0-20201117132131-f5c789dd3221/go.mod h1:Nr5EML6q2oocZ2LXRh80K7BxOlk5/8JxuGnuhpl+muw=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/text v0.0.0-20170915032832-14c0d48ead0c/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
@@ -505,6 +511,8 @@ google.golang.org/genproto v0.0.0-20210226172003-ab064af71705 h1:PYBmACG+YEv8uQP
 google.golang.org/genproto v0.0.0-20210226172003-ab064af71705/go.mod h1:FWY/as6DDZQgahTzZj3fqbO1CbirC29ZNUFHwi0/+no=
 google.golang.org/genproto v0.0.0-20210302174412-5ede27ff9881 h1:SYuy3hIRsBIROE0aZwsJZOEJNC/n9/p0FmLEU9C31AE=
 google.golang.org/genproto v0.0.0-20210302174412-5ede27ff9881/go.mod h1:FWY/as6DDZQgahTzZj3fqbO1CbirC29ZNUFHwi0/+no=
+google.golang.org/genproto v0.0.0-20210303154014-9728d6b83eeb h1:hcskBH5qZCOa7WpTUFUFvoebnSFZBYpjykLtjIp9DVk=
+google.golang.org/genproto v0.0.0-20210303154014-9728d6b83eeb/go.mod h1:FWY/as6DDZQgahTzZj3fqbO1CbirC29ZNUFHwi0/+no=
 google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=
 google.golang.org/grpc v1.20.1/go.mod h1:10oTOabMzJvdu6/UiuZezV6QK5dSlG84ov/aaiqXj38=
 google.golang.org/grpc v1.21.1/go.mod h1:oYelfM1adQP15Ek0mdvEgi9Df8B9CZIaU1084ijfRaM=
