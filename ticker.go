@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -17,6 +18,50 @@ type Ticker struct {
 	TickerName     string `db:"ticker_name"`
 	CreateDatetime string `db:"create_datetime"`
 	UpdateDatetime string `db:"update_datetime"`
+}
+
+type TickersEODTask struct {
+	TaskAction string `json:"action"`
+	TickerId   int64  `json:"ticker_id"`
+	DaysBack   int32  `json:"days_back"`
+}
+
+func (t Ticker) EarliestEOD(db *sqlx.DB) (string, float32, error) {
+	type Earliest struct {
+		date  string
+		price float32
+	}
+	var earliest Earliest
+	err := db.QueryRowx("SELECT price_date, close_price FROM daily WHERE ticker_id=? ORDER BY price_date LIMIT 1", t.TickerId).StructScan(&earliest)
+	return earliest.date, earliest.price, err
+}
+
+func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) {
+	earliest, _, err := t.EarliestEOD(db)
+
+	if len(earliest) > 0 {
+		if days, err := mytime.DaysAgo(earliest); err != nil || days > 900 {
+			return
+		}
+	}
+
+	taskAction := "eod"
+	taskVars := TickersEODTask{taskAction, t.TickerId, 1000}
+	taskJSON, err := json.Marshal(taskVars)
+	log.Info().Msg(string(taskJSON))
+	if err != nil {
+		log.Error().Err(err).
+			Int64("ticker_id", t.TickerId).
+			Msg("Failed to create task JSON for EOD update for ticker")
+		return
+	}
+
+	_, err = sendNotification(awssess, "tickers", taskAction, string(taskJSON))
+	if err == nil {
+		log.Info().
+			Int64("ticker_id", t.TickerId).
+			Msg("Sent task notification for EOD update for ticker")
+	}
 }
 
 func (t Ticker) LoadDailies(db *sqlx.DB, days int) ([]Daily, error) {

@@ -2,9 +2,14 @@
               <header class="bg-dark pt-2 mb-2 ps-2">
                 <div class="d-flex">
                   <div>
-                    <h3>Symbol: <a class="link-light" href="/view/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeAcronym}}">{{.ticker.TickerSymbol}}</a> ({{.exchange.ExchangeAcronym}})</h3>
-                    <h5>{{.ticker.TickerName}}</h5>
-                    <h6 class="small text-info">Share price: <span class="text-light">{{ template "_share_price" . }}</span></h6>
+                    <p class="text-truncate">
+                      <span class="h5 text-light">Symbol:</span>
+                      <a class="h3 text-white link-white text-decoration-none" href="/view/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeAcronym}}">{{.ticker.TickerSymbol}}</a>
+                      <span class="h5 text-light pe-3 text-lowercase">/{{.exchange.ExchangeAcronym}}</span>
+                      <span class="h5 text-light">Name:</span>
+                      <span class="h3 text-white">{{.ticker.TickerName}}</span>
+                    </p>
+                    <h6 class="small ps-1 text-info">Share price: <span class="text-light">{{ template "_share_price" . }}</span></h6>
                   </div>
                   <div class="flex-grow-1 text-end">
                     {{- template "_messages" . }}

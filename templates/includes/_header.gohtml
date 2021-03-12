@@ -27,34 +27,29 @@
         </div><!-- left column -->
 
         <div class="col-6 col-sm-7 col-md-8 col-lg-9 col-xxl-10 top-box"><!-- content -->
-        {{- if .WID}}
-          <div class="d-flex bg-dark menubar">
-          {{- if not .hideRecents}}
-            <ul class="flex-grow-1 nav me-auto mb-2 mb-lg-0 pt-2 ps-2">
-            {{- if .recents.ViewPairs}}
-              <li class="nav-item me-1 pt-2">Recent:</li>
-              {{- range .recents.ViewPairs -}}
-              <li class="nav-item me-1 pt-2 recent"><a href="/view/{{.Symbol}}/{{.Acronym}}" class="badge text-dark bg-warning"><i class="fas fa-dollar-sign"></i>{{.Symbol}}</a></li>
-              {{- end -}}
-            {{- end -}}
-            </ul>
-          {{- end -}}
-            <div class="bg-dark text-success align-self-center mx-2 pt-2 ps-2">
-              <a class="text-decoration-none" href="/account">
-                <span class="pe-2 align-items-baseline">My Account</span>
-              {{- if .watcher.IsRoot -}}
-                <span><i class="fas fa-user-secret fa-2x"></i></span>
-              {{- else if .watcher.IsAdmin -}}
-                <span><i class="fas fa-user-cog fa-2x"></i></span>
-              {{- else if .watcher.IsModerator -}}
-                <span><i class="fas fa-user-shield fa-2x"></i></span>
-              {{- else if .watcher.IsProfessional -}}
-                <span><i class="fas fa-user-plus fa-2x"></i></span>
-              {{- else -}}
-                <span><i class="far fa-user fa-2x"></i></span>
-              {{- end -}}
-              </a>
+          <div class="d-flex flex-row justify-content-between bg-primary"><!-- d-flex menubar -->
+
+            <div class="align-self-center">
+              <form class="form-control bg-primary no-border" method="POST" action="/search/ticker">
+                <input class=" form-control-sm" name="searchString" type="search" size=30 placeholder="$Symbol or Company name" aria-label="Symbol Search">
+                <button class=" form-control-sm bg-light text-dark" type="submit" value="jump">Jump</button>
+                <button class=" form-control-sm bg-light text-dark" type="submit" value="search">Search</button>
+              </form>
             </div>
-          </div>
-        {{end}}
+            
+            {{- if .WID}}
+            <div class="flex-grow-1">
+              {{- if not .hideRecents}}
+                {{- if .recents.ViewPairs}}
+                  <ul class="flex-grow-1 nav">
+                    <li class="nav-item me-2 pt-2">Recent:</li>
+                    {{range .recents.ViewPairs}}
+                      <li class="nav-item me-1 pt-2 recent"><a href="/view/{{.Symbol}}/{{.Acronym}}" class="badge text-dark bg-warning"><i class="fas fa-dollar-sign"></i>{{.Symbol}}</a></li>
+                    {{end}}
+                  </ul>
+                {{end}}
+              {{end}}
+            </div>
+            {{end}}
+          </div><!-- d-flex menubar -->
 {{- end}}

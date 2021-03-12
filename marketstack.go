@@ -176,12 +176,14 @@ func updateMarketstackExchanges(awssess *session.Session, db *sqlx.DB) (int, err
 
 func updateMarketstackTicker(awssess *session.Session, db *sqlx.DB, symbol string) (*Ticker, error) {
 	params := make(map[string]string)
-	log.Info().Msgf("update ticker: %s", symbol)
+	params["limit"] = "1"
+
 	logPath, logQuery, res, err := getMarketstackData(awssess, fmt.Sprintf("tickers/%s/eod", symbol), params)
 	if err != nil {
-		log.Fatal().Err(err).
+		log.Error().Err(err).
 			Str("symbol", symbol).
 			Msg("Failed to get marketstack data for ticker")
+		return nil, err
 	}
 
 	defer res.Body.Close()
@@ -198,42 +200,52 @@ func updateMarketstackTicker(awssess *session.Session, db *sqlx.DB, symbol strin
 	var country = &Country{0, MSEndOfDayData.StockExchange.CountryCode, MSEndOfDayData.StockExchange.CountryName, "", ""}
 	country, err = getOrCreateCountry(db, country)
 	if err != nil {
-		log.Fatal().Err(err).
+		log.Error().Err(err).
 			Str("country_code", MSEndOfDayData.StockExchange.CountryCode).
 			Msg("Failed to create/update country for exchange")
+		return nil, err
 	}
 
 	// grab the exchange_id we'll need, create new record if needed
 	var exchange = &Exchange{0, MSEndOfDayData.StockExchange.Acronym, "", MSEndOfDayData.StockExchange.Name, country.CountryId, MSEndOfDayData.StockExchange.City, "", ""}
 	exchange, err = getOrCreateExchange(db, exchange)
 	if err != nil {
-		log.Fatal().Err(err).
+		log.Error().Err(err).
 			Str("acronym", MSEndOfDayData.StockExchange.Acronym).
 			Msg("Failed to create/update exchange")
+		return nil, err
 	}
 
 	// use marketstack data to create or update ticker
 	var ticker = &Ticker{0, MSEndOfDayData.Symbol, exchange.ExchangeId, MSEndOfDayData.Name, "", ""}
 	ticker, err = createOrUpdateTicker(db, ticker)
 	if err != nil {
-		log.Fatal().Err(err).
+		log.Error().Err(err).
 			Str("symbol", MSEndOfDayData.Symbol).
+			Str("acronym", MSEndOfDayData.StockExchange.Acronym).
 			Msg("Failed to create/update ticker")
+		return nil, err
 	}
 
+	ticker.ScheduleEODUpdate(awssess, db)
+
 	// finally, lets roll through all the EOD price data we got and make sure we have it all
+	var anyErr error
 	for _, MSIndexData := range apiResponse.Data.EndOfDay {
 		// use marketstack data to create or update dailies
 		var daily = &Daily{0, ticker.TickerId, MSIndexData.PriceDate, MSIndexData.OpenPrice, MSIndexData.HighPrice, MSIndexData.LowPrice, MSIndexData.ClosePrice, MSIndexData.Volume, "", ""}
 		if daily.Volume > 0 {
 			_, err = createOrUpdateDaily(db, daily)
 			if err != nil {
-				log.Fatal().Err(err).
-					Str("symbol", ticker.TickerSymbol).
-					Int64("ticker_id", ticker.TickerId).
-					Msg("Failed to create/update EOD for ticker")
+				anyErr = err
 			}
 		}
+	}
+	if anyErr != nil {
+		log.Error().Err(anyErr).
+			Str("symbol", ticker.TickerSymbol).
+			Int64("ticker_id", ticker.TickerId).
+			Msg("Failed to create/update 1 or more EOD for ticker")
 	}
 
 	return ticker, nil
@@ -273,6 +285,7 @@ func updateMarketstackIntraday(awssess *session.Session, db *sqlx.DB, ticker Tic
 	// any updates for that from this API call
 
 	// lets roll through all the intraday price data we got and make sure we have it all
+	var anyErr error
 	var priorVol float32
 	for _, MSIntradayData := range apiResponse.Data {
 		timeSlot := MSIntradayData.PriceDate[11:16]
@@ -281,13 +294,16 @@ func updateMarketstackIntraday(awssess *session.Session, db *sqlx.DB, ticker Tic
 			var intraday = &Intraday{0, ticker.TickerId, MSIntradayData.PriceDate, MSIntradayData.LastPrice, MSIntradayData.Volume - priorVol, "", ""}
 			_, err = createOrUpdateIntraday(db, intraday)
 			if err != nil {
-				log.Fatal().Err(err).
-					Str("symbol", ticker.TickerSymbol).
-					Int64("tickerId", ticker.TickerId).
-					Msg("Failed to create/update Intraday for ticker")
+				anyErr = err
 			}
 			priorVol = MSIntradayData.Volume
 		}
+	}
+	if anyErr != nil {
+		log.Fatal().Err(anyErr).
+			Str("symbol", ticker.TickerSymbol).
+			Int64("tickerId", ticker.TickerId).
+			Msg("Failed to create/update 1 or more Intraday for ticker")
 	}
 
 	return nil
@@ -347,7 +363,7 @@ func recordHistoryS3(awssess *session.Session, logPath string, logQuery string, 
 	s3svc := s3.New(awssess)
 
 	sha1Hash := sha1.New()
-	io.WriteString(sha1Hash, logPath+"?"+logQuery)
+	io.WriteString(sha1Hash, logData)
 	logKey := fmt.Sprintf("marketstack/%s/%x", logPath[1:], string(sha1Hash.Sum(nil)))
 
 	inputPutObj := &s3.PutObjectInput{
@@ -362,5 +378,10 @@ func recordHistoryS3(awssess *session.Session, logPath string, logQuery string, 
 			Str("bucket", "graystorm-stockwatch").
 			Str("key", logKey).
 			Msg("Failed to upload to S3 bucket")
+	} else {
+		log.Info().
+			Str("bucket", "graystorm-stockwatch").
+			Str("key", logKey).
+			Msg("Stored marketstack reply to S3 bucket")
 	}
 }
