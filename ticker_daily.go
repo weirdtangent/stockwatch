@@ -47,31 +47,24 @@ func (td TickerDailies) Count() int {
 }
 
 func getTickerDaily(db *sqlx.DB, ticker_id int64, daily_date string) (*TickerDaily, error) {
-	var ticker_daily TickerDaily
+	var tickerdaily TickerDaily
 	if len(daily_date) > 10 {
 		daily_date = daily_date[0:10]
 	}
-	err := db.QueryRowx(
-		`SELECT * FROM ticker_daily WHERE ticker_id=? AND price_date=?`,
-		ticker_id, daily_date).StructScan(&ticker_daily)
-	return &ticker_daily, err
+	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? AND price_date=?`, ticker_id, daily_date).StructScan(&tickerdaily)
+	return &tickerdaily, err
 }
 
 func getTickerDailyById(db *sqlx.DB, ticker_daily_id int64) (*TickerDaily, error) {
-	var ticker_daily TickerDaily
-	err := db.QueryRowx(
-		`SELECT * FROM ticker_daily WHERE ticker_daily_id=?`,
-		ticker_daily_id).StructScan(&ticker_daily)
-	return &ticker_daily, err
+	var tickerdaily TickerDaily
+	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_daily_id=?`, ticker_daily_id).StructScan(&tickerdaily)
+	return &tickerdaily, err
 }
 
 func getTickerDailyMostRecent(db *sqlx.DB, ticker_id int64) (*TickerDaily, error) {
-	var ticker_daily TickerDaily
-	err := db.QueryRowx(
-		`SELECT * FROM ticker_daily WHERE ticker_id=?
-		 ORDER BY price_date DESC LIMIT 1`,
-		ticker_id).StructScan(&ticker_daily)
-	return &ticker_daily, err
+	var tickerdaily TickerDaily
+	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? ORDER BY price_date DESC LIMIT 1`, ticker_id).StructScan(&tickerdaily)
+	return &tickerdaily, err
 }
 
 func getLastTickerDailyMove(db *sqlx.DB, ticker_id int64) (string, error) {
@@ -89,10 +82,10 @@ func getLastTickerDailyMove(db *sqlx.DB, ticker_id int64) (string, error) {
 	return lastTickerDailyMove, err
 }
 
-func createTickerDaily(db *sqlx.DB, ticker_daily *TickerDaily) (*TickerDaily, error) {
+func createTickerDaily(db *sqlx.DB, tickerdaily *TickerDaily) (*TickerDaily, error) {
 	var insert = "INSERT INTO ticker_daily SET ticker_id=?, price_date=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=?"
 
-	res, err := db.Exec(insert, ticker_daily.TickerId, ticker_daily.PriceDate, ticker_daily.OpenPrice, ticker_daily.HighPrice, ticker_daily.LowPrice, ticker_daily.ClosePrice, ticker_daily.Volume)
+	res, err := db.Exec(insert, tickerdaily.TickerId, tickerdaily.PriceDate, tickerdaily.OpenPrice, tickerdaily.HighPrice, tickerdaily.LowPrice, tickerdaily.ClosePrice, tickerdaily.Volume)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("table_name", "ticker_daily").
@@ -107,23 +100,23 @@ func createTickerDaily(db *sqlx.DB, ticker_daily *TickerDaily) (*TickerDaily, er
 	return getTickerDailyById(db, ticker_daily_id)
 }
 
-func getOrCreateTickerDaily(db *sqlx.DB, ticker_daily *TickerDaily) (*TickerDaily, error) {
-	existing, err := getTickerDaily(db, ticker_daily.TickerId, ticker_daily.PriceDate)
+func getOrCreateTickerDaily(db *sqlx.DB, tickerdaily *TickerDaily) (*TickerDaily, error) {
+	existing, err := getTickerDaily(db, tickerdaily.TickerId, tickerdaily.PriceDate)
 	if err != nil && existing.TickerDailyId == 0 {
-		return createTickerDaily(db, ticker_daily)
+		return createTickerDaily(db, tickerdaily)
 	}
 	return existing, err
 }
 
-func createOrUpdateTickerDaily(db *sqlx.DB, ticker_daily *TickerDaily) (*TickerDaily, error) {
+func createOrUpdateTickerDaily(db *sqlx.DB, tickerdaily *TickerDaily) (*TickerDaily, error) {
 	var update = "UPDATE ticker_daily SET open_price=?, high_price=?, low_price=?, close_price=?, volume=? WHERE ticker_id=? AND price_date=?"
 
-	existing, err := getTickerDaily(db, ticker_daily.TickerId, ticker_daily.PriceDate)
+	existing, err := getTickerDaily(db, tickerdaily.TickerId, tickerdaily.PriceDate)
 	if err != nil {
-		return createTickerDaily(db, ticker_daily)
+		return createTickerDaily(db, tickerdaily)
 	}
 
-	_, err = db.Exec(update, ticker_daily.OpenPrice, ticker_daily.HighPrice, ticker_daily.LowPrice, ticker_daily.ClosePrice, ticker_daily.Volume, existing.TickerId, existing.PriceDate)
+	_, err = db.Exec(update, tickerdaily.OpenPrice, tickerdaily.HighPrice, tickerdaily.LowPrice, tickerdaily.ClosePrice, tickerdaily.Volume, existing.TickerId, existing.PriceDate)
 	if err != nil {
 		log.Warn().Err(err).
 			Str("table_name", "ticker_daily").

@@ -49,7 +49,7 @@ func viewTickerDailyHandler() http.HandlerFunc {
 		}
 
 		// grab exchange they asked for
-		exchange, err := getExchange(db, acronym)
+		exchange, err := getExchange(db, acronym, "")
 		if err != nil {
 			logger.Warn().Err(err).
 				Str("acronym", acronym).
@@ -165,7 +165,7 @@ func viewTickerIntradayHandler() http.HandlerFunc {
 		intradate := params["intradate"]
 
 		// grab exchange they asked for
-		exchange, err := getExchange(db, acronym)
+		exchange, err := getExchange(db, acronym, "")
 		if err != nil {
 			logger.Warn().Err(err).
 				Str("acronym", acronym).

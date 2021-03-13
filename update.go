@@ -67,7 +67,7 @@ func updateHandler() http.HandlerFunc {
 			case "ticker":
 				symbol := params["symbol"]
 				acronym := params["acronym"]
-				exchange, err := getExchange(db, acronym)
+				exchange, err := getExchange(db, acronym, "")
 				if err != nil {
 					logger.Error().Msgf("Update of ticker symbol %s failed: %s", symbol, err)
 					*messages = append(*messages, Message{fmt.Sprintf("Update of ticker symbol %s failed: %s", symbol, err), "danger"})

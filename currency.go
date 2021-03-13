@@ -33,8 +33,9 @@ func createCurrency(db *sqlx.DB, currency *Currency) (*Currency, error) {
 	var insert = "INSERT INTO currency SET currency_code=?, currency_name=?, currency_symbol=?, currency_symbol_native=?"
 
 	if currency.CurrencyCode == "" {
-		return currency, fmt.Errorf("Skipping record with blank currency_code")
+		return currency, fmt.Errorf("Skipping record with blank currency code")
 	}
+
 	res, err := db.Exec(insert, currency.CurrencyCode, currency.CurrencyName, currency.CurrencySymbol, currency.CurrencySymbolNative)
 	if err != nil {
 		log.Fatal().Err(err).
@@ -62,7 +63,7 @@ func createOrUpdateCurrency(db *sqlx.DB, currency *Currency) (*Currency, error) 
 	var update = "UPDATE currency SET currency_code=?, currency_name=?, currency_symbol=?, currency_symbol_native=? WHERE currency_id=?"
 
 	if currency.CurrencyCode == "" {
-		return currency, fmt.Errorf("Skipping record with blank currency_code")
+		return currency, fmt.Errorf("Skipping record with blank currency code")
 	}
 
 	existing, err := getCurrency(db, currency.CurrencyCode)

@@ -301,7 +301,7 @@ func fetchTicker(awssess *session.Session, db *sqlx.DB, symbol string, exchangeM
 	params["limit"] = "31" // get, possibly, the full current month but let a scheduled job get everything else
 	params["exchange"] = exchangeMic
 
-	logPath, logQuery, res, err := getMarketstackData(awssess, fmt.Sprintf("tickers/%s/eod/latest", symbol), params)
+	logPath, logQuery, res, err := getMarketstackData(awssess, fmt.Sprintf("tickers/%s/eod", symbol), params)
 	if err != nil {
 		log.Error().Err(err).
 			Str("symbol", symbol).
@@ -405,15 +405,10 @@ func fetchTickerIntraday(awssess *session.Session, db *sqlx.DB, ticker Ticker, e
 	logData, err := json.Marshal(apiResponse.Data)
 	recordHistoryS3(awssess, logPath, logQuery, string(logData))
 
-	//log.Fatal().
-	//	Str("response", fmt.Sprintf("%#v", apiResponse)).
-	//	Msg("Failed to get valid marketstack data")
-
 	// country isn't provided, exchange is but to do an intraday
 	// we have to already have that info, so we'll skip doing
 	// any updates for that from this API call
 
-	// lets roll through all the intraday price data we got and make sure we have it all
 	var anyErr error
 	var priorVol float32
 	for _, MSIntradayData := range apiResponse.Data {

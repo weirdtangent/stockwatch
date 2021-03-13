@@ -18,9 +18,18 @@ type Exchange struct {
 	UpdateDatetime  string `db:"update_datetime"`
 }
 
-func getExchange(db *sqlx.DB, acronym string) (*Exchange, error) {
+// default search is by ACRONYM or MIC
+func getExchange(db *sqlx.DB, acronym string, mic string) (*Exchange, error) {
 	var exchange Exchange
-	err := db.QueryRowx("SELECT * FROM exchange WHERE exchange_acronym = ?", acronym).StructScan(&exchange)
+	var err error
+	// if either of these come in as blank searches, make them not match anything
+	if acronym != "" {
+		err = db.QueryRowx("SELECT * FROM exchange WHERE exchange_acronym = ?", acronym).StructScan(&exchange)
+	} else if mic != "" {
+		err = db.QueryRowx("SELECT * FROM exchange WHERE exchange_mic = ?", mic).StructScan(&exchange)
+	} else {
+		return nil, fmt.Errorf("Acronym or Mic must not be blank to perform search")
+	}
 	return &exchange, err
 }
 
@@ -53,7 +62,7 @@ func createExchange(db *sqlx.DB, exchange *Exchange) (*Exchange, error) {
 }
 
 func getOrCreateExchange(db *sqlx.DB, exchange *Exchange) (*Exchange, error) {
-	existing, err := getExchange(db, exchange.ExchangeAcronym)
+	existing, err := getExchange(db, exchange.ExchangeAcronym, exchange.ExchangeMic)
 	if err != nil && existing.ExchangeId == 0 {
 		return createExchange(db, exchange)
 	}
@@ -63,11 +72,11 @@ func getOrCreateExchange(db *sqlx.DB, exchange *Exchange) (*Exchange, error) {
 func createOrUpdateExchange(db *sqlx.DB, exchange *Exchange) (*Exchange, error) {
 	var update = "UPDATE exchange SET exchange_mic=?,exchange_name=?,country_id=?,city=? WHERE exchange_id=?"
 
-	if exchange.ExchangeAcronym == "" {
-		return exchange, fmt.Errorf("Skipping record with blank exchange acronym")
+	if exchange.ExchangeAcronym == "" && exchange.ExchangeMic == "" {
+		return exchange, fmt.Errorf("Skipping record with blank exchange acronym and mic")
 	}
 
-	existing, err := getExchange(db, exchange.ExchangeAcronym)
+	existing, err := getExchange(db, exchange.ExchangeAcronym, exchange.ExchangeMic)
 	if err != nil {
 		return createExchange(db, exchange)
 	}

@@ -262,6 +262,10 @@ func getTickerById(db *sqlx.DB, tickerId int64) (*Ticker, error) {
 func createTicker(db *sqlx.DB, ticker *Ticker) (*Ticker, error) {
 	var insert = "INSERT INTO ticker SET ticker_symbol=?, exchange_id=?, ticker_name=?"
 
+	if ticker.TickerSymbol == "" {
+		return ticker, fmt.Errorf("Skipping record with blank ticker symbol")
+	}
+
 	res, err := db.Exec(insert, ticker.TickerSymbol, ticker.ExchangeId, ticker.TickerName)
 	if err != nil {
 		log.Fatal().Err(err).
@@ -291,6 +295,10 @@ func getOrCreateTicker(db *sqlx.DB, ticker *Ticker) (*Ticker, error) {
 
 func createOrUpdateTicker(db *sqlx.DB, ticker *Ticker) (*Ticker, error) {
 	var update = "UPDATE ticker SET exchange_id=?, ticker_name=? WHERE ticker_id=?"
+
+	if ticker.TickerSymbol == "" {
+		return ticker, fmt.Errorf("Skipping record with blank ticker symbol")
+	}
 
 	existing, err := getTicker(db, ticker.TickerSymbol, ticker.ExchangeId)
 	if err != nil {
