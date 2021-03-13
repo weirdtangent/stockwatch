@@ -20,7 +20,7 @@ const (
 	smallY = "225px"
 )
 
-func chartHandlerDailyLine(ctx context.Context, ticker *Ticker, exchange *Exchange, dailies []Daily, webwatches []WebWatch) template.HTML {
+func chartHandlerTickerDailyLine(ctx context.Context, ticker *Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
 	nonce := ctx.Value("nonce").(string)
 
 	// build data needed
@@ -120,7 +120,7 @@ func chartHandlerDailyLine(ctx context.Context, ticker *Ticker, exchange *Exchan
 	return renderToHtml(prices) + renderToHtml(volume)
 }
 
-func chartHandlerIntradayLine(ctx context.Context, ticker *Ticker, exchange *Exchange, intradays []Intraday, webwatches []WebWatch, intradate string) template.HTML {
+func chartHandlerTickerIntradayLine(ctx context.Context, ticker *Ticker, exchange *Exchange, intradays []TickerIntraday, webwatches []WebWatch, intradate string) template.HTML {
 	nonce := ctx.Value("nonce").(string)
 
 	// build data needed

@@ -29,7 +29,7 @@ func updateHandler() http.HandlerFunc {
 
 			switch action {
 			case "exchanges":
-				count, err := updateMarketstackExchanges(awssess, db)
+				count, err := fetchExchanges(awssess, db)
 				if err != nil {
 					logger.Error().Msgf("Bulk update of Exchanges failed: %s", err)
 					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Exchanges failed: %s", err.Error()), "danger"})
@@ -40,9 +40,40 @@ func updateHandler() http.HandlerFunc {
 					logger.Info().Int("count", count).Msg("Update of exchanges completed")
 					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Exchanges succeeded: %d exchanges updates", count), "success"})
 				}
+			case "indexes":
+				count, err := fetchMarketIndexes(awssess, db)
+				if err != nil {
+					logger.Error().Msgf("Bulk update of Market Indexes failed: %s", err)
+					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Market Indexes failed: %s", err.Error()), "danger"})
+				} else if count == 0 {
+					logger.Error().Msgf("Bulk update of Market Indexes failed, no error msg but 0 market indexes retrieved")
+					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Market Indexes failed: no error msg but 0 market indexes retrieved"), "danger"})
+				} else {
+					logger.Info().Int("count", count).Msg("Update of market indexes completed")
+					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Market Indexes succeeded: %d market indexes updates", count), "success"})
+				}
+			case "currencies":
+				count, err := fetchCurrencies(awssess, db)
+				if err != nil {
+					logger.Error().Msgf("Bulk update of Currencies failed: %s", err)
+					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Currencies failed: %s", err.Error()), "danger"})
+				} else if count == 0 {
+					logger.Error().Msgf("Bulk update of Currencies failed, no error msg but 0 currencies retrieved")
+					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Currencies failed: no error msg but 0 currencies retrieved"), "danger"})
+				} else {
+					logger.Info().Int("count", count).Msg("Update of currencies completed")
+					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Currencies succeeded: %d currencies updates", count), "success"})
+				}
 			case "ticker":
 				symbol := params["symbol"]
-				_, err := updateMarketstackTicker(awssess, db, symbol)
+				acronym := params["acronym"]
+				exchange, err := getExchange(db, acronym)
+				if err != nil {
+					logger.Error().Msgf("Update of ticker symbol %s failed: %s", symbol, err)
+					*messages = append(*messages, Message{fmt.Sprintf("Update of ticker symbol %s failed: %s", symbol, err), "danger"})
+				}
+
+				_, err = fetchTicker(awssess, db, symbol, exchange.ExchangeMic)
 				if err != nil {
 					logger.Error().Msgf("Update of ticker symbol %s failed: %s", symbol, err)
 					*messages = append(*messages, Message{fmt.Sprintf("Update of ticker symbol %s failed: %s", symbol, err), "danger"})

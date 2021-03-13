@@ -1,9 +1,22 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 )
+
+type Exchange struct {
+	ExchangeId      int64  `db:"exchange_id"`
+	ExchangeAcronym string `db:"exchange_acronym"`
+	ExchangeMic     string `db:"exchange_mic"`
+	ExchangeName    string `db:"exchange_name"`
+	CountryId       int64  `db:"country_id"`
+	City            string `db:"city"`
+	CreateDatetime  string `db:"create_datetime"`
+	UpdateDatetime  string `db:"update_datetime"`
+}
 
 func getExchange(db *sqlx.DB, acronym string) (*Exchange, error) {
 	var exchange Exchange
@@ -19,6 +32,10 @@ func getExchangeById(db *sqlx.DB, exchange_id int64) (*Exchange, error) {
 
 func createExchange(db *sqlx.DB, exchange *Exchange) (*Exchange, error) {
 	var insert = "INSERT INTO exchange SET exchange_acronym=?, exchange_mic=?, exchange_name=?"
+
+	if exchange.ExchangeAcronym == "" {
+		return exchange, fmt.Errorf("Skipping record with blank exchange acronym")
+	}
 
 	res, err := db.Exec(insert, exchange.ExchangeAcronym, exchange.ExchangeMic, exchange.ExchangeName)
 	if err != nil {
@@ -45,6 +62,10 @@ func getOrCreateExchange(db *sqlx.DB, exchange *Exchange) (*Exchange, error) {
 
 func createOrUpdateExchange(db *sqlx.DB, exchange *Exchange) (*Exchange, error) {
 	var update = "UPDATE exchange SET exchange_mic=?,exchange_name=?,country_id=?,city=? WHERE exchange_id=?"
+
+	if exchange.ExchangeAcronym == "" {
+		return exchange, fmt.Errorf("Skipping record with blank exchange acronym")
+	}
 
 	existing, err := getExchange(db, exchange.ExchangeAcronym)
 	if err != nil {

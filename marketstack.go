@@ -29,6 +29,32 @@ type MSExchangeData struct {
 	City        string `json:"city"`
 }
 
+type MSCurrencyData struct {
+	CurrencyName         string `json:"name"`
+	CurrencyCode         string `json:"code"`
+	CurrencySymbol       string `json:"symbol"`
+	CurrencySymbolNative string `json:"symbol_native"`
+}
+
+type MSIndexCurrencyData struct {
+	CurrencyName   string `json:"name"`
+	CurrencyCode   string `json:"code"`
+	CurrencySymbol string `json:"symbol"`
+}
+
+type MSMarketIndexData struct {
+	Symbol      string              `json:"symbol"`
+	Name        string              `json:"name"`
+	CountryName string              `json:"country"`
+	Currency    MSIndexCurrencyData `json:"currency"`
+	HasIntraday bool                `json:"has_intraday"`
+	HasEOD      bool                `json:"has_eod"`
+}
+
+type MSMarketIndexesData struct {
+	MarketIndexes []MSMarketIndexData `json:"indexes"`
+}
+
 type MSIndexData struct {
 	Symbol     string  `json:"symbol"`
 	Exchange   string  `json:"exchange"`
@@ -69,8 +95,16 @@ type MSExchangeResponse struct {
 	Data []MSExchangeData `json:"data"`
 }
 
+type MSMarketIndexResponse struct {
+	Data MSMarketIndexesData `json:"data"`
+}
+
 type MSIndexResponse struct {
 	Data []MSIndexData `json:"data"`
+}
+
+type MSCurrencyResponse struct {
+	Data []MSCurrencyData `json:"data"`
 }
 
 type MSIntradayResponse struct {
@@ -125,7 +159,7 @@ func getMarketstackData(awssess *session.Session, action string, params map[stri
 	return logPath, logQuery, res, nil
 }
 
-func updateMarketstackExchanges(awssess *session.Session, db *sqlx.DB) (int, error) {
+func fetchExchanges(awssess *session.Session, db *sqlx.DB) (int, error) {
 	params := make(map[string]string)
 	logPath, logQuery, res, err := getMarketstackData(awssess, "exchanges", params)
 	if err != nil {
@@ -154,7 +188,6 @@ func updateMarketstackExchanges(awssess *session.Session, db *sqlx.DB) (int, err
 				log.Error().Err(err).
 					Str("country_code", MSExchangeData.CountryCode).
 					Msg("Failed to create/update country for exchange")
-				break
 			}
 
 			// use marketstack data to create or update exchange
@@ -164,8 +197,8 @@ func updateMarketstackExchanges(awssess *session.Session, db *sqlx.DB) (int, err
 				log.Error().Err(err).
 					Str("acronym", MSExchangeData.Acronym).
 					Msg("Failed to create/update exchange")
-				break
 			}
+
 			log.Info().Str("acronym", exchange.ExchangeAcronym).Msg("Exchange created/updated")
 			count += 1
 		}
@@ -174,11 +207,101 @@ func updateMarketstackExchanges(awssess *session.Session, db *sqlx.DB) (int, err
 	return count, nil
 }
 
-func updateMarketstackTicker(awssess *session.Session, db *sqlx.DB, symbol string) (*Ticker, error) {
+func fetchMarketIndexes(awssess *session.Session, db *sqlx.DB) (int, error) {
 	params := make(map[string]string)
-	params["limit"] = "1"
+	logPath, logQuery, res, err := getMarketstackData(awssess, "exchanges/INDX/tickers", params)
+	if err != nil {
+		log.Fatal().Err(err).
+			Msg("Failed to get marketstack data for marketindexes")
+	}
 
-	logPath, logQuery, res, err := getMarketstackData(awssess, fmt.Sprintf("tickers/%s/eod", symbol), params)
+	defer res.Body.Close()
+
+	var apiResponse MSMarketIndexResponse
+	json.NewDecoder(res.Body).Decode(&apiResponse)
+
+	logData, err := json.Marshal(apiResponse.Data)
+	recordHistoryS3(awssess, logPath, logQuery, string(logData))
+
+	count := 0
+	for _, MSMarketIndexData := range apiResponse.Data.MarketIndexes {
+		switch MSMarketIndexData.Symbol {
+		case "":
+			break
+		default:
+			// grab the countryId we'll need, can't create new record if needed because we don't have CountryCode
+			country, err := getCountryByName(db, MSMarketIndexData.CountryName)
+			if err != nil {
+				log.Error().Err(err).
+					Str("country_name", MSMarketIndexData.CountryName).
+					Msg("Failed to find country for marketindex")
+			}
+
+			// grab the currencyId we'll need, create new record if needed
+			var currency = &Currency{0, MSMarketIndexData.Currency.CurrencyCode, MSMarketIndexData.Currency.CurrencyName, MSMarketIndexData.Currency.CurrencySymbol, "", "", ""}
+			currency, err = createOrUpdateCurrency(db, currency)
+			if err != nil {
+				log.Error().Err(err).
+					Str("currency_code", MSMarketIndexData.Currency.CurrencyCode).
+					Msg("Failed to create/update currency for index")
+			}
+
+			// use marketstack data to create or update index
+			var marketindex = &MarketIndex{0, MSMarketIndexData.Symbol, "INDX", MSMarketIndexData.Name, country.CountryId, MSMarketIndexData.HasIntraday, MSMarketIndexData.HasEOD, currency.CurrencyId, "", ""}
+			_, err = createOrUpdateMarketIndex(db, marketindex)
+			if err != nil {
+				log.Error().Err(err).
+					Str("symbol", MSMarketIndexData.Symbol).
+					Msg("Failed to create/update index")
+			}
+
+			log.Info().Str("marketindex", marketindex.MarketIndexSymbol).Msg("MarketIndex created/updated")
+			count += 1
+		}
+	}
+	log.Info().Int("count", count).Msg("Indexes updated from marketstack")
+	return count, nil
+}
+
+func fetchCurrencies(awssess *session.Session, db *sqlx.DB) (int, error) {
+	params := make(map[string]string)
+	logPath, logQuery, res, err := getMarketstackData(awssess, "currencies", params)
+	if err != nil {
+		log.Fatal().Err(err).
+			Msg("Failed to get marketstack data for currencies")
+	}
+
+	defer res.Body.Close()
+
+	var apiResponse MSCurrencyResponse
+	json.NewDecoder(res.Body).Decode(&apiResponse)
+
+	logData, err := json.Marshal(apiResponse.Data)
+	recordHistoryS3(awssess, logPath, logQuery, string(logData))
+
+	count := 0
+	for _, MSCurrencyData := range apiResponse.Data {
+		var currency = &Currency{0, MSCurrencyData.CurrencyCode, MSCurrencyData.CurrencyName, MSCurrencyData.CurrencySymbol, MSCurrencyData.CurrencySymbolNative, "", ""}
+		currency, err = createOrUpdateCurrency(db, currency)
+		if err != nil {
+			log.Error().Err(err).
+				Str("currency_code", MSCurrencyData.CurrencyCode).
+				Msg("Failed to create/update currency for index")
+		}
+
+		log.Info().Str("currency_code", currency.CurrencyCode).Msg("Currency created/updated")
+		count += 1
+	}
+	log.Info().Int("count", count).Msg("Currencies updated from marketstack")
+	return count, nil
+}
+
+func fetchTicker(awssess *session.Session, db *sqlx.DB, symbol string, exchangeMic string) (*Ticker, error) {
+	params := make(map[string]string)
+	params["limit"] = "31" // get, possibly, the full current month but let a scheduled job get everything else
+	params["exchange"] = exchangeMic
+
+	logPath, logQuery, res, err := getMarketstackData(awssess, fmt.Sprintf("tickers/%s/eod/latest", symbol), params)
 	if err != nil {
 		log.Error().Err(err).
 			Str("symbol", symbol).
@@ -207,7 +330,7 @@ func updateMarketstackTicker(awssess *session.Session, db *sqlx.DB, symbol strin
 	}
 
 	// grab the exchange_id we'll need, create new record if needed
-	var exchange = &Exchange{0, MSEndOfDayData.StockExchange.Acronym, "", MSEndOfDayData.StockExchange.Name, country.CountryId, MSEndOfDayData.StockExchange.City, "", ""}
+	var exchange = &Exchange{0, MSEndOfDayData.StockExchange.Acronym, MSEndOfDayData.StockExchange.Mic, MSEndOfDayData.StockExchange.Name, country.CountryId, MSEndOfDayData.StockExchange.City, "", ""}
 	exchange, err = getOrCreateExchange(db, exchange)
 	if err != nil {
 		log.Error().Err(err).
@@ -227,18 +350,22 @@ func updateMarketstackTicker(awssess *session.Session, db *sqlx.DB, symbol strin
 		return nil, err
 	}
 
-	ticker.ScheduleEODUpdate(awssess, db)
-
 	// finally, lets roll through all the EOD price data we got and make sure we have it all
 	var anyErr error
 	for _, MSIndexData := range apiResponse.Data.EndOfDay {
 		// use marketstack data to create or update dailies
-		var daily = &Daily{0, ticker.TickerId, MSIndexData.PriceDate, MSIndexData.OpenPrice, MSIndexData.HighPrice, MSIndexData.LowPrice, MSIndexData.ClosePrice, MSIndexData.Volume, "", ""}
-		if daily.Volume > 0 {
-			_, err = createOrUpdateDaily(db, daily)
+		var ticker_daily = &TickerDaily{0, ticker.TickerId, MSIndexData.PriceDate, MSIndexData.OpenPrice, MSIndexData.HighPrice, MSIndexData.LowPrice, MSIndexData.ClosePrice, MSIndexData.Volume, "", ""}
+		if ticker_daily.Volume > 0 {
+			_, err = createOrUpdateTickerDaily(db, ticker_daily)
 			if err != nil {
 				anyErr = err
 			}
+		} else {
+			log.Warn().
+				Str("symbol", ticker.TickerSymbol).
+				Int64("ticker_id", ticker.TickerId).
+				Str("price_date", MSIndexData.PriceDate).
+				Msg("Failed to get any volume for today")
 		}
 	}
 	if anyErr != nil {
@@ -248,10 +375,12 @@ func updateMarketstackTicker(awssess *session.Session, db *sqlx.DB, symbol strin
 			Msg("Failed to create/update 1 or more EOD for ticker")
 	}
 
+	ticker.ScheduleEODUpdate(awssess, db)
+
 	return ticker, nil
 }
 
-func updateMarketstackIntraday(awssess *session.Session, db *sqlx.DB, ticker Ticker, exchange *Exchange, intradate string) error {
+func fetchTickerIntraday(awssess *session.Session, db *sqlx.DB, ticker Ticker, exchange *Exchange, intradate string) error {
 	params := make(map[string]string)
 	params["symbols"] = ticker.TickerSymbol
 	params["exchange"] = exchange.ExchangeMic
@@ -291,8 +420,8 @@ func updateMarketstackIntraday(awssess *session.Session, db *sqlx.DB, ticker Tic
 		timeSlot := MSIntradayData.PriceDate[11:16]
 		if timeSlot >= "14:30" && timeSlot < "21:05" {
 			// use marketstack data to create or update intradays
-			var intraday = &Intraday{0, ticker.TickerId, MSIntradayData.PriceDate, MSIntradayData.LastPrice, MSIntradayData.Volume - priorVol, "", ""}
-			_, err = createOrUpdateIntraday(db, intraday)
+			var tickerintraday = &TickerIntraday{0, ticker.TickerId, MSIntradayData.PriceDate, MSIntradayData.LastPrice, MSIntradayData.Volume - priorVol, "", ""}
+			_, err = createOrUpdateTickerIntraday(db, tickerintraday)
 			if err != nil {
 				anyErr = err
 			}
@@ -309,9 +438,78 @@ func updateMarketstackIntraday(awssess *session.Session, db *sqlx.DB, ticker Tic
 	return nil
 }
 
-func searchMarketstackTicker(awssess *session.Session, db *sqlx.DB, search string) (*Ticker, error) {
+func fetchMarketIndexIntraday(awssess *session.Session, db *sqlx.DB, marketindex MarketIndex, intradate string) error {
 	params := make(map[string]string)
-	params["search"] = search
+	params["symbols"] = marketindex.MarketIndexSymbol
+	params["exchange"] = "INDX"
+	params["interval"] = "5min"
+	params["sort"] = "ASC"
+	params["date_from"] = intradate + "T14:30:00Z" // 9:30 AM ET open
+	params["date_to"] = intradate + "T21:05:00Z"   // 4:00 PM ET close
+
+	logPath, logQuery, res, err := getMarketstackData(awssess, fmt.Sprintf("intraday/%s", intradate), params)
+	if err != nil {
+		log.Fatal().Err(err).
+			Str("symbol", marketindex.MarketIndexSymbol).
+			Str("intraday", intradate).
+			Msg("Failed to get marketstack data for market index")
+	}
+
+	defer res.Body.Close()
+
+	var apiResponse MSIntradayResponse
+	json.NewDecoder(res.Body).Decode(&apiResponse)
+
+	logData, err := json.Marshal(apiResponse.Data)
+	recordHistoryS3(awssess, logPath, logQuery, string(logData))
+
+	//log.Fatal().
+	//	Str("response", fmt.Sprintf("%#v", apiResponse)).
+	//	Msg("Failed to get valid marketstack data")
+
+	// country isn't provided, exchange is but to do an intraday
+	// we have to already have that info, so we'll skip doing
+	// any updates for that from this API call
+
+	// lets roll through all the intraday price data we got and make sure we have it all
+	var anyErr error
+	var priorVol float32
+	for _, MSIntradayData := range apiResponse.Data {
+		timeSlot := MSIntradayData.PriceDate[11:16]
+		if timeSlot >= "14:30" && timeSlot < "21:05" {
+			// use marketstack data to create or update intradays
+			var intraday = &MarketIndexIntraday{0, marketindex.MarketIndexId, MSIntradayData.PriceDate, MSIntradayData.LastPrice, MSIntradayData.Volume - priorVol, "", ""}
+			_, err = createOrUpdateMarketIndexIntraday(db, intraday)
+			if err != nil {
+				anyErr = err
+			}
+			priorVol = MSIntradayData.Volume
+		}
+	}
+	if anyErr != nil {
+		log.Fatal().Err(anyErr).
+			Str("symbol", marketindex.MarketIndexSymbol).
+			Int64("marketindex_id", marketindex.MarketIndexId).
+			Msg("Failed to create/update 1 or more Intraday for market index")
+	}
+
+	return nil
+}
+
+func jumpsearchMarketstackTicker(awssess *session.Session, db *sqlx.DB, searchString string) (SearchResult, error) {
+	searchResults, err := listsearchMarketstackTicker(awssess, db, searchString)
+	if err != nil {
+		return SearchResult{}, err
+	}
+	if len(searchResults) > 0 {
+		return searchResults[0], nil
+	}
+	return SearchResult{}, err
+}
+
+func listsearchMarketstackTicker(awssess *session.Session, db *sqlx.DB, searchString string) ([]SearchResult, error) {
+	params := make(map[string]string)
+	params["search"] = searchString
 
 	logPath, logQuery, res, err := getMarketstackData(awssess, "tickers", params)
 	if err != nil {
@@ -326,37 +524,11 @@ func searchMarketstackTicker(awssess *session.Session, db *sqlx.DB, search strin
 	logData, err := json.Marshal(apiResponse.Data)
 	recordHistoryS3(awssess, logPath, logQuery, string(logData))
 
+	searchResults := make([]SearchResult, 0)
 	for _, MSTickerData := range apiResponse.Data {
-		if MSTickerData.Symbol != "" {
-			// grab the exchange's countryId we'll need, create new record if needed
-			var country = &Country{0, MSTickerData.StockExchange.CountryCode, MSTickerData.StockExchange.CountryName, "", ""}
-			country, err = getOrCreateCountry(db, country)
-			if err != nil {
-				log.Fatal().Err(err).
-					Str("country_code", MSTickerData.StockExchange.CountryCode).
-					Msg("Failed to create/update country for exchange")
-			}
-
-			// grab the exchange_id we'll need, create new record if needed
-			var exchange = &Exchange{0, MSTickerData.StockExchange.Acronym, "", MSTickerData.StockExchange.Name, country.CountryId, MSTickerData.StockExchange.City, "", ""}
-			exchange, err = getOrCreateExchange(db, exchange)
-			if err != nil {
-				log.Fatal().Err(err).
-					Str("acronym", MSTickerData.StockExchange.Acronym).
-					Msg("Failed to create/update exchange")
-			}
-
-			// use marketstack data to create or update ticker
-			var ticker = &Ticker{0, MSTickerData.Symbol, exchange.ExchangeId, MSTickerData.Name, "", ""}
-			ticker, err = createOrUpdateTicker(db, ticker)
-			if err != nil {
-				return nil, err
-			}
-			return updateMarketstackTicker(awssess, db, ticker.TickerSymbol)
-		}
+		searchResults = append(searchResults, SearchResult{MSTickerData.Symbol, MSTickerData.StockExchange.Acronym, MSTickerData.StockExchange.CountryName, MSTickerData.Name})
 	}
-
-	return nil, err
+	return searchResults, nil
 }
 
 func recordHistoryS3(awssess *session.Session, logPath string, logQuery string, logData string) {

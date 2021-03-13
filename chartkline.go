@@ -15,7 +15,7 @@ type klineData struct {
 	data [4]float32
 }
 
-func chartHandlerDailyKLine(ctx context.Context, ticker *Ticker, exchange *Exchange, dailies []Daily, webwatches []WebWatch) template.HTML {
+func chartHandlerTickerDailyKLine(ctx context.Context, ticker *Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
 	nonce := ctx.Value("nonce").(string)
 
 	// build data needed

@@ -14,7 +14,7 @@ import (
 	"github.com/weirdtangent/mytime"
 )
 
-func viewDailyHandler() http.HandlerFunc {
+func viewTickerDailyHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
@@ -61,7 +61,7 @@ func viewDailyHandler() http.HandlerFunc {
 		// find ticker specifically at that exchange (since there are overlaps)
 		ticker, err := getTicker(db, symbol, exchange.ExchangeId)
 		if err != nil {
-			ticker, err = updateMarketstackTicker(awssess, db, symbol)
+			ticker, err = fetchTicker(awssess, db, symbol, exchange.ExchangeMic)
 			if err != nil {
 				logger.Warn().Err(err).
 					Str("symbol", symbol).
@@ -71,7 +71,7 @@ func viewDailyHandler() http.HandlerFunc {
 			}
 		}
 
-		updated, err := ticker.updateDailies(ctx)
+		updated, err := ticker.updateTickerDailies(ctx)
 		if err != nil {
 			*messages = append(*messages, Message{fmt.Sprintf("Failed to update End-of-day data for %s", ticker.TickerSymbol), "danger"})
 			logger.Warn().Err(err).
@@ -83,7 +83,7 @@ func viewDailyHandler() http.HandlerFunc {
 			*messages = append(*messages, Message{fmt.Sprintf("End-of-day data updated for %s", ticker.TickerSymbol), "success"})
 		}
 
-		daily, err := getDailyMostRecent(db, ticker.TickerId)
+		daily, err := getTickerDailyMostRecent(db, ticker.TickerId)
 		if err != nil {
 			*messages = append(*messages, Message{fmt.Sprintf("No End-of-day data found for %s", ticker.TickerSymbol), "warning"})
 			logger.Warn().Err(err).
@@ -91,13 +91,13 @@ func viewDailyHandler() http.HandlerFunc {
 				Int64("ticker_id", ticker.TickerId).
 				Msg("Failed to load most recent daily price for ticker")
 		}
-		lastDailyMove, err := getLastDailyMove(db, ticker.TickerId)
+		lastTickerDailyMove, err := getLastTickerDailyMove(db, ticker.TickerId)
 		if err != nil {
-			lastDailyMove = "unknown"
+			lastTickerDailyMove = "unknown"
 		}
 
 		// load up to last 100 days of EOD data
-		dailies, err := ticker.LoadDailies(db, timespan)
+		ticker_dailies, err := ticker.LoadTickerDailies(db, timespan)
 		if err != nil {
 			logger.Warn().Err(err).
 				Str("symbol", ticker.TickerSymbol).
@@ -119,8 +119,8 @@ func viewDailyHandler() http.HandlerFunc {
 			return
 		}
 
-		var lineChartHTML = chartHandlerDailyLine(ctx, ticker, exchange, dailies, webwatches)
-		var klineChartHTML = chartHandlerDailyKLine(ctx, ticker, exchange, dailies, webwatches)
+		var lineChartHTML = chartHandlerTickerDailyLine(ctx, ticker, exchange, ticker_dailies, webwatches)
+		var klineChartHTML = chartHandlerTickerDailyKLine(ctx, ticker, exchange, ticker_dailies, webwatches)
 
 		recents, err := addTickerToRecents(session, r, ticker.TickerSymbol, exchange.ExchangeAcronym)
 
@@ -128,9 +128,9 @@ func viewDailyHandler() http.HandlerFunc {
 		webdata["ticker"] = ticker
 		webdata["exchange"] = exchange
 		webdata["timespan"] = timespan
-		webdata["daily"] = daily
-		webdata["lastDailyMove"] = lastDailyMove
-		webdata["dailies"] = Dailies{dailies}
+		webdata["ticker_daily"] = daily
+		webdata["last_ticker_daily_move"] = lastTickerDailyMove
+		webdata["ticker_dailies"] = TickerDailies{ticker_dailies}
 		webdata["watches"] = webwatches
 		webdata["lineChart"] = lineChartHTML
 		webdata["klineChart"] = klineChartHTML
@@ -139,7 +139,7 @@ func viewDailyHandler() http.HandlerFunc {
 	})
 }
 
-func viewIntradayHandler() http.HandlerFunc {
+func viewTickerIntradayHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
@@ -185,9 +185,9 @@ func viewIntradayHandler() http.HandlerFunc {
 			return
 		}
 
-		updated, err := ticker.updateIntradays(ctx, intradate)
+		updated, err := ticker.updateTickerIntradays(ctx, intradate)
 		if err != nil {
-			*messages = append(*messages, Message{fmt.Sprintf("Failed to update intraday data for %s for %s", ticker.TickerSymbol, intradate), "danger"})
+			*messages = append(*messages, Message{fmt.Sprintf("Failed to update ticker intraday data for %s for %s", ticker.TickerSymbol, intradate), "danger"})
 			logger.Warn().Err(err).
 				Str("symbol", ticker.TickerSymbol).
 				Int64("tickerId", ticker.TickerId).
@@ -195,10 +195,10 @@ func viewIntradayHandler() http.HandlerFunc {
 				Msg("Failed to update intrday for ticker")
 		}
 		if updated {
-			*messages = append(*messages, Message{fmt.Sprintf("Intraday data updated for %s for %s", ticker.TickerSymbol, intradate), "success"})
+			*messages = append(*messages, Message{fmt.Sprintf("Ticker intraday data updated for %s for %s", ticker.TickerSymbol, intradate), "success"})
 		}
 
-		daily, err := getDailyMostRecent(db, ticker.TickerId)
+		daily, err := getTickerDailyMostRecent(db, ticker.TickerId)
 		if err != nil {
 			logger.Warn().Err(err).
 				Str("symbol", ticker.TickerSymbol).
@@ -207,15 +207,15 @@ func viewIntradayHandler() http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
-		lastDailyMove, err := getLastDailyMove(db, ticker.TickerId)
+		lastTickerDailyMove, err := getLastTickerDailyMove(db, ticker.TickerId)
 		if err != nil {
-			lastDailyMove = "unknown"
+			lastTickerDailyMove = "unknown"
 		}
 
-		// load up intradays for date selected
-		intradays, err := ticker.LoadIntraday(db, intradate)
+		// load up ticker intradays for date selected
+		ticker_intradays, err := ticker.LoadTickerIntraday(db, intradate)
 		if err != nil {
-			*messages = append(*messages, Message{fmt.Sprintf("No Intraday data found for %s", ticker.TickerSymbol), "warning"})
+			*messages = append(*messages, Message{fmt.Sprintf("No ticker intraday data found for %s", ticker.TickerSymbol), "warning"})
 			logger.Warn().Err(err).
 				Str("symbol", ticker.TickerSymbol).
 				Int64("tickerId", ticker.TickerId).
@@ -224,9 +224,9 @@ func viewIntradayHandler() http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
-		if len(intradays) < 20 {
-			*messages = append(*messages, Message{fmt.Sprintf("No Intraday data found for %s", ticker.TickerSymbol), "warning"})
-			intradays = []Intraday{}
+		if len(ticker_intradays) < 20 {
+			*messages = append(*messages, Message{fmt.Sprintf("No ticker intraday data found for %s", ticker.TickerSymbol), "warning"})
+			ticker_intradays = []TickerIntraday{}
 		}
 
 		// load any active watches about this ticker
@@ -240,7 +240,7 @@ func viewIntradayHandler() http.HandlerFunc {
 			return
 		}
 
-		var lineChartHTML = chartHandlerIntradayLine(ctx, ticker, exchange, intradays, webwatches, intradate)
+		var lineChartHTML = chartHandlerTickerIntradayLine(ctx, ticker, exchange, ticker_intradays, webwatches, intradate)
 
 		recents, err := addTickerToRecents(session, r, ticker.TickerSymbol, exchange.ExchangeAcronym)
 
@@ -251,12 +251,12 @@ func viewIntradayHandler() http.HandlerFunc {
 		webdata["recents"] = Recents{*recents}
 		webdata["ticker"] = ticker
 		webdata["exchange"] = exchange
-		webdata["daily"] = daily
-		webdata["lastDailyMove"] = lastDailyMove
+		webdata["ticker_daily"] = daily
+		webdata["last_ticker_daily_move"] = lastTickerDailyMove
 		webdata["intradate"] = intradate
 		webdata["priorBusinessDate"] = priorBusinessDay[0:10]
 		webdata["nextBusinessDate"] = nextBusinessDay[0:10]
-		webdata["intradays"] = Intradays{intradays}
+		webdata["ticker_intradays"] = TickerIntradays{ticker_intradays}
 		webdata["watches"] = webwatches
 		webdata["lineChart"] = lineChartHTML
 		renderTemplateDefault(w, r, "view-intraday")

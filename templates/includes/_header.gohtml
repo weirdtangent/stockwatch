@@ -31,9 +31,9 @@
 
             <div class="align-self-center">
               <form class="form-control bg-primary no-border" method="POST" action="/search/ticker">
-                <input class=" form-control-sm" name="searchString" type="search" size=30 placeholder="$Symbol or Company name" aria-label="Symbol Search">
-                <button class=" form-control-sm bg-light text-dark" type="submit" value="jump">Jump</button>
-                <button class=" form-control-sm bg-light text-dark" type="submit" value="search">Search</button>
+                <input class=" form-control-sm" name="searchString" type="search" autofocus size=30 placeholder="$Symbol or Company name" aria-label="Symbol Search"{{if .searchString}} value="{{.searchString}}"{{end}}>
+                <button class=" form-control-sm bg-light text-dark" type="submit" name="submit" value="jump">Jump</button>
+                <button class=" form-control-sm bg-light text-dark" type="submit" name="submit" value="search">Search</button>
               </form>
             </div>
             

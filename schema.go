@@ -14,40 +14,6 @@ type Country struct {
 	UpdateDatetime string `db:"update_datetime"`
 }
 
-type Daily struct {
-	DailyId        int64   `db:"daily_id"`
-	TickerId       int64   `db:"ticker_id"`
-	PriceDate      string  `db:"price_date"`
-	OpenPrice      float32 `db:"open_price"`
-	HighPrice      float32 `db:"high_price"`
-	LowPrice       float32 `db:"low_price"`
-	ClosePrice     float32 `db:"close_price"`
-	Volume         float32 `db:"volume"`
-	CreateDatetime string  `db:"create_datetime"`
-	UpdateDatetime string  `db:"update_datetime"`
-}
-
-type Exchange struct {
-	ExchangeId      int64  `db:"exchange_id"`
-	ExchangeAcronym string `db:"exchange_acronym"`
-	ExchangeMic     string `db:"exchange_mic"`
-	ExchangeName    string `db:"exchange_name"`
-	CountryId       int64  `db:"country_id"`
-	City            string `db:"city"`
-	CreateDatetime  string `db:"create_datetime"`
-	UpdateDatetime  string `db:"update_datetime"`
-}
-
-type Intraday struct {
-	IntradayId     int64   `db:"intraday_id"`
-	TickerId       int64   `db:"ticker_id"`
-	PriceDate      string  `db:"price_date"`
-	LastPrice      float32 `db:"last_price"`
-	Volume         float32 `db:"volume"`
-	CreateDatetime string  `db:"create_datetime"`
-	UpdateDatetime string  `db:"update_datetime"`
-}
-
 type Source struct {
 	SourceId       int64  `db:"source_id"`
 	SourceCompany  string `db:"source_company"`

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 )
@@ -17,8 +19,18 @@ func getCountryById(db *sqlx.DB, countryId int64) (*Country, error) {
 	return &country, err
 }
 
+func getCountryByName(db *sqlx.DB, countryName string) (*Country, error) {
+	var country Country
+	err := db.QueryRowx("SELECT * FROM country WHERE country_name=?", countryName).StructScan(&country)
+	return &country, err
+}
+
 func createCountry(db *sqlx.DB, country *Country) (*Country, error) {
 	var insert = "INSERT INTO country SET country_code=?, country_name=?"
+
+	if country.CountryCode == "" {
+		return country, fmt.Errorf("Skipping record with blank country code")
+	}
 
 	res, err := db.Exec(insert, country.CountryCode, country.CountryName)
 	if err != nil {
@@ -45,6 +57,10 @@ func getOrCreateCountry(db *sqlx.DB, country *Country) (*Country, error) {
 
 func createOrUpdateCountry(db *sqlx.DB, country *Country) (*Country, error) {
 	var update = "UPDATE country SET country_code=?, country_name=? WHERE country_id=?"
+
+	if country.CountryCode == "" {
+		return country, fmt.Errorf("Skipping record with blank country code")
+	}
 
 	existing, err := getCountry(db, country.CountryCode)
 	if err != nil {

@@ -3,10 +3,10 @@
                 <div class="d-flex">
                   <div>
                     <p class="text-truncate">
-                      <span class="h5 text-light">Symbol:</span>
+                      <span class="h5 text-info">Symbol:</span>
                       <a class="h3 text-white link-white text-decoration-none" href="/view/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeAcronym}}">{{.ticker.TickerSymbol}}</a>
                       <span class="h5 text-light pe-3 text-lowercase">/{{.exchange.ExchangeAcronym}}</span>
-                      <span class="h5 text-light">Name:</span>
+                      <span class="h5 text-info">Name:</span>
                       <span class="h3 text-white">{{.ticker.TickerName}}</span>
                     </p>
                     <h6 class="small ps-1 text-info">Share price: <span class="text-light">{{ template "_share_price" . }}</span></h6>

@@ -32,7 +32,7 @@ func (t Ticker) EarliestEOD(db *sqlx.DB) (string, float32, error) {
 		price float32
 	}
 	var earliest Earliest
-	err := db.QueryRowx("SELECT price_date, close_price FROM daily WHERE ticker_id=? ORDER BY price_date LIMIT 1", t.TickerId).StructScan(&earliest)
+	err := db.QueryRowx("SELECT price_date, close_price FROM ticker_daily WHERE ticker_id=? ORDER BY price_date LIMIT 1", t.TickerId).StructScan(&earliest)
 	return earliest.date, earliest.price, err
 }
 
@@ -64,13 +64,13 @@ func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) {
 	}
 }
 
-func (t Ticker) LoadDailies(db *sqlx.DB, days int) ([]Daily, error) {
-	var daily Daily
-	dailies := make([]Daily, 0, days)
+func (t Ticker) LoadTickerDailies(db *sqlx.DB, days int) ([]TickerDaily, error) {
+	var ticker_daily TickerDaily
+	dailies := make([]TickerDaily, 0, days)
 
 	rows, err := db.Queryx(
 		`SELECT * FROM (
-       SELECT * FROM daily WHERE ticker_id=? AND volume > 0
+       SELECT * FROM ticker_daily WHERE ticker_id=? AND volume > 0
 		   ORDER BY price_date DESC LIMIT ?) DT1
 		 ORDER BY price_date`,
 		t.TickerId, days)
@@ -80,13 +80,13 @@ func (t Ticker) LoadDailies(db *sqlx.DB, days int) ([]Daily, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		err = rows.StructScan(&daily)
+		err = rows.StructScan(&ticker_daily)
 		if err != nil {
 			log.Warn().Err(err).
-				Str("table_name", "daily").
+				Str("table_name", "ticker_daily").
 				Msg("Error reading result rows")
 		} else {
-			dailies = append(dailies, daily)
+			dailies = append(dailies, ticker_daily)
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -96,9 +96,9 @@ func (t Ticker) LoadDailies(db *sqlx.DB, days int) ([]Daily, error) {
 	return dailies, nil
 }
 
-func (t Ticker) LoadIntraday(db *sqlx.DB, intradate string) ([]Intraday, error) {
-	var intraday Intraday
-	intradays := make([]Intraday, 0)
+func (t Ticker) LoadTickerIntraday(db *sqlx.DB, intradate string) ([]TickerIntraday, error) {
+	var intraday TickerIntraday
+	intradays := make([]TickerIntraday, 0)
 
 	rows, err := db.Queryx(
 		`SELECT * FROM intraday                                                                                                                                                  
@@ -115,9 +115,9 @@ func (t Ticker) LoadIntraday(db *sqlx.DB, intradate string) ([]Intraday, error) 
 	if err != nil {
 		return intradays, fmt.Errorf("Failed to get prior business day date")
 	}
-	preDaily, err := getDaily(db, t.TickerId, priorBusinessDay)
+	preTickerDaily, err := getTickerDaily(db, t.TickerId, priorBusinessDay)
 	if err == nil {
-		intradays = append(intradays, Intraday{0, t.TickerId, priorBusinessDay, preDaily.ClosePrice, 0, "", ""})
+		intradays = append(intradays, TickerIntraday{0, t.TickerId, priorBusinessDay, preTickerDaily.ClosePrice, 0, "", ""})
 	} else {
 		log.Info().Msg("PriorBusinessDay close price was NOT included")
 	}
@@ -142,9 +142,9 @@ func (t Ticker) LoadIntraday(db *sqlx.DB, intradate string) ([]Intraday, error) 
 	if err != nil {
 		return intradays, fmt.Errorf("Failed to get next business day date")
 	}
-	postDaily, err := getDaily(db, t.TickerId, nextBusinessDay)
+	postTickerDaily, err := getTickerDaily(db, t.TickerId, nextBusinessDay)
 	if err == nil {
-		intradays = append(intradays, Intraday{0, t.TickerId, nextBusinessDay, postDaily.OpenPrice, 0, "", ""})
+		intradays = append(intradays, TickerIntraday{0, t.TickerId, nextBusinessDay, postTickerDaily.OpenPrice, 0, "", ""})
 	} else {
 		log.Info().Msg("NextBusinessDay open price was NOT included")
 	}
@@ -152,29 +152,34 @@ func (t Ticker) LoadIntraday(db *sqlx.DB, intradate string) ([]Intraday, error) 
 	return intradays, nil
 }
 
-// see if we need to pull a daily update:
+// see if we need to pull a ticker daily update:
 //  if we don't have the EOD price for the prior business day
 //  OR if we don't have it for the current business day and it's now 7pm or later
-func (t Ticker) updateDailies(ctx context.Context) (bool, error) {
+func (t Ticker) updateTickerDailies(ctx context.Context) (bool, error) {
 	logger := log.Ctx(ctx)
 	awssess := ctx.Value("awssess").(*session.Session)
 	db := ctx.Value("db").(*sqlx.DB)
 
-	mostRecentDaily, err := getDailyMostRecent(db, t.TickerId)
+	mostRecentTickerDaily, err := getTickerDailyMostRecent(db, t.TickerId)
 	if err != nil {
 		return false, err
 	}
-	mostRecentDailyDate := mostRecentDaily.PriceDate
+	mostRecentTickerDailyDate := mostRecentTickerDaily.PriceDate
 	mostRecentAvailable := mostRecentPricesAvailable()
 
 	logger.Info().
 		Str("symbol", t.TickerSymbol).
-		Str("mostRecentDailyDate", mostRecentDailyDate).
-		Str("mostRecentAvailable", mostRecentAvailable).
+		Str("most_recent_daily_date", mostRecentTickerDailyDate).
+		Str("most_recent_available", mostRecentAvailable).
 		Msg("check if new EOD available for ticker")
 
-	if mostRecentDailyDate < mostRecentAvailable {
-		_, err = updateMarketstackTicker(awssess, db, t.TickerSymbol)
+	exchange, err := getExchangeById(db, t.ExchangeId)
+	if err != nil {
+		return false, err
+	}
+
+	if mostRecentTickerDailyDate < mostRecentAvailable {
+		_, err = fetchTicker(awssess, db, t.TickerSymbol, exchange.ExchangeMic)
 		if err != nil {
 			return false, err
 		}
@@ -191,16 +196,16 @@ func (t Ticker) updateDailies(ctx context.Context) (bool, error) {
 // see if we need to pull intradays for the selected date:
 //  if we don't have the intraday prices for the selected date
 //  AND it was a prior business day or today and it's now 7pm or later
-func (t Ticker) updateIntradays(ctx context.Context, intradate string) (bool, error) {
+func (t Ticker) updateTickerIntradays(ctx context.Context, intradate string) (bool, error) {
 	logger := log.Ctx(ctx)
 	awssess := ctx.Value("awssess").(*session.Session)
 	db := ctx.Value("db").(*sqlx.DB)
 
-	haveIntradayData, err := gotIntradayData(db, t.TickerId, intradate)
+	haveTickerIntradayData, err := gotTickerIntradayData(db, t.TickerId, intradate)
 	if err != nil {
 		return false, err
 	}
-	if haveIntradayData {
+	if haveTickerIntradayData {
 		return false, nil
 	}
 
@@ -219,7 +224,7 @@ func (t Ticker) updateIntradays(ctx context.Context, intradate string) (bool, er
 		Msg("check if intraday data available for ticker")
 
 	if intradate <= mostRecentAvailable {
-		err = updateMarketstackIntraday(awssess, db, t, exchange, intradate)
+		err = fetchTickerIntraday(awssess, db, t, exchange, intradate)
 		if err != nil {
 			return false, err
 		}

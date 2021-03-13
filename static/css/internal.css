@@ -7,6 +7,10 @@ body {
   background-color: #375a7f;
 }
 
+div.logo {
+  padding: 3px;
+}
+
 .myyellow {
   color: #F5E239
 }
@@ -36,6 +40,10 @@ body.desktop .main-content,
 body.terms .main-content,
 body.privacy .main-content {
   background: url("/static/images/front-page.jpg") no-repeat top/cover scroll;
+}
+
+.sm {
+  font-size: .75em;
 }
 
 .doubleChart > div:first-of-type {

@@ -10,16 +10,24 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type SearchResult struct {
+	TickerSymbol    string
+	ExchangeAcronym string
+	ExchangeCountry string
+	TickerName      string
+}
+
 func searchHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
 		awssess := ctx.Value("awssess").(*session.Session)
 		db := ctx.Value("db").(*sqlx.DB)
+		webdata := ctx.Value("webdata").(map[string]interface{})
+		messages := ctx.Value("messages").(*[]Message)
 
 		params := mux.Vars(r)
 		searchType := params["type"]
-		var messages = make([]Message, 0)
 
 		if ok := checkAuthState(w, r); ok == false {
 			encoded, err := encryptURL(awssess, ([]byte(r.URL.String())))
@@ -34,40 +42,67 @@ func searchHandler() http.HandlerFunc {
 		switch searchType {
 		case "ticker":
 			searchString := r.FormValue("searchString")
-			if searchString == "" {
-				messages = append(messages, Message{fmt.Sprintf("Search text not entered"), "warning"})
+			searchType := r.FormValue("submit")
+			if searchString == "" || searchType == "" {
+				*messages = append(*messages, Message{fmt.Sprintf("Search text not entered or invalid search function"), "warning"})
 				break
 			}
+			webdata["searchString"] = searchString
 
 			logger.Info().
+				Str("search_provider", "marketstack").
 				Str("search_type", searchType).
 				Str("search_string", searchString).
 				Msg("Search performed")
 
-			ticker, err := searchMarketstackTicker(awssess, db, searchString)
-			if err != nil {
-				messages = append(messages, Message{fmt.Sprintf("Sorry, error returned for that search"), "danger"})
+			if searchType == "jump" {
+				searchResult, err := jumpsearchMarketstackTicker(awssess, db, searchString)
+				if err != nil {
+					*messages = append(*messages, Message{fmt.Sprintf("Sorry, error returned for that search"), "danger"})
+					break
+				}
+				if searchResult.TickerSymbol == "" {
+					*messages = append(*messages, Message{fmt.Sprintf("Sorry, nothing found for '%s'", searchString), "warning"})
+					break
+				}
+				log.Info().
+					Str("search_provider", "marketstack").
+					Str("search_type", searchType).
+					Str("search_string", searchString).
+					Str("symbol", searchResult.TickerSymbol).
+					Msg("Search results")
+				http.Redirect(w, r, fmt.Sprintf("/view/%s/%s", searchResult.TickerSymbol, searchResult.ExchangeAcronym), http.StatusFound)
+				return
+			} else if searchType == "search" {
+				searchResults, err := listsearchMarketstackTicker(awssess, db, searchString)
+				if err != nil {
+					*messages = append(*messages, Message{fmt.Sprintf("Sorry, error returned for that search"), "danger"})
+					break
+				}
+				if len(searchResults) == 0 {
+					*messages = append(*messages, Message{fmt.Sprintf("Sorry, nothing found for '%s'", searchString), "warning"})
+					break
+				}
+				log.Info().
+					Str("search_provider", "marketstack").
+					Str("search_type", searchType).
+					Str("search_string", searchString).
+					Int("results_count", len(searchResults)).
+					Msg("Search results")
+				webdata["results"] = searchResults
 				break
-			}
-			if ticker == nil {
-				messages = append(messages, Message{fmt.Sprintf("Sorry, nothing found for '%s'", searchString), "warning"})
+			} else {
+				*messages = append(*messages, Message{fmt.Sprintf("Sorry, search type is unknown"), "warning"})
 				break
 			}
 
-			exchange, err := getExchangeById(db, ticker.ExchangeId)
-			if err != nil {
-				logger.Error().Msgf("An error occurred trying to get the exchange for symbol: %s", ticker.TickerSymbol)
-				return
-			}
-			http.Redirect(w, r, fmt.Sprintf("/view/%s/%s", ticker.TickerSymbol, exchange.ExchangeAcronym), http.StatusFound)
-			return
 		default:
 			logger.Warn().
 				Str("search_type", searchType).
 				Msg("Unknown search_type")
-			messages = append(messages, Message{fmt.Sprintf("Sorry, invalid search request"), "danger"})
+			*messages = append(*messages, Message{fmt.Sprintf("Sorry, invalid search request"), "danger"})
 		}
 
-		renderTemplateDefault(w, r, "home")
+		renderTemplateDefault(w, r, "searchresults")
 	})
 }
