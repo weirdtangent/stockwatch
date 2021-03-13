@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 	"github.com/weirdtangent/mytime"
@@ -116,7 +115,6 @@ func (mi MarketIndex) LoadMarketIndexIntraday(db *sqlx.DB, intradate string) ([]
 //  OR if we don't have it for the current business day and it's now 7pm or later
 func (mi MarketIndex) updateMarketIndexDailies(ctx context.Context) (bool, error) {
 	logger := log.Ctx(ctx)
-	awssess := ctx.Value("awssess").(*session.Session)
 	db := ctx.Value("db").(*sqlx.DB)
 
 	mostRecentMarketIndexDaily, err := getMarketIndexDailyMostRecent(db, mi.MarketIndexId)
@@ -133,7 +131,7 @@ func (mi MarketIndex) updateMarketIndexDailies(ctx context.Context) (bool, error
 		Msg("check if new EOD available for marketindex")
 
 	if mostRecentMarketIndexDailyDate < mostRecentAvailable {
-		_, err = fetchMarketIndexes(awssess, db)
+		_, err = fetchMarketIndexes(ctx)
 		if err != nil {
 			return false, err
 		}
@@ -152,7 +150,6 @@ func (mi MarketIndex) updateMarketIndexDailies(ctx context.Context) (bool, error
 //  AND it was a prior business day or today and it's now 7pm or later
 func (mi MarketIndex) updateMarketIndexIntradays(ctx context.Context, intradate string) (bool, error) {
 	logger := log.Ctx(ctx)
-	awssess := ctx.Value("awssess").(*session.Session)
 	db := ctx.Value("db").(*sqlx.DB)
 
 	if mi.HasIntraday == false {
@@ -179,7 +176,7 @@ func (mi MarketIndex) updateMarketIndexIntradays(ctx context.Context, intradate 
 		Msg("check if intraday data available for marketindex")
 
 	if intradate <= mostRecentAvailable {
-		err = fetchMarketIndexIntraday(awssess, db, mi, intradate)
+		err = fetchMarketIndexIntraday(ctx, mi, intradate)
 		if err != nil {
 			return false, err
 		}

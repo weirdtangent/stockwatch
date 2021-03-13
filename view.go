@@ -61,7 +61,7 @@ func viewTickerDailyHandler() http.HandlerFunc {
 		// find ticker specifically at that exchange (since there are overlaps)
 		ticker, err := getTicker(db, symbol, exchange.ExchangeId)
 		if err != nil {
-			ticker, err = fetchTicker(awssess, db, symbol, exchange.ExchangeMic)
+			ticker, err = fetchTicker(ctx, symbol, exchange.ExchangeMic)
 			if err != nil {
 				logger.Warn().Err(err).
 					Str("symbol", symbol).

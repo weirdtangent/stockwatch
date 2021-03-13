@@ -6,7 +6,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gorilla/mux"
-	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 )
 
@@ -22,7 +21,6 @@ func searchHandler() http.HandlerFunc {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
 		awssess := ctx.Value("awssess").(*session.Session)
-		db := ctx.Value("db").(*sqlx.DB)
 		webdata := ctx.Value("webdata").(map[string]interface{})
 		messages := ctx.Value("messages").(*[]Message)
 
@@ -56,7 +54,7 @@ func searchHandler() http.HandlerFunc {
 				Msg("Search performed")
 
 			if searchType == "jump" {
-				searchResult, err := jumpsearchMarketstackTicker(awssess, db, searchString)
+				searchResult, err := jumpsearchMarketstackTicker(ctx, searchString)
 				if err != nil {
 					*messages = append(*messages, Message{fmt.Sprintf("Sorry, error returned for that search"), "danger"})
 					break
@@ -74,7 +72,7 @@ func searchHandler() http.HandlerFunc {
 				http.Redirect(w, r, fmt.Sprintf("/view/%s/%s", searchResult.TickerSymbol, searchResult.ExchangeAcronym), http.StatusFound)
 				return
 			} else if searchType == "search" {
-				searchResults, err := listsearchMarketstackTicker(awssess, db, searchString)
+				searchResults, err := listsearchMarketstackTicker(ctx, searchString)
 				if err != nil {
 					*messages = append(*messages, Message{fmt.Sprintf("Sorry, error returned for that search"), "danger"})
 					break
