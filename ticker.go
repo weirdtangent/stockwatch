@@ -23,7 +23,8 @@ type Ticker struct {
 type TickersEODTask struct {
 	TaskAction string `json:"action"`
 	TickerId   int64  `json:"ticker_id"`
-	DaysBack   int32  `json:"days_back"`
+	DaysBack   int    `json:"days_back"`
+	Offset     int    `json:"offset"`
 }
 
 func (t Ticker) EarliestEOD(db *sqlx.DB) (string, float32, error) {
@@ -36,24 +37,26 @@ func (t Ticker) EarliestEOD(db *sqlx.DB) (string, float32, error) {
 	return earliest.date, earliest.price, err
 }
 
-func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) {
+func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) bool {
 	earliest, _, err := t.EarliestEOD(db)
 
 	if len(earliest) > 0 {
 		if days, err := mytime.DaysAgo(earliest); err != nil || days > 900 {
-			return
+			return false
 		}
 	}
 
 	taskAction := "eod"
-	taskVars := TickersEODTask{taskAction, t.TickerId, 1000}
+
+	// submit task for 1000 EODs
+	taskVars := TickersEODTask{taskAction, t.TickerId, 1000, 0}
 	taskJSON, err := json.Marshal(taskVars)
 	log.Info().Msg(string(taskJSON))
 	if err != nil {
 		log.Error().Err(err).
 			Int64("ticker_id", t.TickerId).
 			Msg("Failed to create task JSON for EOD update for ticker")
-		return
+		return false
 	}
 
 	_, err = sendNotification(awssess, "tickers", taskAction, string(taskJSON))
@@ -62,18 +65,38 @@ func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) {
 			Int64("ticker_id", t.TickerId).
 			Msg("Sent task notification for EOD update for ticker")
 	}
+
+	// submit task for 1000 more EODs
+	taskVars = TickersEODTask{taskAction, t.TickerId, 1000, 1000}
+	taskJSON, err = json.Marshal(taskVars)
+	log.Info().Msg(string(taskJSON))
+	if err != nil {
+		log.Error().Err(err).
+			Int64("ticker_id", t.TickerId).
+			Msg("Failed to create task JSON for EOD update for ticker")
+		return true
+	}
+
+	_, err = sendNotification(awssess, "tickers", taskAction, string(taskJSON))
+	if err == nil {
+		log.Info().
+			Int64("ticker_id", t.TickerId).
+			Msg("Sent task notification for EOD update for ticker")
+	}
+	return true
 }
 
 func (t Ticker) LoadTickerDailies(db *sqlx.DB, days int) ([]TickerDaily, error) {
 	var ticker_daily TickerDaily
+	fromDate := mytime.DateStr(days * -1)
 	dailies := make([]TickerDaily, 0, days)
 
 	rows, err := db.Queryx(
 		`SELECT * FROM (
-       SELECT * FROM ticker_daily WHERE ticker_id=? AND volume > 0
-		   ORDER BY price_date DESC LIMIT ?) DT1
+       SELECT * FROM ticker_daily WHERE ticker_id=? AND volume > 0 AND price_date > ?
+		   ORDER BY price_date DESC) DT1
 		 ORDER BY price_date`,
-		t.TickerId, days)
+		t.TickerId, fromDate)
 	if err != nil {
 		return dailies, err
 	}

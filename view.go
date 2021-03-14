@@ -41,7 +41,7 @@ func viewTickerDailyHandler() http.HandlerFunc {
 		timespan := 90
 		if tsParam := r.FormValue("ts"); tsParam != "" {
 			if tsValue, err := strconv.ParseInt(tsParam, 10, 32); err == nil {
-				timespan = int(mymath.MinMax(tsValue, 15, 180))
+				timespan = int(mymath.MinMax(tsValue, 15, 360))
 			} else if err != nil {
 				logger.Error().Err(err).Str("ts", tsParam).Msg("Failed to interpret timespan (ts) param")
 			}

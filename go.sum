@@ -182,12 +182,16 @@ github.com/weirdtangent/marketstack v0.1.0 h1:gJxHu7Bj6Ps8O/AwEeqyfjdjGu1ru5Okhf
 github.com/weirdtangent/marketstack v0.1.0/go.mod h1:qCd/JgUKu/CWFLdYykphx1fj12mDPgiVT5pt/6ArJS4=
 github.com/weirdtangent/marketstack v0.1.2 h1:UdNoxtjzT4vs9lfhdAhJGTNL7kgkLrAE/QT5vGghejg=
 github.com/weirdtangent/marketstack v0.1.2/go.mod h1:qCd/JgUKu/CWFLdYykphx1fj12mDPgiVT5pt/6ArJS4=
+github.com/weirdtangent/marketstack v0.1.3 h1:7n2HF7KypNmiG++nUkNYulmhbmfWQpz0tVhnkNRAJNs=
+github.com/weirdtangent/marketstack v0.1.3/go.mod h1:qCd/JgUKu/CWFLdYykphx1fj12mDPgiVT5pt/6ArJS4=
 github.com/weirdtangent/myaws v0.1.0 h1:nQ6vIcJ+mCKQDFgAGQA4Vedy1lasWPPG+hT6UHG1HlY=
 github.com/weirdtangent/myaws v0.1.0/go.mod h1:I5SCso9BTs+3OajodyYkwGOMbYH20Wn2MTgNi2qgdPI=
 github.com/weirdtangent/mymath v0.1.0 h1:oFYr1tzTbEbueqx/AWVFziDhueRbqZbmTR5v7HxY5xc=
 github.com/weirdtangent/mymath v0.1.0/go.mod h1:wkMYAvjtjbEuuvX/fes61TQYmYpFcyqebwfF9blhqgo=
 github.com/weirdtangent/mytime v0.1.0 h1:Pa1zO29kZlGXRCMv2fJ8+n8bYHjpf4RcyVUYNb5BJvI=
 github.com/weirdtangent/mytime v0.1.0/go.mod h1:UqDaTF+gcU1lEZ3GQZaS0sGjmYuYiGwcVVoaNXd9V0w=
+github.com/weirdtangent/mytime v0.1.1 h1:QOHeGWqDx+3795L2iTlIO0maAi35Jg9rkp50Cqt9dLU=
+github.com/weirdtangent/mytime v0.1.1/go.mod h1:UqDaTF+gcU1lEZ3GQZaS0sGjmYuYiGwcVVoaNXd9V0w=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

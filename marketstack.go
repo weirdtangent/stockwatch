@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/jmoiron/sqlx"
@@ -130,8 +131,9 @@ func fetchTicker(ctx context.Context, symbol string, exchangeMic string) (*Ticke
 	db := ctx.Value("db").(*sqlx.DB)
 	api_access_key := ctx.Value("marketstack_key").(string)
 	awssess := ctx.Value("awssess").(*session.Session)
+	messages := ctx.Value("messages").(*[]Message)
 
-	EOD, err := marketstack.FetchTickerEOD(api_access_key, symbol, exchangeMic)
+	EOD, err := marketstack.FetchTickerEOD(api_access_key, symbol, exchangeMic, 31, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +194,10 @@ func fetchTicker(ctx context.Context, symbol string, exchangeMic string) (*Ticke
 			Msg("Failed to create/update 1 or more EOD for ticker")
 	}
 
-	ticker.ScheduleEODUpdate(awssess, db)
+	scheduled := ticker.ScheduleEODUpdate(awssess, db)
+	if scheduled {
+		*messages = append(*messages, Message{fmt.Sprintf("Scheduled task to load historical EOD prices for %s", ticker.TickerSymbol), "success"})
+	}
 
 	return ticker, nil
 }

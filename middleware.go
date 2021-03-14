@@ -98,11 +98,11 @@ func (ah *AddHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	resHeader := w.Header()
 	csp := []string{
 		"default-src 'self'",
-		"connect-src 'self' accounts.google.com",
+		"connect-src 'self' accounts.google.com *.fontawesome.com",
 		"style-src 'self' fonts.googleapis.com accounts.google.com 'unsafe-inline'",
-		"script-src 'self' apis.google.com accounts.google.com 'nonce-" + nonce + "'",
+		"script-src 'self' apis.google.com accounts.google.com kit.fontawesome.com 'nonce-" + nonce + "'",
 		"img-src 'self' data: *.googleusercontent.com",
-		"font-src 'self' fonts.gstatic.com",
+		"font-src 'self' fonts.gstatic.com *.fontawesome.com",
 		"frame-src 'self' accounts.google.com",
 		"report-uri /internal/cspviolations",
 		"report-to default",

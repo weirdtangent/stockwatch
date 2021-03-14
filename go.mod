@@ -12,10 +12,10 @@ require (
 	github.com/jmoiron/sqlx v1.3.1
 	github.com/rs/zerolog v1.20.0
 	github.com/savaki/dynastore v0.0.0-20171109173440-28d8558bb429
-	github.com/weirdtangent/marketstack v0.1.2
+	github.com/weirdtangent/marketstack v0.1.3
 	github.com/weirdtangent/myaws v0.1.0
 	github.com/weirdtangent/mymath v0.1.0
-	github.com/weirdtangent/mytime v0.1.0
+	github.com/weirdtangent/mytime v0.1.1
 	golang.org/x/oauth2 v0.0.0-20210313182246-cd4f82c27b84
 	golang.org/x/sys v0.0.0-20210313202042-bd2e13477e9c // indirect
 	google.golang.org/api v0.41.0

@@ -15,7 +15,7 @@
                     <label class="form-label text-light" for="Shares">Quantity</label>
                   </div>
                   <div class="col">
-                    <input type="number" class="form-control form-control-sm text-dark" id="SharePrice" name="SharePrice" min=0 max=999999 step=0.000001 value="{{ printf "%.2f" .daily.ClosePrice }}">
+                    <input type="number" class="form-control form-control-sm text-dark" id="SharePrice" name="SharePrice" min=0 max=999999 step=0.000001 value="{{printf "%.2f" .ticker_daily.ClosePrice}}">
                     <label class="form-label text-light" for="SharePrice">Share Price</label>
                   </div>
                   <div class="col">
