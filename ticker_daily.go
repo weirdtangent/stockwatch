@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"sort"
 
 	"github.com/jmoiron/sqlx"
@@ -46,6 +48,36 @@ func (td TickerDailies) Count() int {
 	return len(td.Days)
 }
 
+func (td *TickerDaily) getByDate(ctx context.Context) error {
+	db := ctx.Value("db").(*sqlx.DB)
+
+	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? AND price_date=?`, td.TickerId, td.PriceDate).StructScan(&td)
+	return err
+}
+
+func (td *TickerDaily) createIfNew(ctx context.Context) error {
+	db := ctx.Value("db").(*sqlx.DB)
+	logger := log.Ctx(ctx)
+
+	if td.Volume == 0 {
+		return fmt.Errorf("Refusing to add ticker daily with 0 volume")
+	}
+
+	err := td.getByDate(ctx)
+	if err == nil {
+		return nil
+	}
+
+	var insert = "INSERT INTO ticker_daily SET ticker_id=?, price_date=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=?"
+	_, err = db.Exec(insert, td.TickerId, td.PriceDate, td.OpenPrice, td.HighPrice, td.LowPrice, td.ClosePrice, td.Volume)
+	if err != nil {
+		logger.Fatal().Err(err).
+			Str("table_name", "ticker_daily").
+			Msg("Failed on INSERT")
+	}
+	return err
+}
+
 func getTickerDaily(db *sqlx.DB, ticker_id int64, daily_date string) (*TickerDaily, error) {
 	var tickerdaily TickerDaily
 	if len(daily_date) > 10 {
@@ -80,47 +112,4 @@ func getLastTickerDailyMove(db *sqlx.DB, ticker_id int64) (string, error) {
 		ticker_id, ticker_id)
 	err := row.Scan(&lastTickerDailyMove)
 	return lastTickerDailyMove, err
-}
-
-func createTickerDaily(db *sqlx.DB, tickerdaily *TickerDaily) (*TickerDaily, error) {
-	var insert = "INSERT INTO ticker_daily SET ticker_id=?, price_date=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=?"
-
-	res, err := db.Exec(insert, tickerdaily.TickerId, tickerdaily.PriceDate, tickerdaily.OpenPrice, tickerdaily.HighPrice, tickerdaily.LowPrice, tickerdaily.ClosePrice, tickerdaily.Volume)
-	if err != nil {
-		log.Fatal().Err(err).
-			Str("table_name", "ticker_daily").
-			Msg("Failed on INSERT")
-	}
-	ticker_daily_id, err := res.LastInsertId()
-	if err != nil {
-		log.Fatal().Err(err).
-			Str("table_name", "ticker_daily").
-			Msg("Failed on LAST_INSERT_ID")
-	}
-	return getTickerDailyById(db, ticker_daily_id)
-}
-
-func getOrCreateTickerDaily(db *sqlx.DB, tickerdaily *TickerDaily) (*TickerDaily, error) {
-	existing, err := getTickerDaily(db, tickerdaily.TickerId, tickerdaily.PriceDate)
-	if err != nil && existing.TickerDailyId == 0 {
-		return createTickerDaily(db, tickerdaily)
-	}
-	return existing, err
-}
-
-func createOrUpdateTickerDaily(db *sqlx.DB, tickerdaily *TickerDaily) (*TickerDaily, error) {
-	var update = "UPDATE ticker_daily SET open_price=?, high_price=?, low_price=?, close_price=?, volume=? WHERE ticker_id=? AND price_date=?"
-
-	existing, err := getTickerDaily(db, tickerdaily.TickerId, tickerdaily.PriceDate)
-	if err != nil {
-		return createTickerDaily(db, tickerdaily)
-	}
-
-	_, err = db.Exec(update, tickerdaily.OpenPrice, tickerdaily.HighPrice, tickerdaily.LowPrice, tickerdaily.ClosePrice, tickerdaily.Volume, existing.TickerId, existing.PriceDate)
-	if err != nil {
-		log.Warn().Err(err).
-			Str("table_name", "ticker_daily").
-			Msg("Failed on UPDATE")
-	}
-	return getTickerDailyById(db, existing.TickerDailyId)
 }

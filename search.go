@@ -9,11 +9,27 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type SearchResult struct {
+type SearchResultNews struct {
+	Publisher   string
+	Title       string
+	Type        string
+	URL         string
+	PublishDate string
+}
+
+type SearchResultTicker struct {
 	TickerSymbol    string
 	ExchangeAcronym string
-	ExchangeCountry string
-	TickerName      string
+	ShortName       string
+	LongName        string
+	Type            string
+	SearchScore     int64
+}
+
+type SearchResult struct {
+	ResultType string
+	News       SearchResultNews
+	Ticker     SearchResultTicker
 }
 
 func searchHandler() http.HandlerFunc {
@@ -48,31 +64,31 @@ func searchHandler() http.HandlerFunc {
 			webdata["searchString"] = searchString
 
 			logger.Info().
-				Str("search_provider", "marketstack").
+				Str("search_provider", "yahoofinance").
 				Str("search_type", searchType).
 				Str("search_string", searchString).
 				Msg("Search performed")
 
 			if searchType == "jump" {
-				searchResult, err := jumpsearchMarketstackTicker(ctx, searchString)
+				searchResult, err := jumpSearch(ctx, searchString)
 				if err != nil {
 					*messages = append(*messages, Message{fmt.Sprintf("Sorry, error returned for that search"), "danger"})
 					break
 				}
-				if searchResult.TickerSymbol == "" {
+				if searchResult.Ticker.TickerSymbol == "" {
 					*messages = append(*messages, Message{fmt.Sprintf("Sorry, nothing found for '%s'", searchString), "warning"})
 					break
 				}
 				log.Info().
-					Str("search_provider", "marketstack").
+					Str("search_provider", "yahoofinance").
 					Str("search_type", searchType).
 					Str("search_string", searchString).
-					Str("symbol", searchResult.TickerSymbol).
+					Str("symbol", searchResult.Ticker.TickerSymbol).
 					Msg("Search results")
-				http.Redirect(w, r, fmt.Sprintf("/view/%s/%s", searchResult.TickerSymbol, searchResult.ExchangeAcronym), http.StatusFound)
+				http.Redirect(w, r, fmt.Sprintf("/view/%s/%s", searchResult.Ticker.TickerSymbol, searchResult.Ticker.ExchangeAcronym), http.StatusFound)
 				return
 			} else if searchType == "search" {
-				searchResults, err := listsearchMarketstackTicker(ctx, searchString)
+				searchResults, err := listSearch(ctx, searchString, "both")
 				if err != nil {
 					*messages = append(*messages, Message{fmt.Sprintf("Sorry, error returned for that search"), "danger"})
 					break
@@ -82,7 +98,7 @@ func searchHandler() http.HandlerFunc {
 					break
 				}
 				log.Info().
-					Str("search_provider", "marketstack").
+					Str("search_provider", "yahoofinance").
 					Str("search_type", searchType).
 					Str("search_string", searchString).
 					Int("results_count", len(searchResults)).

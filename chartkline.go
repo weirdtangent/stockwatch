@@ -29,7 +29,7 @@ func chartHandlerTickerDailyKLine(ctx context.Context, ticker *Ticker, exchange 
 	candleData := make([]opts.KlineData, 0, days)
 	volumeData := make([]opts.BarData, 0, days)
 	for x := range dailies {
-		displayDate := dailies[x].PriceDate[5:10]
+		displayDate := dailies[x].PriceDate
 		x_axis = append(x_axis, displayDate)
 		hidden_axis = append(hidden_axis, "")
 

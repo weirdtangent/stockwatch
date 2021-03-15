@@ -15,14 +15,29 @@
                 <h4 class="bg-success text-dark p-2">Search Results: {{ len .results}}</h4>
                 <table class="table table-dark table-striped table-sm">
                   <tr>
-                    <th scope="col" class="text-info">Symbol/Exchange <span class="sm">(Exchange Country)</span></th>
-                    <th scope="col" class="text-info">Name</th>
+                    <th scope="col" class="text-info">Symbol/Exchange<span class="sm">(Type)</span></th>
+                    <th scope="col" class="text-info">Asset Name / Company Name</th>
                   </tr>
                 {{range .results}}
+                  {{if eq .ResultType "ticker"}}
                   <tr>
-                    <td class=""><a class="text-white table-white" href="/view/{{.TickerSymbol}}/{{.ExchangeAcronym}}">{{.TickerSymbol}}/{{.ExchangeAcronym}}</a> <span class="text-light sm">({{.ExchangeCountry}})</span></td>
-                    <td class="">{{.TickerName}}</td>
+                    <td class=""><a class="text-white table-white" href="/view/{{.Ticker.TickerSymbol}}/{{.Ticker.ExchangeAcronym}}">{{.Ticker.TickerSymbol}}/{{.Ticker.ExchangeAcronym}}</a> <span class="text-light sm">({{.Ticker.Type}})</span></td>
+                    <td class="">{{.Ticker.ShortName}} ({{.Ticker.LongName}})</td>
                   </tr>
+                  {{end}}
+                {{end}}
+                  <tr>
+                    <th scope="col" class="text-info">Yahoo News(date)</span></th>
+                    <th scope="col" class="text-info">Title (link type)</th>
+                  </tr>
+                {{range .results}}
+                  {{if eq .ResultType "news"}}
+                  <tr>
+                    <td class=""><a class="text-white table-white" href="{{.News.URL}}" target="_blank">Link <i class="ps-2 fas fa-external-link-alt fa-xs"></i></a><br>
+                      <span class="text-light sm">({{.News.PublishDate}})</span></td>
+                    <td class=""><a class="text-white table-white text-decoration-none" href="{{.News.URL}}" target="_blank">{{.News.Title}} by {{.News.Publisher}} <span class="text-light sm">({{.News.Type}})</span></a></td>
+                  </tr>
+                  {{end}}
                 {{end}}
               </table>
               </div>

@@ -27,6 +27,79 @@ type TickersEODTask struct {
 	Offset     int    `json:"offset"`
 }
 
+func (t *Ticker) getBySymbol(ctx context.Context) error {
+	db := ctx.Value("db").(*sqlx.DB)
+
+	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_symbol=?", t.TickerSymbol).StructScan(&t)
+	return err
+}
+
+func (t *Ticker) create(ctx context.Context) error {
+	db := ctx.Value("db").(*sqlx.DB)
+
+	if t.TickerSymbol == "" {
+		return fmt.Errorf("Refusing to add ticker with blank symbol")
+	}
+
+	var insert = "INSERT INTO ticker SET ticker_symbol=?, exchange_id=?, ticker_name=?"
+	res, err := db.Exec(insert, t.TickerSymbol, t.ExchangeId, t.TickerName)
+	if err != nil {
+		log.Fatal().Err(err).
+			Str("table_name", "ticker").
+			Str("ticker", t.TickerSymbol).
+			Msg("Failed on INSERT")
+		return err
+	}
+	t.TickerId, err = res.LastInsertId()
+	if err != nil {
+		log.Fatal().Err(err).
+			Str("table_name", "ticker").
+			Str("symbol", t.TickerSymbol).
+			Msg("Failed on LAST_INSERTID")
+		return err
+	}
+	return err
+}
+
+func (t *Ticker) getOrCreate(ctx context.Context) error {
+	err := t.getBySymbol(ctx)
+	if err != nil && t.TickerId == 0 {
+		return t.create(ctx)
+	}
+	return err
+}
+
+func (t *Ticker) createOrUpdate(ctx context.Context) error {
+	db := ctx.Value("db").(*sqlx.DB)
+
+	if t.TickerSymbol == "" {
+		return fmt.Errorf("Refusing to add ticker with blank symbol")
+	}
+
+	err := t.getBySymbol(ctx)
+	if err != nil {
+		return t.create(ctx)
+	}
+
+	var update = "UPDATE ticker SET exchange_id=?, ticker_name=? WHERE ticker_id=?"
+	_, err = db.Exec(update, t.ExchangeId, t.TickerName, t.TickerId)
+	if err != nil {
+		log.Warn().Err(err).
+			Str("table_name", "ticker").
+			Str("ticker", t.TickerSymbol).
+			Msg("Failed on UPDATE")
+	}
+	return t.getBySymbol(ctx)
+}
+
+func (t *Ticker) getMostRecentPrice(ctx context.Context) (*TickerDaily, error) {
+	db := ctx.Value("db").(*sqlx.DB)
+
+	var tickerDaily TickerDaily
+	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? ORDER BY price_date DESC LIMIT 1`, t.TickerId).StructScan(&tickerDaily)
+	return &tickerDaily, err
+}
+
 func (t Ticker) EarliestEOD(db *sqlx.DB) (string, float32, error) {
 	type Earliest struct {
 		date  string
@@ -178,36 +251,29 @@ func (t Ticker) LoadTickerIntraday(db *sqlx.DB, intradate string) ([]TickerIntra
 // see if we need to pull a ticker daily update:
 //  if we don't have the EOD price for the prior business day
 //  OR if we don't have it for the current business day and it's now 7pm or later
-func (t Ticker) updateTickerDailies(ctx context.Context) (bool, error) {
-	db := ctx.Value("db").(*sqlx.DB)
+func (t *Ticker) updateTickerPrices(ctx context.Context) (bool, error) {
 	logger := log.Ctx(ctx)
 
-	mostRecentTickerDaily, err := getTickerDailyMostRecent(db, t.TickerId)
+	mostRecentPrice, err := t.getMostRecentPrice(ctx)
 	if err != nil {
-		return false, err
+		mostRecentPrice = &TickerDaily{}
 	}
-	mostRecentTickerDailyDate := mostRecentTickerDaily.PriceDate
+	mostRecentPriceDate := mostRecentPrice.PriceDate
 	mostRecentAvailable := mostRecentPricesAvailable()
 
 	logger.Info().
-		Str("symbol", t.TickerSymbol).
-		Str("most_recent_daily_date", mostRecentTickerDailyDate).
+		Str("ticker", t.TickerSymbol).
+		Str("most_recent_price_date", mostRecentPriceDate).
 		Str("most_recent_available", mostRecentAvailable).
 		Msg("check if new EOD available for ticker")
 
-	exchange, err := getExchangeById(db, t.ExchangeId)
-	if err != nil {
-		return false, err
-	}
-
-	if mostRecentTickerDailyDate < mostRecentAvailable {
-		_, err = fetchTicker(ctx, t.TickerSymbol, exchange.ExchangeMic)
+	if mostRecentPriceDate < mostRecentAvailable {
+		err = loadTickerPrices(ctx, t)
 		if err != nil {
 			return false, err
 		}
 		logger.Info().
-			Str("symbol", t.TickerSymbol).
-			Int64("tickerId", t.TickerId).
+			Str("ticker", t.TickerSymbol).
 			Msg("Updated ticker with latest EOD prices")
 		return true, nil
 	}
@@ -230,7 +296,7 @@ func (t Ticker) updateTickerIntradays(ctx context.Context, intradate string) (bo
 		return false, nil
 	}
 
-	exchange, err := getExchangeById(db, t.ExchangeId)
+	exchange, err := getExchangeById(ctx, t.ExchangeId)
 	if err != nil {
 		return false, err
 	}
@@ -245,7 +311,8 @@ func (t Ticker) updateTickerIntradays(ctx context.Context, intradate string) (bo
 		Msg("check if intraday data available for ticker")
 
 	if intradate <= mostRecentAvailable {
-		err = fetchTickerIntraday(ctx, t, exchange, intradate)
+		//err = fetchTickerIntraday(ctx, t, exchange, intradate)
+		err := fmt.Errorf("")
 		if err != nil {
 			return false, err
 		}
@@ -262,77 +329,10 @@ func (t Ticker) updateTickerIntradays(ctx context.Context, intradate string) (bo
 
 // misc -----------------------------------------------------------------------
 
-func getTicker(db *sqlx.DB, symbol string, exchange_id int64) (*Ticker, error) {
+func getTickerBySymbol(ctx context.Context, symbol string) (*Ticker, error) {
+	db := ctx.Value("db").(*sqlx.DB)
+
 	var ticker Ticker
-	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_symbol=? AND exchange_id=?", symbol, exchange_id).StructScan(&ticker)
+	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_symbol=?", symbol).StructScan(&ticker)
 	return &ticker, err
-}
-
-func getTickerFirstMatch(db *sqlx.DB, symbol string) (*Ticker, error) {
-	var ticker Ticker
-	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_symbol=? LIMIT 1", symbol).StructScan(&ticker)
-	return &ticker, err
-}
-
-func getTickerById(db *sqlx.DB, tickerId int64) (*Ticker, error) {
-	var ticker Ticker
-	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_id=?", tickerId).StructScan(&ticker)
-	return &ticker, err
-}
-
-func createTicker(db *sqlx.DB, ticker *Ticker) (*Ticker, error) {
-	var insert = "INSERT INTO ticker SET ticker_symbol=?, exchange_id=?, ticker_name=?"
-
-	if ticker.TickerSymbol == "" {
-		return ticker, fmt.Errorf("Skipping record with blank ticker symbol")
-	}
-
-	res, err := db.Exec(insert, ticker.TickerSymbol, ticker.ExchangeId, ticker.TickerName)
-	if err != nil {
-		log.Fatal().Err(err).
-			Str("table_name", "ticker").
-			Str("symbol", ticker.TickerSymbol).
-			Int64("tickerId", ticker.TickerId).
-			Msg("Failed on INSERT")
-	}
-	tickerId, err := res.LastInsertId()
-	if err != nil {
-		log.Fatal().Err(err).
-			Str("table_name", "ticker").
-			Str("symbol", ticker.TickerSymbol).
-			Int64("tickerId", ticker.TickerId).
-			Msg("Failed on LAST_INSERTId")
-	}
-	return getTickerById(db, tickerId)
-}
-
-func getOrCreateTicker(db *sqlx.DB, ticker *Ticker) (*Ticker, error) {
-	existing, err := getTicker(db, ticker.TickerSymbol, ticker.ExchangeId)
-	if err != nil && ticker.TickerId == 0 {
-		return createTicker(db, ticker)
-	}
-	return existing, err
-}
-
-func createOrUpdateTicker(db *sqlx.DB, ticker *Ticker) (*Ticker, error) {
-	var update = "UPDATE ticker SET exchange_id=?, ticker_name=? WHERE ticker_id=?"
-
-	if ticker.TickerSymbol == "" {
-		return ticker, fmt.Errorf("Skipping record with blank ticker symbol")
-	}
-
-	existing, err := getTicker(db, ticker.TickerSymbol, ticker.ExchangeId)
-	if err != nil {
-		return createTicker(db, ticker)
-	}
-
-	_, err = db.Exec(update, ticker.ExchangeId, ticker.TickerName, existing.TickerId)
-	if err != nil {
-		log.Warn().Err(err).
-			Str("table_name", "ticker").
-			Str("symbol", ticker.TickerSymbol).
-			Int64("tickerId", ticker.TickerId).
-			Msg("Failed on UPDATE")
-	}
-	return getTickerById(db, existing.TickerId)
 }

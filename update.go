@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/jmoiron/sqlx"
+	//"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
 	"github.com/weirdtangent/mytime"
@@ -16,7 +16,7 @@ func updateHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
-		db := ctx.Value("db").(*sqlx.DB)
+		//db := ctx.Value("db").(*sqlx.DB)
 		messages := ctx.Value("messages").(*[]Message)
 
 		if ok := checkAuthState(w, r); ok == false {
@@ -27,7 +27,9 @@ func updateHandler() http.HandlerFunc {
 
 			switch action {
 			case "exchanges":
-				count, err := fetchExchanges(ctx)
+				//count, err := fetchExchanges(ctx)
+				count := 0
+				err := fmt.Errorf("")
 				if err != nil {
 					logger.Error().Msgf("Bulk update of Exchanges failed: %s", err)
 					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Exchanges failed: %s", err.Error()), "danger"})
@@ -39,7 +41,9 @@ func updateHandler() http.HandlerFunc {
 					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Exchanges succeeded: %d exchanges updates", count), "success"})
 				}
 			case "indexes":
-				count, err := fetchMarketIndexes(ctx)
+				//count, err := fetchMarketIndexes(ctx)
+				count := 0
+				err := fmt.Errorf("")
 				if err != nil {
 					logger.Error().Msgf("Bulk update of Market Indexes failed: %s", err)
 					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Market Indexes failed: %s", err.Error()), "danger"})
@@ -51,7 +55,9 @@ func updateHandler() http.HandlerFunc {
 					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Market Indexes succeeded: %d market indexes updates", count), "success"})
 				}
 			case "currencies":
-				count, err := fetchCurrencies(ctx)
+				//count, err := fetchCurrencies(ctx)
+				count := 0
+				err := fmt.Errorf("")
 				if err != nil {
 					logger.Error().Msgf("Bulk update of Currencies failed: %s", err)
 					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Currencies failed: %s", err.Error()), "danger"})
@@ -64,14 +70,17 @@ func updateHandler() http.HandlerFunc {
 				}
 			case "ticker":
 				symbol := params["symbol"]
-				acronym := params["acronym"]
-				exchange, err := getExchange(db, acronym, "")
+				//acronym := params["acronym"]
+				//exchange, err := getExchange(db, acronym, "")
+				//exchange := Exchange{}
+				err := fmt.Errorf("")
 				if err != nil {
 					logger.Error().Msgf("Update of ticker symbol %s failed: %s", symbol, err)
 					*messages = append(*messages, Message{fmt.Sprintf("Update of ticker symbol %s failed: %s", symbol, err), "danger"})
 				}
 
-				_, err = fetchTicker(ctx, symbol, exchange.ExchangeMic)
+				//_, err = fetchTicker(ctx, symbol, exchange.ExchangeMic)
+				err = fmt.Errorf("")
 				if err != nil {
 					logger.Error().Msgf("Update of ticker symbol %s failed: %s", symbol, err)
 					*messages = append(*messages, Message{fmt.Sprintf("Update of ticker symbol %s failed: %s", symbol, err), "danger"})

@@ -36,42 +36,41 @@ func viewTickerDailyHandler() http.HandlerFunc {
 
 		params := mux.Vars(r)
 		symbol := params["symbol"]
-		acronym := params["acronym"]
 
 		timespan := 90
 		if tsParam := r.FormValue("ts"); tsParam != "" {
 			if tsValue, err := strconv.ParseInt(tsParam, 10, 32); err == nil {
-				timespan = int(mymath.MinMax(tsValue, 15, 360))
+				timespan = int(mymath.MinMax(tsValue, 15, 1825))
 			} else if err != nil {
 				logger.Error().Err(err).Str("ts", tsParam).Msg("Failed to interpret timespan (ts) param")
 			}
 			logger.Info().Int("timespan", timespan).Msg("")
 		}
 
-		// grab exchange they asked for
-		exchange, err := getExchange(db, acronym, "")
-		if err != nil {
-			logger.Warn().Err(err).
-				Str("acronym", acronym).
-				Msg("Invalid table key")
-			http.NotFound(w, r)
-			return
-		}
-
 		// find ticker specifically at that exchange (since there are overlaps)
-		ticker, err := getTicker(db, symbol, exchange.ExchangeId)
+		ticker, err := getTickerBySymbol(ctx, symbol)
 		if err != nil {
-			ticker, err = fetchTicker(ctx, symbol, exchange.ExchangeMic)
+			ticker, err = findTicker(ctx, symbol)
 			if err != nil {
 				logger.Warn().Err(err).
-					Str("symbol", symbol).
-					Msg("Failed to update EOD for ticker")
+					Str("ticker", symbol).
+					Msg("Failed to find ticker by symbol")
 				http.NotFound(w, r)
 				return
 			}
 		}
 
-		updated, err := ticker.updateTickerDailies(ctx)
+		exchange, err := getExchangeById(ctx, ticker.ExchangeId)
+		if err != nil {
+			logger.Warn().Err(err).
+				Str("ticker", ticker.TickerSymbol).
+				Int64("exchange_id", ticker.ExchangeId).
+				Msg("Failed to find exchange by id")
+			http.NotFound(w, r)
+			return
+		}
+
+		updated, err := ticker.updateTickerPrices(ctx)
 		if err != nil {
 			*messages = append(*messages, Message{fmt.Sprintf("Failed to update End-of-day data for %s", ticker.TickerSymbol), "danger"})
 			logger.Warn().Err(err).
@@ -165,7 +164,7 @@ func viewTickerIntradayHandler() http.HandlerFunc {
 		intradate := params["intradate"]
 
 		// grab exchange they asked for
-		exchange, err := getExchange(db, acronym, "")
+		exchange, err := getExchange(db, acronym)
 		if err != nil {
 			logger.Warn().Err(err).
 				Str("acronym", acronym).
@@ -175,7 +174,7 @@ func viewTickerIntradayHandler() http.HandlerFunc {
 		}
 
 		// find ticker specifically at that exchange (since there are overlaps)
-		ticker, err := getTicker(db, symbol, exchange.ExchangeId)
+		ticker, err := getTickerBySymbol(ctx, symbol)
 		if err != nil {
 			logger.Warn().Err(err).
 				Str("symbol", symbol).

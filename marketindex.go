@@ -131,10 +131,10 @@ func (mi MarketIndex) updateMarketIndexDailies(ctx context.Context) (bool, error
 		Msg("check if new EOD available for marketindex")
 
 	if mostRecentMarketIndexDailyDate < mostRecentAvailable {
-		_, err = fetchMarketIndexes(ctx)
-		if err != nil {
-			return false, err
-		}
+		//_, err = fetchMarketIndexes(ctx)
+		//if err != nil {
+		//	return false, err
+		//}
 		logger.Info().
 			Str("symbol", mi.MarketIndexSymbol).
 			Int64("marketindex_id", mi.MarketIndexId).
@@ -176,10 +176,10 @@ func (mi MarketIndex) updateMarketIndexIntradays(ctx context.Context, intradate 
 		Msg("check if intraday data available for marketindex")
 
 	if intradate <= mostRecentAvailable {
-		err = fetchMarketIndexIntraday(ctx, mi, intradate)
-		if err != nil {
-			return false, err
-		}
+		//err = fetchMarketIndexIntraday(ctx, mi, intradate)
+		//if err != nil {
+		//	return false, err
+		//}
 		logger.Info().
 			Str("symbol", mi.MarketIndexSymbol).
 			Int64("marketindex_id", mi.MarketIndexId).
