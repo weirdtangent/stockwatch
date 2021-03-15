@@ -51,7 +51,7 @@ func (td TickerDailies) Count() int {
 func (td *TickerDaily) getByDate(ctx context.Context) error {
 	db := ctx.Value("db").(*sqlx.DB)
 
-	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? AND price_date=?`, td.TickerId, td.PriceDate).StructScan(&td)
+	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? AND price_date=?`, td.TickerId, td.PriceDate).StructScan(td)
 	return err
 }
 

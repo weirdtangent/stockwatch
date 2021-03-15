@@ -20,7 +20,7 @@ type TickerSplit struct {
 func (ts *TickerSplit) getByDate(ctx context.Context) error {
 	db := ctx.Value("db").(*sqlx.DB)
 
-	err := db.QueryRowx(`SELECT * FROM ticker_split WHERE ticker_id=? AND split_date=?`, ts.TickerId, ts.SplitDate).StructScan(&ts)
+	err := db.QueryRowx(`SELECT * FROM ticker_split WHERE ticker_id=? AND split_date=?`, ts.TickerId, ts.SplitDate).StructScan(ts)
 	return err
 }
 

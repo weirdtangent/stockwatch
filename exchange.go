@@ -21,7 +21,7 @@ type Exchange struct {
 func (e *Exchange) getByAcronym(ctx context.Context) error {
 	db := ctx.Value("db").(*sqlx.DB)
 
-	err := db.QueryRowx("SELECT * FROM exchange WHERE exchange_acronym = ?", e.ExchangeAcronym).StructScan(&e)
+	err := db.QueryRowx("SELECT * FROM exchange WHERE exchange_acronym = ?", e.ExchangeAcronym).StructScan(e)
 	return err
 }
 

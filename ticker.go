@@ -30,7 +30,7 @@ type TickersEODTask struct {
 func (t *Ticker) getBySymbol(ctx context.Context) error {
 	db := ctx.Value("db").(*sqlx.DB)
 
-	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_symbol=?", t.TickerSymbol).StructScan(&t)
+	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_symbol=?", t.TickerSymbol).StructScan(t)
 	return err
 }
 
