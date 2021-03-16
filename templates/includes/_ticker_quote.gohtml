@@ -1,0 +1,6 @@
+{{- define "_ticker_quote" -}}
+                    As of: <span class="h6 text-light">{{ FormatUnixTime .quote.MarketTime "Jan 2 15:04" }}</span>
+                    Ask: <span class="h6 text-light">{{ printf "$%.2f" .quote.Ask }}</span>
+                    Bid: <span class="h6 text-light">{{ printf "$%.2f" .quote.Bid }}</span>
+                    Today's range: <span class="h6 text-light">${{ .quote.MarketDayRange }}</span>
+{{- end}}

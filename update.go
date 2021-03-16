@@ -112,7 +112,7 @@ func mostRecentPricesAvailable() string {
 	currentDate := currentDateTime.Format("2006-01-02")
 	IsWorkDay := mytime.IsWorkday(currentDateTime)
 
-	if IsWorkDay && currentTime > "19:00:00" {
+	if IsWorkDay && currentTime > "16:00:00" {
 		return currentDate
 	}
 

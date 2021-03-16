@@ -19,9 +19,7 @@ func viewTickerDailyHandler() http.HandlerFunc {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
 		awssess := ctx.Value("awssess").(*session.Session)
-		db := ctx.Value("db").(*sqlx.DB)
 		webdata := ctx.Value("webdata").(map[string]interface{})
-		messages := ctx.Value("messages").(*[]Message)
 
 		session := getSession(r)
 		if ok := checkAuthState(w, r); ok == false {
@@ -36,6 +34,7 @@ func viewTickerDailyHandler() http.HandlerFunc {
 
 		params := mux.Vars(r)
 		symbol := params["symbol"]
+		acronym := params["acronym"]
 
 		timespan := 90
 		if tsParam := r.FormValue("ts"); tsParam != "" {
@@ -47,92 +46,15 @@ func viewTickerDailyHandler() http.HandlerFunc {
 			logger.Info().Int("timespan", timespan).Msg("")
 		}
 
-		// find ticker specifically at that exchange (since there are overlaps)
-		ticker, err := getTickerBySymbol(ctx, symbol)
+		err := loadTickerDetails(ctx, symbol, timespan)
 		if err != nil {
-			ticker, err = findTicker(ctx, symbol)
-			if err != nil {
-				logger.Warn().Err(err).
-					Str("ticker", symbol).
-					Msg("Failed to find ticker by symbol")
-				http.NotFound(w, r)
-				return
-			}
-		}
-
-		exchange, err := getExchangeById(ctx, ticker.ExchangeId)
-		if err != nil {
-			logger.Warn().Err(err).
-				Str("ticker", ticker.TickerSymbol).
-				Int64("exchange_id", ticker.ExchangeId).
-				Msg("Failed to find exchange by id")
 			http.NotFound(w, r)
 			return
 		}
 
-		updated, err := ticker.updateTickerPrices(ctx)
-		if err != nil {
-			*messages = append(*messages, Message{fmt.Sprintf("Failed to update End-of-day data for %s", ticker.TickerSymbol), "danger"})
-			logger.Warn().Err(err).
-				Str("symbol", ticker.TickerSymbol).
-				Int64("ticker_id", ticker.TickerId).
-				Msg("Failed to update EOD for ticker")
-		}
-		if updated {
-			*messages = append(*messages, Message{fmt.Sprintf("End-of-day data updated for %s", ticker.TickerSymbol), "success"})
-		}
-
-		daily, err := getTickerDailyMostRecent(db, ticker.TickerId)
-		if err != nil {
-			*messages = append(*messages, Message{fmt.Sprintf("No End-of-day data found for %s", ticker.TickerSymbol), "warning"})
-			logger.Warn().Err(err).
-				Str("symbol", ticker.TickerSymbol).
-				Int64("ticker_id", ticker.TickerId).
-				Msg("Failed to load most recent daily price for ticker")
-		}
-		lastTickerDailyMove, err := getLastTickerDailyMove(db, ticker.TickerId)
-		if err != nil {
-			lastTickerDailyMove = "unknown"
-		}
-
-		// load up to last 100 days of EOD data
-		ticker_dailies, err := ticker.LoadTickerDailies(db, timespan)
-		if err != nil {
-			logger.Warn().Err(err).
-				Str("symbol", ticker.TickerSymbol).
-				Int("timespan", timespan).
-				Int64("ticker_id", ticker.TickerId).
-				Msg("Failed to load daily prices for ticker")
-			http.NotFound(w, r)
-			return
-		}
-
-		// load any active watches about this ticker
-		webwatches, err := loadWebWatches(db, ticker.TickerId)
-		if err != nil {
-			logger.Warn().Err(err).
-				Str("symbol", ticker.TickerSymbol).
-				Int64("ticker_id", ticker.TickerId).
-				Msg("Failed to load watches for ticker")
-			http.NotFound(w, r)
-			return
-		}
-
-		var lineChartHTML = chartHandlerTickerDailyLine(ctx, ticker, exchange, ticker_dailies, webwatches)
-		var klineChartHTML = chartHandlerTickerDailyKLine(ctx, ticker, exchange, ticker_dailies, webwatches)
-
-		recents, err := addTickerToRecents(session, r, ticker.TickerSymbol, exchange.ExchangeAcronym)
-
+		// Add this ticker to recents list
+		recents, err := addTickerToRecents(session, r, symbol, acronym)
 		webdata["recents"] = Recents{*recents}
-		webdata["ticker"] = ticker
-		webdata["exchange"] = exchange
-		webdata["timespan"] = timespan
-		webdata["ticker_daily"] = daily
-		webdata["last_ticker_daily_move"] = lastTickerDailyMove
-		webdata["ticker_dailies"] = TickerDailies{ticker_dailies}
-		webdata["watches"] = webwatches
-		webdata["lineChart"] = lineChartHTML
-		webdata["klineChart"] = klineChartHTML
 
 		renderTemplateDefault(w, r, "view-daily")
 	})

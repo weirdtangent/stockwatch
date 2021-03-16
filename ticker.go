@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/jmoiron/sqlx"
@@ -36,15 +37,17 @@ func (t *Ticker) getBySymbol(ctx context.Context) error {
 
 func (t *Ticker) create(ctx context.Context) error {
 	db := ctx.Value("db").(*sqlx.DB)
+	logger := log.Ctx(ctx)
 
 	if t.TickerSymbol == "" {
-		return fmt.Errorf("Refusing to add ticker with blank symbol")
+		logger.Warn().Msg("Refusing to add ticker with blank symbol")
+		return nil
 	}
 
 	var insert = "INSERT INTO ticker SET ticker_symbol=?, exchange_id=?, ticker_name=?"
 	res, err := db.Exec(insert, t.TickerSymbol, t.ExchangeId, t.TickerName)
 	if err != nil {
-		log.Fatal().Err(err).
+		logger.Fatal().Err(err).
 			Str("table_name", "ticker").
 			Str("ticker", t.TickerSymbol).
 			Msg("Failed on INSERT")
@@ -52,7 +55,7 @@ func (t *Ticker) create(ctx context.Context) error {
 	}
 	t.TickerId, err = res.LastInsertId()
 	if err != nil {
-		log.Fatal().Err(err).
+		logger.Fatal().Err(err).
 			Str("table_name", "ticker").
 			Str("symbol", t.TickerSymbol).
 			Msg("Failed on LAST_INSERTID")
@@ -71,9 +74,11 @@ func (t *Ticker) getOrCreate(ctx context.Context) error {
 
 func (t *Ticker) createOrUpdate(ctx context.Context) error {
 	db := ctx.Value("db").(*sqlx.DB)
+	logger := log.Ctx(ctx)
 
 	if t.TickerSymbol == "" {
-		return fmt.Errorf("Refusing to add ticker with blank symbol")
+		logger.Warn().Msg("Refusing to add ticker with blank symbol")
+		return nil
 	}
 
 	err := t.getBySymbol(ctx)
@@ -84,12 +89,38 @@ func (t *Ticker) createOrUpdate(ctx context.Context) error {
 	var update = "UPDATE ticker SET exchange_id=?, ticker_name=? WHERE ticker_id=?"
 	_, err = db.Exec(update, t.ExchangeId, t.TickerName, t.TickerId)
 	if err != nil {
-		log.Warn().Err(err).
+		logger.Warn().Err(err).
 			Str("table_name", "ticker").
 			Str("ticker", t.TickerSymbol).
 			Msg("Failed on UPDATE")
 	}
 	return t.getBySymbol(ctx)
+}
+
+func (t *Ticker) waitingForClosingPrice(ctx context.Context) bool {
+	EasternTZ, _ := time.LoadLocation("America/New_York")
+	currentDate := time.Now().In(EasternTZ)
+	timeStr := currentDate.Format("1505")
+	currentDateStr := currentDate.Format("2006-01-02")
+	weekday := currentDate.Weekday()
+	tickerDaily, err := t.getMostRecentPrice(ctx)
+	lastWorkDate := mytime.PriorWorkDate(currentDate)
+	lastWorkDateStr := lastWorkDate.Format("2006-01-02")
+
+	// if we have todays closing price, end of question
+	if err == nil && tickerDaily.PriceDate == currentDateStr {
+		return false
+	}
+
+	// if it's the weekend or prior to market open
+	if weekday == time.Saturday || weekday == time.Sunday || timeStr < "0930" {
+		// and we have the prior workday's closing price, we're good
+		if err == nil && tickerDaily.PriceDate == lastWorkDateStr {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (t *Ticker) getMostRecentPrice(ctx context.Context) (*TickerDaily, error) {
@@ -157,6 +188,10 @@ func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) bool {
 			Msg("Sent task notification for EOD update for ticker")
 	}
 	return true
+}
+
+func (t *Ticker) getQuote(ctx context.Context) {
+	loadTickerQuote(ctx, t)
 }
 
 func (t Ticker) LoadTickerDailies(db *sqlx.DB, days int) ([]TickerDaily, error) {
@@ -325,6 +360,38 @@ func (t Ticker) updateTickerIntradays(ctx context.Context, intradate string) (bo
 	}
 
 	return false, nil
+}
+
+func (t Ticker) getUpDowns(ctx context.Context, daysAgo int) ([]TickerUpDown, error) {
+	logger := log.Ctx(ctx)
+	db := ctx.Value("db").(*sqlx.DB)
+
+	var tickerUpDown TickerUpDown
+	upDowns := make([]TickerUpDown, 0)
+
+	rows, err := db.Queryx(
+		`SELECT * FROM ticker_updown WHERE ticker_id=? AND TIMESTAMPDIFF(DAY, updown_date, NOW()) < ? ORDER BY updown_date DESC`,
+		t.TickerId, daysAgo)
+	if err != nil {
+		return upDowns, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err = rows.StructScan(&tickerUpDown)
+		if err != nil {
+			logger.Warn().Err(err).
+				Str("table_name", "ticker_updown").
+				Msg("Error reading result rows")
+		} else {
+			upDowns = append(upDowns, tickerUpDown)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return upDowns, err
+	}
+
+	return upDowns, nil
 }
 
 // misc -----------------------------------------------------------------------

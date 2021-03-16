@@ -23,7 +23,7 @@ type SearchResultTicker struct {
 	ShortName       string
 	LongName        string
 	Type            string
-	SearchScore     int64
+	SearchScore     float64
 }
 
 type SearchResult struct {
@@ -70,12 +70,12 @@ func searchHandler() http.HandlerFunc {
 				Msg("Search performed")
 
 			if searchType == "jump" {
-				searchResult, err := jumpSearch(ctx, searchString)
+				searchResultTicker, err := jumpSearch(ctx, searchString)
 				if err != nil {
 					*messages = append(*messages, Message{fmt.Sprintf("Sorry, error returned for that search"), "danger"})
 					break
 				}
-				if searchResult.Ticker.TickerSymbol == "" {
+				if searchResultTicker.TickerSymbol == "" {
 					*messages = append(*messages, Message{fmt.Sprintf("Sorry, nothing found for '%s'", searchString), "warning"})
 					break
 				}
@@ -83,9 +83,9 @@ func searchHandler() http.HandlerFunc {
 					Str("search_provider", "yahoofinance").
 					Str("search_type", searchType).
 					Str("search_string", searchString).
-					Str("symbol", searchResult.Ticker.TickerSymbol).
+					Str("symbol", searchResultTicker.TickerSymbol).
 					Msg("Search results")
-				http.Redirect(w, r, fmt.Sprintf("/view/%s/%s", searchResult.Ticker.TickerSymbol, searchResult.Ticker.ExchangeAcronym), http.StatusFound)
+				http.Redirect(w, r, fmt.Sprintf("/view/%s/%s", searchResultTicker.TickerSymbol, searchResultTicker.ExchangeAcronym), http.StatusFound)
 				return
 			} else if searchType == "search" {
 				searchResults, err := listSearch(ctx, searchString, "both")

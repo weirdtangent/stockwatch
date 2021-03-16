@@ -69,8 +69,10 @@ form.no-border {
 }
 
 .menu-divider {
-  border-right: 2px solid gray;
-  margin: 0 1em;
+  border-left: 1px solid gray;
+  border-right: 1px solid gray;
+  padding: 12px 0;
+  margin: 0 5px;
 }
 
 li.welcome,

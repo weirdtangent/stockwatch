@@ -5,7 +5,6 @@
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
     <meta name="google-signin-client_id" content="602086455575-vj2spkou0ucsntgol9srfkf8mka3o5i2.apps.googleusercontent.com">
     <link href="/static/css/custom-dark.css" rel="stylesheet">
-    <!-- <link href="/static/vendor/fontawesome/css/all.css" rel="stylesheet"> -->
     <link href="/static/css/internal.css" rel="stylesheet">
     <script src="https://kit.fontawesome.com/beb4827de9.js" crossorigin="anonymous"></script>
     <title>Graystorm StockWatch</title>
@@ -45,7 +44,7 @@
                   <ul class="flex-grow-1 nav">
                     <li class="nav-item me-2 pt-2">Recent:</li>
                     {{range .recents.ViewPairs}}
-                      <li class="nav-item me-1 pt-2 recent"><a href="/view/{{.Symbol}}/{{.Acronym}}" class="badge text-dark bg-warning"><i class="fas fa-dollar-sign"></i>{{.Symbol}}</a></li>
+                      <li class="nav-item me-1 pt-2 recent"><a class="badge text-dark bg-warning text-decoration-none" href="/view/{{.Symbol}}/{{.Acronym}}"><i class="fas fa-dollar-sign"></i>{{.Symbol}}</a></li>
                     {{end}}
                   </ul>
                 {{end}}

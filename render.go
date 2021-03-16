@@ -19,7 +19,14 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 	webdata["messages"] = Messages{*messages}
 	webdata["config"] = config
 
-	tmpl := template.New("blank")
+	funcMap := template.FuncMap{
+		"FormatUnixTime":    FormatUnixTime,
+		"FormatDatetimeStr": FormatDatetimeStr,
+		"GradeColor":        GradeColor,
+		"SinceColor":        SinceColor,
+	}
+
+	tmpl := template.New("blank").Funcs(funcMap)
 	tmpl, err := tmpl.ParseGlob("templates/includes/*.gohtml")
 	if err != nil {
 		logger.Error().Err(err).Str("template_dir", "includes").Msg("Failed to parse template(s)")

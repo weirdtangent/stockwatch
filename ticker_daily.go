@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"sort"
 
 	"github.com/jmoiron/sqlx"
@@ -60,7 +59,8 @@ func (td *TickerDaily) createIfNew(ctx context.Context) error {
 	logger := log.Ctx(ctx)
 
 	if td.Volume == 0 {
-		return fmt.Errorf("Refusing to add ticker daily with 0 volume")
+		logger.Warn().Msg("Refusing to add ticker daily with 0 volume")
+		return nil
 	}
 
 	err := td.getByDate(ctx)

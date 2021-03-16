@@ -1,17 +1,88 @@
 package main
 
 import (
+	"regexp"
+	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
-func RealDateForHuman(unixTime int64) string {
+func FormatUnixTime(unixTime int64, formatStr string) string {
+	if formatStr == "" {
+		formatStr = "Jan 2 15:04 MST 2006"
+	}
+
 	EasternTZ, _ := time.LoadLocation("America/New_York")
 	realDate := time.Unix(unixTime, 0).In(EasternTZ)
-	return realDate.Format("Jan 2 15:04 MST 2006")
+	return realDate.Format(formatStr)
 }
 
-func RealDateForDB(unixTime int64) string {
+func FormatDatetimeStr(dateStr string, formatStr string) string {
+	if formatStr == "" {
+		formatStr = "Jan 2"
+	}
+	var dateObj time.Time
+	if len(dateStr) == 10 {
+		dateObj, _ = time.Parse("2006-01-02", dateStr)
+	} else if len(dateStr) == 19 {
+		dateObj, _ = time.Parse("2006-01-02 15:04:05", dateStr)
+	} else {
+		log.Fatal().Str("dateStr", dateStr).Msg("Unknown how to parse this datetime string")
+	}
+
+	return dateObj.Format(formatStr)
+}
+
+func UnixToDatetimeStr(unixTime int64) string {
+	dateTime := time.Unix(unixTime, 0)
+	return dateTime.Format("2006-01-02 15:04:05")
+}
+
+func GradeColor(gradeStr string) string {
+	lcGradeStr := strings.ToLower(gradeStr)
+	switch lcGradeStr {
+	case "strong buy":
+		return "text-success"
+	case "buy", "outperform", "moderate buy", "accumulate", "overweight", "add":
+		return "text-success"
+	case "hold":
+		return "text-warning"
+	case "sell", "underperform", "moderate sell", "weak hold", "underweight", "reduce":
+		return "text-danger"
+	case "strong sell":
+		return "text-danger"
+	default:
+		return "text-white"
+	}
+}
+
+func SinceColor(sinceStr string) string {
+	lcSinceStr := strings.ToLower(sinceStr)
+	up_rx := regexp.MustCompile(`^(and|but) up `)
+	down_rx := regexp.MustCompile(`^(and|but) down `)
+
+	if up_rx.MatchString(lcSinceStr) {
+		return "text-success"
+	} else if down_rx.MatchString(lcSinceStr) {
+		return "text-danger"
+	} else {
+		return "text-white"
+	}
+}
+
+func marketIsOpen() bool {
 	EasternTZ, _ := time.LoadLocation("America/New_York")
-	realDate := time.Unix(unixTime, 0).In(EasternTZ)
-	return realDate.Format("2006-01-02")
+	currentDate := time.Now().In(EasternTZ)
+	timeStr := currentDate.Format("1505")
+	weekday := currentDate.Weekday()
+
+	if weekday == time.Saturday || weekday == time.Sunday {
+		return false
+	}
+	if timeStr < "0930" || timeStr > "1600" {
+		return false
+	}
+
+	return true
 }

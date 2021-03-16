@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
@@ -29,7 +28,8 @@ func (ts *TickerSplit) createIfNew(ctx context.Context) error {
 	logger := log.Ctx(ctx)
 
 	if ts.SplitRatio == "" {
-		return fmt.Errorf("Refusing to add ticker split with blank ratio")
+		logger.Warn().Msg("Refusing to add ticker split with blank ratio")
+		return nil
 	}
 
 	err := ts.getByDate(ctx)
