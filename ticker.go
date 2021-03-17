@@ -206,8 +206,10 @@ func (t *Ticker) getLastAndPriorClose(ctx context.Context) (*TickerDaily, *Ticke
 func (t Ticker) haveEODForDate(ctx context.Context, dateStr string) bool {
 	db := ctx.Value("db").(*sqlx.DB)
 
+	// for past days, a time of exactly 9:30:00 is considered a locked-in value
+	// but if it is anything else, it needs to be after 16:00:00
 	var count int
-	err := db.QueryRowx("SELECT COUNT(*) FROM ticker_daily WHERE ticker_id=? AND price_date=?", t.TickerId, dateStr).Scan(&count)
+	err := db.QueryRowx("SELECT COUNT(*) FROM ticker_daily WHERE ticker_id=? AND price_date=? AND (price_time = ? OR price_time >= ?)", t.TickerId, dateStr, "09:30:00", "16:00:00").Scan(&count)
 	return err == nil && count > 0
 }
 

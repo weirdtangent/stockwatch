@@ -1,8 +1,12 @@
+var scripts = document.getElementsByTagName('script');
+var lastScript = scripts[scripts.length-1];
+var scriptName = lastScript;
+
 var showing = 'tickerChart1';
-var symbol = document.currentScript.getAttribute('symbol');
-var acronym = document.currentScript.getAttribute('acronym');
-var is_market_open = document.currentScript.getAttribute('is_market_open');
-var quote_refresh = document.currentScript.getAttribute('quote_refresh');
+var symbol = scriptName.getAttribute('data-symbol');
+var acronym = scriptName.getAttribute('data-acronym');
+var is_market_open = scriptName.getAttribute('data-is-market-open');
+var quote_refresh = scriptName.getAttribute('data-quote-refresh');
 
 function update_quote(count) {
   $('#auto_refresh_working').html('<i class="ms-2 mb-2 myyellow fad fa-pulse fa-signal-stream"></i>')

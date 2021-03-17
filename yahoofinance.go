@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/weirdtangent/yahoofinance"
@@ -130,6 +131,11 @@ func loadTickerEODs(ctx context.Context, ticker *Ticker) error {
 	apiHost := ctx.Value("yahoofinance_apihost").(string)
 	logger := log.Ctx(ctx)
 
+	EasternTZ, _ := time.LoadLocation("America/New_York")
+	currentDate := time.Now().In(EasternTZ)
+	currentDateStr := currentDate.Format("2006-01-02")
+	currentTimeStr := currentDate.Format("15:04:05")
+
 	historicalParams := map[string]string{"symbol": ticker.TickerSymbol}
 	response, err := yahoofinance.GetFromYahooFinance(&apiKey, &apiHost, "historical", historicalParams)
 	if err != nil {
@@ -145,7 +151,12 @@ func loadTickerEODs(ctx context.Context, ticker *Ticker) error {
 	var lastErr error
 	for _, price := range historicalResponse.Prices {
 		priceDate := FormatUnixTime(price.Date, "2006-01-02")
+		// if the price is for TODAY I will use the current time
+		// instead of the timestamp
 		priceTime := FormatUnixTime(price.Date, "15:04:05")
+		if priceDate == currentDateStr {
+			priceTime = currentTimeStr
+		}
 		tickerDaily := TickerDaily{0, ticker.TickerId, priceDate, priceTime, price.Open, price.High, price.Low, price.Close, price.Volume, "", ""}
 		err = tickerDaily.createOrUpdate(ctx)
 		if err != nil {

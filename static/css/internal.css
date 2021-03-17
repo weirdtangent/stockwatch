@@ -110,6 +110,10 @@ footer {
   line-height: 1rem;
 }
 
+footer p {
+  margin-bottom: 10px;
+}
+
 .opacity-0 { opacity:0!important; }
 .opacity-1 { opacity:0.2!important; }
 .opacity-2 { opacity:0.4!important; }

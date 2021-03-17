@@ -47,7 +47,8 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 		webdata["open"] = true
 	}
 
-	// if it is a workday after 4 and we don't have the EOD, or we don't have the prior workday EOD, get them
+	// if it is a workday after 4 and we don't have the EOD (or not an EOD from
+	// AFTER 4pm) or we don't have the prior workday EOD, get them
 	if ticker.needEODs(ctx) {
 		loadTickerEODs(ctx, ticker)
 		*messages = append(*messages, Message{"Historical data updated", "success"})

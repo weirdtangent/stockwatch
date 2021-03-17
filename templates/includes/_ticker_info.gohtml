@@ -32,10 +32,9 @@
                       {{end}}
                     {{end}}
                     <span class="text-info">
-                      {{if .quote}}as of </span><span id="quote_asof" class="text-light">{{ FormatUnixTime .quote.QuoteTime "Jan 2 15:04" }}</span>
-                      {{else}}at close on </span><a id="quote_asof" class="h6 text-white text-decoration-none" href="/view/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeAcronym}}/{{.lastClose.PriceDate}}">{{ FormatDatetimeStr .lastClose.PriceDate "Jan 2" }}</a>
-                      {{end}}
-                    </span>
+                    {{if .quote}}as of </span><span id="quote_asof" class="text-light">{{ FormatUnixTime .quote.QuoteTime "Jan 2 15:04" }}
+                    {{else}}at close on </span><a id="quote_asof" class="h6 text-white text-decoration-none" href="/view/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeAcronym}}/{{.lastClose.PriceDate}}">{{ FormatDatetimeStr .lastClose.PriceDate "Jan 2" }}</a>
+                    {{end}}
                   </div>
                   <div class="small text-info">
                   {{if .quote}}

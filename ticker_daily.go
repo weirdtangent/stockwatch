@@ -48,6 +48,10 @@ func (td TickerDailies) Count() int {
 	return len(td.Days)
 }
 
+func (td *TickerDaily) IsFinalPrice() bool {
+	return td.PriceTime == "09:30:00" || td.PriceTime >= "16:00:00"
+}
+
 func (td *TickerDaily) getByDate(ctx context.Context) error {
 	db := ctx.Value("db").(*sqlx.DB)
 
@@ -55,28 +59,12 @@ func (td *TickerDaily) getByDate(ctx context.Context) error {
 	return err
 }
 
-func (td *TickerDaily) createOrUpdate(ctx context.Context) error {
+func (td *TickerDaily) checkByDate(ctx context.Context) int64 {
 	db := ctx.Value("db").(*sqlx.DB)
-	logger := log.Ctx(ctx)
 
-	if td.Volume == 0 {
-		logger.Warn().Msg("Refusing to add ticker daily with 0 volume")
-		return nil
-	}
-
-	err := td.getByDate(ctx)
-	if err != nil {
-		return td.create(ctx)
-	}
-
-	var update = "UPDATE ticker_daily SET price_time=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=? WHERE ticker_id=? AND price_date=?"
-	_, err = db.Exec(update, td.PriceTime, td.OpenPrice, td.HighPrice, td.LowPrice, td.ClosePrice, td.Volume, td.TickerId, td.PriceDate)
-	if err != nil {
-		logger.Warn().Err(err).
-			Str("table_name", "ticker_daily").
-			Msg("Failed on UPDATE")
-	}
-	return err
+	var tickerDailyId int64
+	db.QueryRowx(`SELECT ticker_daily_id FROM ticker_daily WHERE ticker_id=? AND price_date=?`, td.TickerId, td.PriceDate).Scan(&tickerDailyId)
+	return tickerDailyId
 }
 
 func (td *TickerDaily) create(ctx context.Context) error {
@@ -94,6 +82,30 @@ func (td *TickerDaily) create(ctx context.Context) error {
 		logger.Fatal().Err(err).
 			Str("table_name", "ticker_daily").
 			Msg("Failed on INSERT")
+	}
+	return err
+}
+
+func (td *TickerDaily) createOrUpdate(ctx context.Context) error {
+	db := ctx.Value("db").(*sqlx.DB)
+	logger := log.Ctx(ctx)
+
+	if td.Volume == 0 {
+		logger.Warn().Msg("Refusing to add ticker daily with 0 volume")
+		return nil
+	}
+
+	td.TickerDailyId = td.checkByDate(ctx)
+	if td.TickerDailyId == 0 {
+		return td.create(ctx)
+	}
+
+	var update = "UPDATE ticker_daily SET price_time=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=? WHERE ticker_id=? AND price_date=?"
+	_, err := db.Exec(update, td.PriceTime, td.OpenPrice, td.HighPrice, td.LowPrice, td.ClosePrice, td.Volume, td.TickerId, td.PriceDate)
+	if err != nil {
+		logger.Warn().Err(err).
+			Str("table_name", "ticker_daily").
+			Msg("Failed on UPDATE")
 	}
 	return err
 }

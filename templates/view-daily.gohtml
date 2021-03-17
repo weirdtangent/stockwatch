@@ -1,10 +1,10 @@
 {{- define "view-daily" -}}
 {{- template "_header" . }}
           <script src="/static/js/view.js"
-            symbol="{{.ticker.TickerSymbol}}"
-            acronym="{{.exchange.ExchangeAcronym}}"
-            is_market_open="{{.config.is_market_open}}"
-            quote_refresh="{{.config.quote_refresh}}">
+            data-symbol="{{.ticker.TickerSymbol}}"
+            data-acronym="{{.exchange.ExchangeAcronym}}"
+            data-is-market-open="{{.config.is_market_open}}"
+            data-quote-refresh="{{.config.quote_refresh}}">
           </script>
 
           <div class="row g-0 bg-secondary">
@@ -16,23 +16,11 @@
                   {{ template "_chart_js" }}
                   <div id="tickerChart1elem" class="doubleChart">{{.lineChart}}</div>
                   <div id="tickerChart2elem" class="doubleChart extraChart">{{.klineChart}}</div>
-                  <div class="mt-1 px-2 py-1 bg-warning text-dark">Business Summary</div>
-                  <div class="px-2 py-1 bg-dark text-light small paragraph">
-                    {{.ticker_description.BusinessSummary}}
-                    <br><br>
-                    {{.ticker.CompanyName}}<br>
-                    {{.ticker.Address}}<br>
-                    {{.ticker.City}}, {{.ticker.State}} {{.ticker.Zip}}
-                    <br>{{.ticker.Country}}<br>
-                    <br>
-                    {{.ticker.Phone}}<br>
-                    <a href="{{.ticker.Website}}" target="_blank">{{.ticker.Website}}</a>
-                  </div>
 
                   {{if gt .ticker_dailies.Count 0}}
                   <div id="tickerChart3elem" class="extraChart">
                     <div class="mx-auto price-table">
-                      <table class="table table-dark table-striped table-sm">
+                      <table class="table table-dark table-striped table-sm mb-0">
                         <tr class="text-info">
                           <th scope="col" class="text-center">At End of Date</th>
                           <th scope="col" class="pe-2 text-end">Open Price</th>
@@ -43,7 +31,7 @@
                         </tr>
                       {{range .ticker_dailies.Reverse.Days}}
                        <tr>
-                         <td class="text-center"><a class="text-white" href="/view/{{$.ticker.TickerSymbol}}/{{$.exchange.ExchangeAcronym}}/{{.PriceDate}}">{{.PriceDate}}</a></td>
+                         <td class="text-center"><a class="text-white" href="/view/{{$.ticker.TickerSymbol}}/{{$.exchange.ExchangeAcronym}}/{{.PriceDate}}">{{.PriceDate}}</a> {{if .IsFinalPrice}}{{else}}<i class="fas fa-lock-open-alt"></i>{{end}}</td>
                          <td class="pe-2 text-end">{{printf "%.2f" .OpenPrice}}</td>
                          <td class="pe-2 text-end">{{printf "%.2f" .HighPrice}}</td>
                          <td class="pe-2 text-end">{{printf "%.2f" .LowPrice}}</td>
@@ -56,6 +44,18 @@
                   </div><!-- tickerChart3elem -->
                   {{- end -}}
 
+                  <div class="mt-1 px-2 py-1 bg-warning text-dark">Business Summary</div>
+                  <div class="px-2 py-1 bg-dark text-light small paragraph">
+                    {{.ticker_description.BusinessSummary}}
+                    <br><br>
+                    {{.ticker.CompanyName}}<br>
+                    {{.ticker.Address}}<br>
+                    {{.ticker.City}}, {{.ticker.State}} {{.ticker.Zip}}
+                    <br>{{.ticker.Country}}<br>
+                    <br>
+                    {{.ticker.Phone}}<br>
+                    <a href="{{.ticker.Website}}" target="_blank">{{.ticker.Website}}</a>
+                  </div>
                 </div>
 
                 <div class="flex-fill small">
