@@ -59,6 +59,9 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 	// get Ticker_Attributes
 	tickerAttributes, _ := ticker.getAttributes(ctx)
 
+	// get Ticker_Splits
+	tickerSplits, _ := ticker.getSplits(ctx)
+
 	lastClose, priorClose := ticker.getLastAndPriorClose(ctx)
 	lastTickerDailyMove, _ := getLastTickerDailyMove(db, ticker.TickerId)
 
@@ -80,6 +83,7 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 	webdata["priorClose"] = priorClose
 	webdata["ticker_updowns"] = tickerUpDowns
 	webdata["ticker_attributes"] = tickerAttributes
+	webdata["ticker_splits"] = tickerSplits
 	webdata["last_ticker_daily_move"] = lastTickerDailyMove
 	webdata["ticker_dailies"] = TickerDailies{ticker_dailies}
 	webdata["watches"] = webwatches

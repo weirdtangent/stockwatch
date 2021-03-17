@@ -98,7 +98,9 @@ func (td *TickerDaily) create(ctx context.Context) error {
 	return err
 }
 
-func getTickerDaily(db *sqlx.DB, ticker_id int64, daily_date string) (*TickerDaily, error) {
+func getTickerDaily(ctx context.Context, ticker_id int64, daily_date string) (*TickerDaily, error) {
+	db := ctx.Value("db").(*sqlx.DB)
+
 	var tickerdaily TickerDaily
 	if len(daily_date) > 10 {
 		daily_date = daily_date[0:10]

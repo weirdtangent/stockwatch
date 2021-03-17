@@ -5,9 +5,7 @@ var is_market_open = document.currentScript.getAttribute('is_market_open');
 var quote_refresh = document.currentScript.getAttribute('quote_refresh');
 
 function update_quote(count) {
-  setTimeout(function() {
-    $('.hideTillComplete').show()
-  }, 1 * 1000);
+  $('#auto_refresh_working').html('<i class="ms-2 mb-2 myyellow fad fa-pulse fa-signal-stream"></i>')
 
   var response = $.ajax({
     type: 'GET',
@@ -30,13 +28,14 @@ function update_quote(count) {
         $('#is_market_open').delay(100).fadeOut().fadeIn('slow').text("TRADING").delay(100).fadeOut().fadeIn('slow')
       } else if (!is_market_open && $('#is_market_open_color').hasClass("text-success")) {
         $('#is_market_open_color').fadeOut().fadeIn('slow').removeClass("text-success").addClass("text-danger").fadeOut().fadeIn('slow')
-        $('#is_market_open').delay(100).fadeOut().fadeIn('slow').text("CLOSER").delay(100).fadeOut().fadeIn('slow')
+        $('#is_market_open').delay(100).fadeOut().fadeIn('slow').text("CLOSED").delay(100).fadeOut().fadeIn('slow')
       }
       if (count == 0) {
         $('#auto_refresh').delay(100).fadeOut().fadeIn('slow').html('<i class="ms-2 mb-2 far fa-pause-circle"></i> paused').delay(100).fadeOut().fadeIn('slow')
       }
     },
     complete: function() {
+      $('#auto_refresh_working').html('')
       if (count > 0) {
         if (is_market_open) {
           setTimeout(function() {

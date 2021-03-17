@@ -79,11 +79,11 @@ func GradeColor(gradeStr string) string {
 	switch lcGradeStr {
 	case "strong buy":
 		return "text-success"
-	case "buy", "outperform", "moderate buy", "accumulate", "overweight", "add":
+	case "buy", "outperform", "moderate buy", "accumulate", "overweight", "add", "market perform", "sector perform":
 		return "text-success"
-	case "hold":
+	case "hold", "neutral", "in-line", "equal-weight":
 		return "text-warning"
-	case "sell", "underperform", "moderate sell", "weak hold", "underweight", "reduce":
+	case "sell", "underperform", "moderate sell", "weak hold", "underweight", "reduce", "market underperform", "sector underperform":
 		return "text-danger"
 	case "strong sell":
 		return "text-danger"

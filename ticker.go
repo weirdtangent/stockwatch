@@ -355,8 +355,7 @@ func (t Ticker) getAttributes(ctx context.Context) ([]TickerAttribute, error) {
 	tickerAttributes := make([]TickerAttribute, 0)
 
 	rows, err := db.Queryx(
-		`SELECT * FROM ticker_attribute WHERE ticker_id=?`,
-		t.TickerId)
+		`SELECT * FROM ticker_attribute WHERE ticker_id=?`, t.TickerId)
 	if err != nil {
 		return tickerAttributes, err
 	}
@@ -380,6 +379,38 @@ func (t Ticker) getAttributes(ctx context.Context) ([]TickerAttribute, error) {
 	}
 
 	return tickerAttributes, nil
+}
+
+func (t Ticker) getSplits(ctx context.Context) ([]TickerSplit, error) {
+	db := ctx.Value("db").(*sqlx.DB)
+	logger := log.Ctx(ctx)
+
+	var tickerSplit TickerSplit
+	tickerSplits := make([]TickerSplit, 0)
+
+	rows, err := db.Queryx(
+		`SELECT * FROM ticker_split WHERE ticker_id=?`, t.TickerId)
+	if err != nil {
+		return tickerSplits, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err = rows.StructScan(&tickerSplit)
+		if err != nil {
+			logger.Warn().Err(err).
+				Str("table_name", "ticker_attribute").
+				Msg("Error reading result rows")
+		} else {
+			tickerSplits = append(tickerSplits, tickerSplit)
+		}
+
+	}
+	if err := rows.Err(); err != nil {
+		return tickerSplits, err
+	}
+
+	return tickerSplits, nil
 }
 
 // misc -----------------------------------------------------------------------

@@ -16,7 +16,8 @@
                   {{ template "_chart_js" }}
                   <div id="tickerChart1elem" class="doubleChart">{{.lineChart}}</div>
                   <div id="tickerChart2elem" class="doubleChart extraChart">{{.klineChart}}</div>
-                  <div class="mt-3 px-2 py-1 bg-dark text-light small paragraph">
+                  <div class="mt-1 px-2 py-1 bg-warning text-dark">Business Summary</div>
+                  <div class="px-2 py-1 bg-dark text-light small paragraph">
                     {{.ticker_description.BusinessSummary}}
                     <br><br>
                     {{.ticker.CompanyName}}<br>
@@ -58,26 +59,40 @@
                 </div>
 
                 <div class="flex-fill small">
+                  {{if .ticker_attributes}}
                   <div class="list-group list-group-flush text-info">
-                    <div class="list-group-item text-warning">Financial Details</div>
+                    <div class="list-group-item bg-warning text-dark">Financial Details</div>
                     {{range .ticker_attributes}}
                     <div class="list-group-item">
                       {{.AttributeName}} <span class="text-light">{{.AttributeValue}}</span>
                     </div>
                     {{end}}
                   </div>
+                  {{end}}
+                  {{if .ticker_updowns}}
                   <div class="list-group list-group-flush">
-                    <div class="list-group-item text-warning">Up/Downs (last 90 days)</div>
+                    <div class="list-group-item bg-warning text-dark">Up/Downs (last 90 days)</div>
                     {{range .ticker_updowns}}
-                    <div class="list-group-item">
-                      {{FormatDatetimeStr .UpDownDate "Jan 2"}} :
+                    <div class="list-group-item text-info">
+                      On <span class="text-light">{{FormatDatetimeStr .UpDownDate "Jan 2"}}</span> :
                       <span class="{{ GradeColor .UpDownToGrade}}">{{.UpDownToGrade}}</span>
                       <span class="text-light">by</span> {{.UpDownFirm}}
-                      {{if .UpDownFromGrade}}<span class="text-light">from</span> <span class="{{ GradeColor .UpDownFromGrade}}">{{.UpDownFromGrade}}</span>{{end}}
+                      {{if .UpDownFromGrade}}<span class="text-light">previously</span> <span class="{{ GradeColor .UpDownFromGrade}}">{{.UpDownFromGrade}}</span>{{end}}
                       <span class="{{ SinceColor .UpDownSince}}">{{.UpDownSince}}</span>
                     </div>
                     {{end}}
                   </div>
+                  {{end}}
+                  {{if .ticker_splits}}
+                  <div class="list-group list-group-flush text-info">
+                    <div class="list-group-item bg-warning text-dark">Historical Splits</div>
+                    {{range .ticker_splits}}
+                    <div class="list-group-item">
+                      On <span class="text-light">{{FormatDatetimeStr .SplitDate "Jan 2 2006"}}</span>, split <span class="text-light">{{.SplitRatio}}</span>
+                    </div>
+                    {{end}}
+                  </div>
+                  {{end}}
                 </div>
               </div>
             </div><!-- col-12 -->
