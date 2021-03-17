@@ -56,7 +56,7 @@ $(document).ready(function() {
 
   // at most, 30 updates: 10 min during open, 7.5 hours while closed
   setTimeout(function() {
-    update_quote(3);
+    update_quote(30);
   }, quote_refresh * 1000);
 
   $('#auto_refresh').on('click', function() {
