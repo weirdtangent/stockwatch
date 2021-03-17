@@ -1,41 +1,53 @@
 {{- define "_ticker_info" -}}
-                  <h6 class="small ps-1 text-info">
+                  <div class="small text-info">
                     Share price:
                     <span id="quote_shareprice" class="h4 text-white">
-                      {{if .quote}}{{printf "$%.2f" .quote.MarketPrice}}
+                      {{if .quote}}{{printf "$%.2f" .quote.QuotePrice}}
                       {{else}}{{ printf "$%.2f" .lastClose.ClosePrice }}
                       {{end}}
+                    </span>
+                    {{if .quote}}
+                      {{if ge .quote.QuoteChange 0.0 }}
+                        <span class="h5 text-success"><i id="quote_dailymove" class="fas fa-arrow-up"></i>
+                          <span id="quote_change">{{ printf "$%.2f" .quote.QuoteChange }}</span> (<span id="quote_change_pct">{{ printf "%.2f%%" .quote.QuoteChangePct }}</span>)
+                        </span>
+                      {{else}}
+                        <span class="h5 text-danger"><i id="quote_dailymove" class="fas fa-arrow-down"></i>
+                          <span id="quote_change">{{ printf "$%.2f" .quote.QuoteChange }}</span> (<span id="quote_change_pct">{{ printf "%.2f%%" .quote.QuoteChangePct }}</span>)
+                        </span>
+                      {{end}}
+                    {{else}}
                       {{if eq .last_ticker_daily_move "up"}}
                         <span class="h5 text-success"><i id="quote_dailymove" class="fas fa-arrow-up"></i>
-                        {{if .quote}}{{ PriceDiffAmt .quote.MarketPrice .lastClose.ClosePrice }} ({{ PriceDiffPerc .quote.MarketPrice .lastClose.ClosePrice }})
+                        {{if .quote}}{{ printf "$%.2f" .quote.QuoteChange }} ({{ .quote.QuoteChangePct }})
                         {{else}}{{ PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }} ({{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }})
                         {{end}}
                         </span>
                       {{else if eq .last_ticker_daily_move "down"}}
                         <span class="h5 text-danger"><i id="quote_dailymove" class="fas fa-arrow-down"></i>
-                        {{if .quote}}{{ PriceDiffAmt .quote.MarketPrice .lastClose.ClosePrice }} ({{ PriceDiffPerc .quote.MarketPrice .lastClose.ClosePrice }})
-                        {{else}}{{ PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }} ({{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }})
+                        {{if .quote}}{{ printf "$%.2f" .quote.QuoteChange }} ({{ .quote.QuoteChangePct }})
+                        {else}}{{ PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }} ({{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }})
                         {{end}}
                         </span>
                       {{end}}
-                    </span>
+                    {{end}}
                     <span class="text-info">
-                      {{if .quote}}as of </span><span id="quote_asof" class="text-light">{{ FormatUnixTime .quote.MarketTime "Jan 2 15:04" }}</span>
+                      {{if .quote}}as of </span><span id="quote_asof" class="text-light">{{ FormatUnixTime .quote.QuoteTime "Jan 2 15:04" }}</span>
                       {{else}}at close on </span><a id="quote_asof" class="h6 text-white text-decoration-none" href="/view/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeAcronym}}/{{.lastClose.PriceDate}}">{{ FormatDatetimeStr .lastClose.PriceDate "Jan 2" }}</a>
                       {{end}}
                     </span>
-                  </h6>
-                  <h6 class="small ps-1 text-info">
+                  </div>
+                  <div class="small text-info">
                   {{if .quote}}
-                    Ask: <span id="quote_ask" class="h6 text-light">{{ printf "$%.2f" .quote.Ask }}</span>
-                    Bid: <span id="quote_bid" class="h6 text-light">{{ printf "$%.2f" .quote.Bid }}</span>
-                    Today's range: <span id="quote_range" class="h6 text-light">{{ .quote.MarketDayRange }}</span>
+                    Ask: <span id="quote_ask" class="h6 text-light">{{ printf "$%.2f" .quote.QuoteAsk}}</span> for <span id="quote_asksize" class="h6 text-light pe-2">{{.quote.QuoteAskSize}}</span>
+                    Bid: <span id="quote_bid" class="h6 text-light">{{ printf "$%.2f" .quote.QuoteBid}}</span> for <span id="quote_bidsize" class="h6 text-light pe-2">{{.quote.QuoteBidSize}}</span>
+                    Today's range: <span id="quote_range" class="h6 text-light">{{ printf "$%.2f" .quote.QuoteLow }} - {{ printf "$%.2f" .quote.QuoteHigh }}</span>
                   {{else}}
                     Open: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.OpenPrice }}</span>
                     High: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.HighPrice }}</span>
                     Low: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.LowPrice }}</span>
                     Close: <span class="text-light">{{ printf "$%.2f" .lastClose.ClosePrice }}</span>
                   {{end}}
-                  {{if .config.is_market_open}}<i class="ms-2 mb-2 fad fa-sync fa-spin"></i> {{.config.quote_refresh }} sec{{end}}
-                  </h6>
+                  <span id="auto_refresh">{{if .config.is_market_open}}<i class="ms-2 mb-2 fad fa-sync fa-spin"></i> {{.config.quote_refresh }} sec{{end}}</span>
+                  </div>
 {{- end}}

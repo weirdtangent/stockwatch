@@ -14,7 +14,7 @@ require (
 	github.com/weirdtangent/myaws v0.1.0
 	github.com/weirdtangent/mymath v0.1.0
 	github.com/weirdtangent/mytime v0.1.1
-	github.com/weirdtangent/yahoofinance v0.1.9
+	github.com/weirdtangent/yahoofinance v0.1.10
 	golang.org/x/net v0.0.0-20210316092652-d523dce5a7f4 // indirect
 	golang.org/x/oauth2 v0.0.0-20210313182246-cd4f82c27b84
 	golang.org/x/sys v0.0.0-20210316164454-77fc1eacc6aa // indirect

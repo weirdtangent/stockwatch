@@ -4,6 +4,10 @@ body {
   font-family: 'Noto Sans', sans-serif !important;
 }
 
+.a:hover {
+  color: #F5E239;
+}
+
 .logo {
   background-color: #375a7f;
 }
@@ -50,6 +54,11 @@ body.privacy .main-content {
 div.paragraph {
   display: inline-block;
   max-width: 750px;
+}
+
+#auto_refresh:hover {
+  color: #F5E239;
+  cursor: pointer;
 }
 
 .doubleChart > div:first-of-type {

@@ -183,6 +183,8 @@ github.com/weirdtangent/yahoofinance v0.1.8 h1:rJOfgOn3NGNAsRR7zZVzrTgFf9QeMh6oK
 github.com/weirdtangent/yahoofinance v0.1.8/go.mod h1:xtiQKy84YY3B01U8Hkp6lvRBbuMwSVSRF1tjnKOrsGg=
 github.com/weirdtangent/yahoofinance v0.1.9 h1:18/id2MIebmi+9FRlNIRKY8WhDFt/QiB3hYVDc3HB/E=
 github.com/weirdtangent/yahoofinance v0.1.9/go.mod h1:baHpY9B6IxbX4x6xV4pt0Cp63aVMxKH0RMLgj862Yyo=
+github.com/weirdtangent/yahoofinance v0.1.10 h1:H05GHLPGJesitB0KBbP6+rsU0qmbL8ZEJ4UXWom3Vng=
+github.com/weirdtangent/yahoofinance v0.1.10/go.mod h1:hnaXkRMF5YYAOUM3kKFnNgNViByPumPbkEN4yfgFyh4=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

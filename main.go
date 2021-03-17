@@ -44,6 +44,10 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to RDS")
 	}
+	_, err = db.Exec("SET NAMES utf8mb4 COLLATE utf8mb4_general_ci")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to switch RDS to UTF8")
+	}
 
 	// connect to Dynamo
 	ddb, err := myaws.DDBConnect(awssess)

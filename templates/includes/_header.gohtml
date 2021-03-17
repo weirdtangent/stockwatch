@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta http-equiv="content-type" content="text/html;charset=utf-7">
     <meta name="google-signin-client_id" content="602086455575-vj2spkou0ucsntgol9srfkf8mka3o5i2.apps.googleusercontent.com">
     <link href="/static/css/custom-dark.css" rel="stylesheet">
     <link href="/static/css/internal.css" rel="stylesheet">
@@ -53,5 +53,9 @@
               {{end}}
             </div>
             {{end}}
+
+            <div id="is_market_open_color" class="flex-grow-1 align-self-center flush-right {{if .config.is_market_open}}text-success{{else}}text-danger{{end}}">
+              <i class="fad fa-power-off"></i> <span id="is_market_open">{{if .config.is_market_open}}TRADING{{else}}CLOSED{{end}}</span>
+            </div>
           </div><!-- d-flex menubar -->
 {{- end}}

@@ -4,7 +4,7 @@ var acronym = document.currentScript.getAttribute('acronym');
 var is_market_open = document.currentScript.getAttribute('is_market_open');
 var quote_refresh = document.currentScript.getAttribute('quote_refresh');
 
-function update_quote() {
+function update_quote(count) {
   setTimeout(function() {
     $('.hideTillComplete').show()
   }, 1 * 1000);
@@ -14,7 +14,7 @@ function update_quote() {
     url: '/api/v1/quote?symbol=' + symbol + '&acronym=' + acronym,
     async: true,
     success: function(response) {
-      ['quote_shareprice', 'quote_ask', 'quote_bid', 'quote_asof'].forEach(function(item) {
+      ['quote_shareprice', 'quote_ask', 'quote_asksize', 'quote_bid', 'quote_bidsize', 'quote_asof', 'quote_change', 'quote_change_pct'].forEach(function(item) {
         if ($('#' + item).text() != response['data'][item]) {
           ($('#' + item).delay(100).fadeOut().fadeIn('slow').text(response['data'][item])).delay(100).fadeOut().fadeIn('slow')
         }
@@ -25,12 +25,28 @@ function update_quote() {
         $('#quote_dailymove').fadeOut().fadeIn('slow').removeClass("fa-arrow-down text-danger").addClass("fa-arrow-up text-success").fadeOut().fadeIn('slow')
       }
       is_market_open = response.data.is_market_open
+      if (is_market_open && $('#is_market_open_color').hasClass("text-danger")) {
+        $('#is_market_open_color').fadeOut().fadeIn('slow').removeClass("text-danger").addClass("text-success").fadeOut().fadeIn('slow')
+        $('#is_market_open').delay(100).fadeOut().fadeIn('slow').text("TRADING").delay(100).fadeOut().fadeIn('slow')
+      } else if (!is_market_open && $('#is_market_open_color').hasClass("text-success")) {
+        $('#is_market_open_color').fadeOut().fadeIn('slow').removeClass("text-success").addClass("text-danger").fadeOut().fadeIn('slow')
+        $('#is_market_open').delay(100).fadeOut().fadeIn('slow').text("CLOSER").delay(100).fadeOut().fadeIn('slow')
+      }
+      if (count == 0) {
+        $('#auto_refresh').delay(100).fadeOut().fadeIn('slow').html('<i class="ms-2 mb-2 far fa-pause-circle"></i> paused').delay(100).fadeOut().fadeIn('slow')
+      }
     },
     complete: function() {
-      if (is_market_open) {
-        setTimeout(function() {
-          update_quote();
-        }, quote_refresh * 1000);
+      if (count > 0) {
+        if (is_market_open) {
+          setTimeout(function() {
+            update_quote(count-1);
+          }, quote_refresh * 1000);
+        } else {
+          setTimeout(function() {
+            update_quote(count-1);
+          }, 15 * 60 * 1000);
+        }
       }
     }
   });
@@ -38,9 +54,15 @@ function update_quote() {
 
 $(document).ready(function() { 
 
-  if (is_market_open) {
-    update_quote();
-  }
+  // at most, 30 updates: 10 min during open, 7.5 hours while closed
+  setTimeout(function() {
+    update_quote(3);
+  }, quote_refresh * 1000);
+
+  $('#auto_refresh').on('click', function() {
+    $('#auto_refresh').delay(100).fadeOut().fadeIn('slow').html('<i class="ms-2 mb-2 fad fa-sync fa-spin"></i> ' + quote_refresh + ' sec</span>').delay(100).fadeOut().fadeIn('slow');
+    update_quote(3);
+  })
 
   $('input[name=pickChart]').each(function (e) {
     elem = $('#' + this.id + 'elem');

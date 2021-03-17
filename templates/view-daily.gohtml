@@ -3,7 +3,7 @@
           <script src="/static/js/view.js"
             symbol="{{.ticker.TickerSymbol}}"
             acronym="{{.exchange.ExchangeAcronym}}"
-            market_is_open="{{.config.market_is_open}}"
+            is_market_open="{{.config.is_market_open}}"
             quote_refresh="{{.config.quote_refresh}}">
           </script>
 
@@ -16,7 +16,17 @@
                   {{ template "_chart_js" }}
                   <div id="tickerChart1elem" class="doubleChart">{{.lineChart}}</div>
                   <div id="tickerChart2elem" class="doubleChart extraChart">{{.klineChart}}</div>
-                  <div class="mt-3 px-2 py-1 bg-dark text-light small paragraph">{{.ticker_description.BusinessSummary}}</div>
+                  <div class="mt-3 px-2 py-1 bg-dark text-light small paragraph">
+                    {{.ticker_description.BusinessSummary}}
+                    <br><br>
+                    {{.ticker.CompanyName}}<br>
+                    {{.ticker.Address}}<br>
+                    {{.ticker.City}}, {{.ticker.State}} {{.ticker.Zip}}
+                    <br>{{.ticker.Country}}<br>
+                    <br>
+                    {{.ticker.Phone}}<br>
+                    <a href="{{.ticker.Website}}" target="_blank">{{.ticker.Website}}</a>
+                  </div>
 
                   {{if gt .ticker_dailies.Count 0}}
                   <div id="tickerChart3elem" class="extraChart">
@@ -50,10 +60,11 @@
                 <div class="flex-fill small">
                   <div class="list-group list-group-flush text-info">
                     <div class="list-group-item text-warning">Financial Details</div>
+                    {{range .ticker_attributes}}
                     <div class="list-group-item">
-                      Last close: <span class="text-light">{{printf "$%.2f" .lastClose.ClosePrice}}</span>
-                      on <span class="text-light">{{ FormatDatetimeStr .lastClose.PriceDate "Jan 2" }}</span>
+                      {{.AttributeName}} <span class="text-light">{{.AttributeValue}}</span>
                     </div>
+                    {{end}}
                   </div>
                   <div class="list-group list-group-flush">
                     <div class="list-group-item text-warning">Up/Downs (last 90 days)</div>

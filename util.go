@@ -57,6 +57,23 @@ func Over24Hours(dateStr string) bool {
 	return dur.Hours() >= 24.0
 }
 
+func Over24HoursUTC(dateStr string) bool {
+	var dateObj time.Time
+	if len(dateStr) == 10 {
+		dateObj, _ = time.Parse("2006-01-02", dateStr)
+	} else if len(dateStr) == 19 {
+		dateObj, _ = time.Parse("2006-01-02 15:04:05", dateStr)
+	} else {
+		log.Fatal().Str("dateStr", dateStr).Msg("Unknown how to parse this datetime string")
+	}
+
+	currentDate := time.Now()
+
+	dur := currentDate.Sub(dateObj)
+	log.Info().Msgf("The diff between %s and %s is %d hours", dateObj, currentDate, dur.Hours())
+	return dur.Hours() >= 24.0
+}
+
 func GradeColor(gradeStr string) string {
 	lcGradeStr := strings.ToLower(gradeStr)
 	switch lcGradeStr {

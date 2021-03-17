@@ -47,7 +47,7 @@ func chartHandlerTickerDailyKLine(ctx context.Context, ticker *Ticker, exchange 
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
 		charts.WithTitleOpts(opts.Title{
-			Title:    fmt.Sprintf("%s (%s) %s", ticker.TickerSymbol, exchange.ExchangeAcronym, ticker.TickerName),
+			Title:    fmt.Sprintf("%s (%s) %s", ticker.TickerSymbol, exchange.ExchangeName, ticker.TickerName),
 			Subtitle: "Share Price",
 			Target:   nonce, // crazy hack to get nonce into scripts
 		}),

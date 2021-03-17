@@ -32,7 +32,7 @@ func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 	json.NewDecoder(strings.NewReader(response)).Decode(&summaryResponse)
 
 	// create exchange
-	exchange = &Exchange{0, summaryResponse.QuoteType.Acronym, summaryResponse.Price.ExchangeName, summaryResponse.Price.ExchangeMic, 0, "", summaryResponse.QuoteType.ExchangeTZName, "", ""}
+	exchange = &Exchange{0, summaryResponse.Price.ExchangeMic, summaryResponse.Price.ExchangeName, summaryResponse.Price.ExchangeMic, 0, "", summaryResponse.QuoteType.ExchangeTZName, "", ""}
 	err = exchange.getOrCreate(ctx)
 	if err != nil {
 		logger.Error().Err(err).
@@ -58,6 +58,7 @@ func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 		summaryResponse.SummaryProfile.Phone,
 		summaryResponse.SummaryProfile.Sector,
 		summaryResponse.SummaryProfile.Industry,
+		"now()",
 		"",
 		"",
 	}

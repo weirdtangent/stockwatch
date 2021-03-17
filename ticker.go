@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -26,6 +28,7 @@ type Ticker struct {
 	Phone          string `db:"phone"`
 	Sector         string `db:"sector"`
 	Industry       string `db:"industry"`
+	FetchDatetime  string `db:"fetch_datetime"`
 	CreateDatetime string `db:"create_datetime"`
 	UpdateDatetime string `db:"update_datetime"`
 }
@@ -44,6 +47,14 @@ func (t *Ticker) getBySymbol(ctx context.Context) error {
 	return err
 }
 
+func (t *Ticker) checkBySymbol(ctx context.Context) int64 {
+	db := ctx.Value("db").(*sqlx.DB)
+
+	var tickerId int64
+	db.QueryRowx("SELECT ticker_id FROM ticker WHERE ticker_symbol=?", t.TickerSymbol).Scan(&tickerId)
+	return tickerId
+}
+
 func (t *Ticker) create(ctx context.Context) error {
 	db := ctx.Value("db").(*sqlx.DB)
 	logger := log.Ctx(ctx)
@@ -54,6 +65,9 @@ func (t *Ticker) create(ctx context.Context) error {
 	}
 
 	var insert = "INSERT INTO ticker SET ticker_symbol=?, exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=?"
+	if t.FetchDatetime == "now()" {
+		insert += ", fetch_datetime=now()"
+	}
 	res, err := db.Exec(insert, t.TickerSymbol, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry)
 	if err != nil {
 		logger.Fatal().Err(err).
@@ -90,14 +104,17 @@ func (t *Ticker) createOrUpdate(ctx context.Context) error {
 		return nil
 	}
 
-	err := t.getBySymbol(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("")
+	t.TickerId = t.checkBySymbol(ctx)
+	if t.TickerId == 0 {
 		return t.create(ctx)
 	}
 
-	var update = "UPDATE ticker SET exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=? WHERE ticker_id=?"
-	_, err = db.Exec(update, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry, t.TickerId)
+	var update = "UPDATE ticker SET exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=?"
+	if t.FetchDatetime == "now()" {
+		update += ", fetch_datetime=now()"
+	}
+	update += " WHERE ticker_id=?"
+	_, err := db.Exec(update, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry, t.TickerId)
 	if err != nil {
 		logger.Warn().Err(err).
 			Str("table_name", "ticker").
@@ -133,8 +150,9 @@ func (t *Ticker) needEODs(ctx context.Context) bool {
 
 	todayEOD := t.haveEODForDate(ctx, currentDateStr)
 
-	// if it's a workday and the market is open, then yes, we are
+	// if it's a workday and the market closed for the day and we don't have today's EOD, then YES
 	if currentWeekday != time.Saturday && currentWeekday != time.Sunday && currentTimeStr >= "1600" && todayEOD == false {
+		log.Info().Msgf("needEOD: Today is %s, it is %s, and we don't have that EOD, so YES", currentWeekday, currentTimeStr)
 		return true
 	}
 
@@ -144,6 +162,7 @@ func (t *Ticker) needEODs(ctx context.Context) bool {
 	priorEOD := t.haveEODForDate(ctx, priorWorkDateStr)
 
 	if priorEOD == false {
+		log.Info().Msgf("needEOD: PriorWorkDay is %s, and we don't have that EOD, so YES", priorWorkDateStr)
 		return true
 	}
 
@@ -188,7 +207,7 @@ func (t Ticker) haveEODForDate(ctx context.Context, dateStr string) bool {
 	db := ctx.Value("db").(*sqlx.DB)
 
 	var count int
-	err := db.QueryRowx("SELECT COUNT(*) FROM ticker_daily WHERE ticker_id=? AND price_date=?", t.TickerId, dateStr).StructScan(&count)
+	err := db.QueryRowx("SELECT COUNT(*) FROM ticker_daily WHERE ticker_id=? AND price_date=?", t.TickerId, dateStr).Scan(&count)
 	return err == nil && count > 0
 }
 
@@ -326,6 +345,41 @@ func (t *Ticker) getLastDaily(ctx context.Context) (*TickerDaily, error) {
 	var tickerdaily TickerDaily
 	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? ORDER BY price_date DESC LIMIT 1`, t.TickerId).StructScan(&tickerdaily)
 	return &tickerdaily, err
+}
+
+func (t Ticker) getAttributes(ctx context.Context) ([]TickerAttribute, error) {
+	db := ctx.Value("db").(*sqlx.DB)
+	logger := log.Ctx(ctx)
+
+	var tickerAttribute TickerAttribute
+	tickerAttributes := make([]TickerAttribute, 0)
+
+	rows, err := db.Queryx(
+		`SELECT * FROM ticker_attribute WHERE ticker_id=?`,
+		t.TickerId)
+	if err != nil {
+		return tickerAttributes, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err = rows.StructScan(&tickerAttribute)
+		if err != nil {
+			logger.Warn().Err(err).
+				Str("table_name", "ticker_attribute").
+				Msg("Error reading result rows")
+		} else {
+			underscore_rx := regexp.MustCompile(`_`)
+			tickerAttribute.AttributeName = string(underscore_rx.ReplaceAll([]byte(tickerAttribute.AttributeName), []byte(" ")))
+			tickerAttribute.AttributeName = strings.Title(strings.ToLower(tickerAttribute.AttributeName))
+			tickerAttributes = append(tickerAttributes, tickerAttribute)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return tickerAttributes, err
+	}
+
+	return tickerAttributes, nil
 }
 
 // misc -----------------------------------------------------------------------

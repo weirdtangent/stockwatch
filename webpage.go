@@ -2,14 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jmoiron/sqlx"
-	//"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/log"
 )
 
 func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
-	//logger := log.Ctx(ctx)
+	logger := log.Ctx(ctx)
 	db := ctx.Value("db").(*sqlx.DB)
 	messages := ctx.Value("messages").(*[]Message)
 	webdata := ctx.Value("webdata").(map[string]interface{})
@@ -19,13 +18,14 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 	ticker, err := getTickerBySymbol(ctx, symbol)
 
 	// if not there, or more than 24 hours old, hit API
-	if err != nil || Over24Hours(ticker.UpdateDatetime) {
+	if err != nil || Over24HoursUTC(ticker.FetchDatetime) {
 		// get Ticker info
-		ticker, err := loadTicker(ctx, symbol)
+		ticker, err = loadTicker(ctx, symbol)
 		if err != nil {
+			logger.Error().Err(err).Str("ticker", symbol).Msg("Fatal: could not load ticker info. Redirect back to desktop?")
 			return err
 		}
-		*messages = append(*messages, Message{fmt.Sprintf("Company/Symbol data updated for %s", ticker.TickerSymbol), "success"})
+		*messages = append(*messages, Message{"Company/Symbol data updated", "success"})
 	}
 
 	tickerDescription, _ := getTickerDescriptionByTickerId(ctx, ticker.TickerId)
@@ -33,6 +33,7 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 	// get Exchange info
 	exchange, err := getExchangeById(ctx, ticker.ExchangeId)
 	if err != nil {
+		logger.Error().Err(err).Str("ticker", symbol).Int64("exchange_id", ticker.ExchangeId).Msg("Fatal: could not load exchange info. Redirect back to desktop?")
 		return err
 	}
 
@@ -41,17 +42,22 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 		quote, err := loadTickerQuote(ctx, ticker.TickerSymbol)
 		if err == nil {
 			webdata["quote"] = quote
+			*messages = append(*messages, Message{"Live quote data updated", "success"})
 		}
+		webdata["open"] = true
 	}
 
 	// if it is a workday after 4 and we don't have the EOD, or we don't have the prior workday EOD, get them
 	if ticker.needEODs(ctx) {
 		loadTickerEODs(ctx, ticker)
-		*messages = append(*messages, Message{fmt.Sprintf("Historical data updated for %s", ticker.TickerSymbol), "success"})
+		*messages = append(*messages, Message{"Historical data updated", "success"})
 	}
 
 	// get Ticker_UpDowns
 	tickerUpDowns, _ := ticker.getUpDowns(ctx, 90)
+
+	// get Ticker_Attributes
+	tickerAttributes, _ := ticker.getAttributes(ctx)
 
 	lastClose, priorClose := ticker.getLastAndPriorClose(ctx)
 	lastTickerDailyMove, _ := getLastTickerDailyMove(db, ticker.TickerId)
@@ -73,6 +79,7 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 	webdata["lastClose"] = lastClose
 	webdata["priorClose"] = priorClose
 	webdata["ticker_updowns"] = tickerUpDowns
+	webdata["ticker_attributes"] = tickerAttributes
 	webdata["last_ticker_daily_move"] = lastTickerDailyMove
 	webdata["ticker_dailies"] = TickerDailies{ticker_dailies}
 	webdata["watches"] = webwatches

@@ -2,13 +2,13 @@
               <header class="bg-dark pt-2 mb-2 ps-2">
                 <div class="d-flex">
                   <div>
-                    <p class="text-truncate">
+                    <div class="text-truncate">
                       <span class="h5 text-info">Symbol:</span>
                       <a class="h3 text-white link-white text-decoration-none" href="/view/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeAcronym}}">{{.ticker.TickerSymbol}}</a>
                       <span class="h5 text-light pe-3 text-lowercase">/{{.exchange.ExchangeName}}</span>
                       <span class="h5 text-info">Name:</span>
                       <span class="h3 text-white">{{.ticker.TickerName}}</span>
-                    </p>
+                    </div>
                     {{ template "_ticker_info" . }}
                   </div>
                   <div class="flex-grow-1 text-end">

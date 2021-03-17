@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -16,6 +17,7 @@ func viewTickerDailyHandler() http.HandlerFunc {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
 		awssess := ctx.Value("awssess").(*session.Session)
+		messages := ctx.Value("messages").(*[]Message)
 		webdata := ctx.Value("webdata").(map[string]interface{})
 
 		session := getSession(r)
@@ -44,7 +46,9 @@ func viewTickerDailyHandler() http.HandlerFunc {
 
 		err := loadTickerDetails(ctx, symbol, timespan)
 		if err != nil {
-			http.NotFound(w, r)
+			log.Error().Err(err).Msg("Failed to load ticker details for viewing")
+			*messages = append(*messages, Message{fmt.Sprintf("Sorry, I had trouble loading that stock: %s", err.Error()), "danger"})
+			renderTemplateDefault(w, r, "desktop")
 			return
 		}
 

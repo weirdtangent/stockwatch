@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
@@ -53,7 +54,7 @@ func chartHandlerTickerDailyLine(ctx context.Context, ticker *Ticker, exchange *
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
 		charts.WithTitleOpts(opts.Title{
-			Title:    fmt.Sprintf("%s (%s) %s", ticker.TickerSymbol, exchange.ExchangeAcronym, ticker.TickerName),
+			Title:    fmt.Sprintf("%s/%s - %s", ticker.TickerSymbol, strings.ToLower(exchange.ExchangeName), ticker.TickerName),
 			Subtitle: "Share Price",
 			Target:   nonce, // crazy hack to get nonce into scripts
 		}),
@@ -161,7 +162,7 @@ func chartHandlerTickerIntradayLine(ctx context.Context, ticker *Ticker, exchang
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
 		charts.WithTitleOpts(opts.Title{
-			Title:    fmt.Sprintf("%s (%s) %s", ticker.TickerSymbol, exchange.ExchangeAcronym, ticker.TickerName),
+			Title:    fmt.Sprintf("%s/%s - %s", ticker.TickerSymbol, strings.ToLower(exchange.ExchangeName), ticker.TickerName),
 			Subtitle: "Share Price for " + intradate,
 			Target:   nonce, // crazy hack to get nonce into scripts
 		}),

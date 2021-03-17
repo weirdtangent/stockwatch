@@ -66,7 +66,6 @@ func apiV1Handler() http.HandlerFunc {
 						} else if quote.QuoteChange < 0 {
 							dailyMove = "down"
 						}
-						QuoteDayRange := fmt.Sprintf("$%.2f - %.2f", quote.QuoteLow, quote.QuoteHigh)
 
 						if quote.QuotePrice > 0 {
 							jsonResponse.Data["quote_shareprice"] = fmt.Sprintf("$%.2f", quote.QuotePrice)
@@ -76,10 +75,10 @@ func apiV1Handler() http.HandlerFunc {
 							jsonResponse.Data["quote_bidsize"] = quote.QuoteBidSize
 							jsonResponse.Data["quote_dailymove"] = dailyMove
 							jsonResponse.Data["quote_change"] = fmt.Sprintf("$%.2f", quote.QuoteChange)
-							jsonResponse.Data["quote_change_pct"] = fmt.Sprintf("$%.2f", quote.QuoteChangePct)
+							jsonResponse.Data["quote_change_pct"] = fmt.Sprintf("%.2f%%", quote.QuoteChangePct)
 							jsonResponse.Data["quote_volume"] = quote.QuoteVolume
 							jsonResponse.Data["quote_asof"] = FormatUnixTime(quote.QuoteTime, "Jan 2 15:04")
-							jsonResponse.Data["quote_dailyrange"] = QuoteDayRange
+							jsonResponse.Data["quote_dailyrange"] = fmt.Sprintf("$%.2f - $%.2f", quote.QuoteLow, quote.QuoteHigh)
 							jsonResponse.Data["is_market_open"] = isMarketOpen()
 						}
 					}
