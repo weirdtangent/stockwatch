@@ -11,11 +11,11 @@ type MarketIndexDaily struct {
 	MarketIndexDailyId int64   `db:"marketindex_daily_id"`
 	MarketIndexId      int64   `db:"marketindex_id"`
 	PriceDate          string  `db:"price_date"`
-	OpenPrice          float32 `db:"open_price"`
-	HighPrice          float32 `db:"high_price"`
-	LowPrice           float32 `db:"low_price"`
-	ClosePrice         float32 `db:"close_price"`
-	Volume             float32 `db:"volume"`
+	OpenPrice          float64 `db:"open_price"`
+	HighPrice          float64 `db:"high_price"`
+	LowPrice           float64 `db:"low_price"`
+	ClosePrice         float64 `db:"close_price"`
+	Volume             float64 `db:"volume"`
 	CreateDatetime     string  `db:"create_datetime"`
 	UpdateDatetime     string  `db:"update_datetime"`
 }

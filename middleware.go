@@ -75,12 +75,16 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	messages := make([]Message, 0)
 
+	defaultConfig := make(map[string]interface{})
+	defaultConfig["is_market_open"] = isMarketOpen()
+	defaultConfig["quote_refresh"] = 20
+
 	r = r.Clone(context.WithValue(r.Context(), "awssess", ac.awssess))
 	r = r.Clone(context.WithValue(r.Context(), "db", ac.db))
 	r = r.Clone(context.WithValue(r.Context(), "sc", ac.sc))
 	r = r.Clone(context.WithValue(r.Context(), "yahoofinance_apikey", *yf_api_access_key))
 	r = r.Clone(context.WithValue(r.Context(), "yahoofinance_apihost", *yf_api_access_host))
-	r = r.Clone(context.WithValue(r.Context(), "config", ConfigData{}))
+	r = r.Clone(context.WithValue(r.Context(), "config", defaultConfig))
 	r = r.Clone(context.WithValue(r.Context(), "webdata", make(map[string]interface{})))
 	r = r.Clone(context.WithValue(r.Context(), "messages", &messages))
 	r = r.Clone(context.WithValue(r.Context(), "nonce", RandStringMask(32)))
@@ -169,7 +173,7 @@ func (s *Session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		logger.Fatal().Err(err).Msg("Failed to get/create session")
 	}
 	if session.IsNew {
-		session.Values["view_recents"] = []ViewPair{}
+		session.Values["view_recents"] = []string{}
 		session.Values["theme"] = "light"
 		err := session.Save(r, w)
 		if err != nil {

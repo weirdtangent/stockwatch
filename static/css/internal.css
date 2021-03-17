@@ -54,6 +54,10 @@ body.privacy .main-content {
   display: none;
 }
 
+.hideTillComplete {
+  display: none;
+}
+
 .price-table {
   max-width: 950px;
 }

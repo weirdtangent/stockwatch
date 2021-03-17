@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -39,6 +40,23 @@ func UnixToDatetimeStr(unixTime int64) string {
 	return dateTime.Format("2006-01-02 15:04:05")
 }
 
+func Over24Hours(dateStr string) bool {
+	var dateObj time.Time
+	if len(dateStr) == 10 {
+		dateObj, _ = time.Parse("2006-01-02", dateStr)
+	} else if len(dateStr) == 19 {
+		dateObj, _ = time.Parse("2006-01-02 15:04:05", dateStr)
+	} else {
+		log.Fatal().Str("dateStr", dateStr).Msg("Unknown how to parse this datetime string")
+	}
+
+	EasternTZ, _ := time.LoadLocation("America/New_York")
+	currentDate := time.Now().In(EasternTZ)
+
+	dur := currentDate.Sub(dateObj)
+	return dur.Hours() >= 24.0
+}
+
 func GradeColor(gradeStr string) string {
 	lcGradeStr := strings.ToLower(gradeStr)
 	switch lcGradeStr {
@@ -71,7 +89,7 @@ func SinceColor(sinceStr string) string {
 	}
 }
 
-func marketIsOpen() bool {
+func isMarketOpen() bool {
 	EasternTZ, _ := time.LoadLocation("America/New_York")
 	currentDate := time.Now().In(EasternTZ)
 	timeStr := currentDate.Format("1505")
@@ -85,4 +103,12 @@ func marketIsOpen() bool {
 	}
 
 	return true
+}
+
+func PriceDiffAmt(a, b float64) string {
+	return fmt.Sprintf("$%.2f", a-b)
+}
+
+func PriceDiffPerc(a, b float64) string {
+	return fmt.Sprintf("%.2f%%", (a-b)/a*100)
 }

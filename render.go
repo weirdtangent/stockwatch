@@ -10,12 +10,13 @@ import (
 
 func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname string) {
 	ctx := r.Context()
-	config := ctx.Value("config").(ConfigData)
+	config := ctx.Value("config").(map[string]interface{})
 	webdata := ctx.Value("webdata").(map[string]interface{})
 	messages := ctx.Value("messages").(*[]Message)
 	logger := log.Ctx(ctx)
 
-	config.TmplName = tmplname
+	config["template_name"] = tmplname
+
 	webdata["messages"] = Messages{*messages}
 	webdata["config"] = config
 
@@ -24,6 +25,8 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 		"FormatDatetimeStr": FormatDatetimeStr,
 		"GradeColor":        GradeColor,
 		"SinceColor":        SinceColor,
+		"PriceDiffAmt":      PriceDiffAmt,
+		"PriceDiffPerc":     PriceDiffPerc,
 	}
 
 	tmpl := template.New("blank").Funcs(funcMap)

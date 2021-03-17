@@ -12,8 +12,8 @@ type TickerIntraday struct {
 	TickerIntradayId int64   `db:"intraday_id"`
 	TickerId         int64   `db:"ticker_id"`
 	PriceDate        string  `db:"price_date"`
-	LastPrice        float32 `db:"last_price"`
-	Volume           float32 `db:"volume"`
+	LastPrice        float64 `db:"last_price"`
+	Volume           float64 `db:"volume"`
 	CreateDatetime   string  `db:"create_datetime"`
 	UpdateDatetime   string  `db:"update_datetime"`
 }

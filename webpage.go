@@ -5,11 +5,11 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog/log"
+	//"github.com/rs/zerolog/log"
 )
 
 func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
-	logger := log.Ctx(ctx)
+	//logger := log.Ctx(ctx)
 	db := ctx.Value("db").(*sqlx.DB)
 	messages := ctx.Value("messages").(*[]Message)
 	webdata := ctx.Value("webdata").(map[string]interface{})
@@ -17,33 +17,16 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 	// if we have this ticker and today is a weekend or we have today's closing price
 	// then we don't need to call APIs and load a bunch of data we already have!
 	ticker, err := getTickerBySymbol(ctx, symbol)
-	if err != nil || ticker.waitingForClosingPrice(ctx) {
-		log.Info().Msg("Check with Yahoo Finance, today is workday and we don't have a closing price yet")
 
+	// if not there, or more than 24 hours old, hit API
+	if err != nil || Over24Hours(ticker.UpdateDatetime) {
 		// get Ticker info
 		ticker, err := loadTicker(ctx, symbol)
 		if err != nil {
 			return err
 		}
-
-		// get Quote (live data)
-		ticker.getQuote(ctx)
-
-		// get Ticker EODs from API
-		updated, err := ticker.updateTickerPrices(ctx)
-		if err != nil {
-			*messages = append(*messages, Message{fmt.Sprintf("Failed to update End-of-day data for %s", ticker.TickerSymbol), "danger"})
-			logger.Warn().Err(err).
-				Str("symbol", ticker.TickerSymbol).
-				Int64("ticker_id", ticker.TickerId).
-				Msg("Failed to update EOD for ticker")
-		} else if updated {
-			*messages = append(*messages, Message{fmt.Sprintf("End-of-day data updated for %s", ticker.TickerSymbol), "success"})
-		}
+		*messages = append(*messages, Message{fmt.Sprintf("Company/Symbol data updated for %s", ticker.TickerSymbol), "success"})
 	}
-
-	// get Ticker_UpDowns
-	tickerUpDowns, _ := ticker.getUpDowns(ctx, 90)
 
 	// get Exchange info
 	exchange, err := getExchangeById(ctx, ticker.ExchangeId)
@@ -51,27 +34,31 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 		return err
 	}
 
-	//
-	daily, err := getTickerDailyMostRecent(db, ticker.TickerId)
-	if err != nil {
-		*messages = append(*messages, Message{fmt.Sprintf("No End-of-day data found for %s", ticker.TickerSymbol), "warning"})
+	// if the market is open, lets get a live quote
+	if isMarketOpen() {
+		quote, err := loadTickerQuote(ctx, ticker.TickerSymbol)
+		if err == nil {
+			webdata["quote"] = quote
+		}
 	}
-	lastTickerDailyMove, err := getLastTickerDailyMove(db, ticker.TickerId)
-	if err != nil {
-		lastTickerDailyMove = "unknown"
+
+	// if it is a workday after 4 and we don't have the EOD, or we don't have the prior workday EOD, get them
+	if ticker.needEODs(ctx) {
+		loadTickerEODs(ctx, ticker)
+		*messages = append(*messages, Message{fmt.Sprintf("Historical data updated for %s", ticker.TickerSymbol), "success"})
 	}
+
+	// get Ticker_UpDowns
+	tickerUpDowns, _ := ticker.getUpDowns(ctx, 90)
+
+	lastClose, priorClose := ticker.getLastAndPriorClose(ctx)
+	lastTickerDailyMove, _ := getLastTickerDailyMove(db, ticker.TickerId)
 
 	// load up to last 100 days of EOD data
-	ticker_dailies, err := ticker.LoadTickerDailies(db, timespan)
-	if err != nil {
-		return err
-	}
+	ticker_dailies, _ := ticker.getTickerEODs(ctx, timespan)
 
 	// load any active watches about this ticker
-	webwatches, err := loadWebWatches(db, ticker.TickerId)
-	if err != nil {
-		return err
-	}
+	webwatches, _ := loadWebWatches(db, ticker.TickerId)
 
 	// Build charts
 	var lineChartHTML = chartHandlerTickerDailyLine(ctx, ticker, exchange, ticker_dailies, webwatches)
@@ -80,7 +67,8 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 	webdata["ticker"] = ticker
 	webdata["exchange"] = exchange
 	webdata["timespan"] = timespan
-	webdata["ticker_daily"] = daily
+	webdata["lastClose"] = lastClose
+	webdata["priorClose"] = priorClose
 	webdata["ticker_updowns"] = tickerUpDowns
 	webdata["last_ticker_daily_move"] = lastTickerDailyMove
 	webdata["ticker_dailies"] = TickerDailies{ticker_dailies}

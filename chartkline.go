@@ -12,7 +12,7 @@ import (
 
 type klineData struct {
 	date string
-	data [4]float32
+	data [4]float64
 }
 
 func chartHandlerTickerDailyKLine(ctx context.Context, ticker *Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
@@ -33,7 +33,7 @@ func chartHandlerTickerDailyKLine(ctx context.Context, ticker *Ticker, exchange 
 		x_axis = append(x_axis, displayDate)
 		hidden_axis = append(hidden_axis, "")
 
-		candleData = append(candleData, opts.KlineData{Value: [4]float32{dailies[x].OpenPrice, dailies[x].ClosePrice, dailies[x].LowPrice, dailies[x].HighPrice}})
+		candleData = append(candleData, opts.KlineData{Value: [4]float64{dailies[x].OpenPrice, dailies[x].ClosePrice, dailies[x].LowPrice, dailies[x].HighPrice}})
 		volumeData = append(volumeData, opts.BarData{Value: dailies[x].Volume / 1000000})
 	}
 

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -17,6 +16,16 @@ type Ticker struct {
 	TickerSymbol   string `db:"ticker_symbol"`
 	ExchangeId     int64  `db:"exchange_id"`
 	TickerName     string `db:"ticker_name"`
+	CompanyName    string `db:"company_name"`
+	Address        string `db:"address"`
+	City           string `db:"city"`
+	State          string `db:"state"`
+	Zip            string `db:"zip"`
+	Country        string `db:"country"`
+	Website        string `db:"website"`
+	Phone          string `db:"phone"`
+	Sector         string `db:"sector"`
+	Industry       string `db:"industry"`
 	CreateDatetime string `db:"create_datetime"`
 	UpdateDatetime string `db:"update_datetime"`
 }
@@ -44,8 +53,8 @@ func (t *Ticker) create(ctx context.Context) error {
 		return nil
 	}
 
-	var insert = "INSERT INTO ticker SET ticker_symbol=?, exchange_id=?, ticker_name=?"
-	res, err := db.Exec(insert, t.TickerSymbol, t.ExchangeId, t.TickerName)
+	var insert = "INSERT INTO ticker SET ticker_symbol=?, exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=?"
+	res, err := db.Exec(insert, t.TickerSymbol, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry)
 	if err != nil {
 		logger.Fatal().Err(err).
 			Str("table_name", "ticker").
@@ -61,7 +70,7 @@ func (t *Ticker) create(ctx context.Context) error {
 			Msg("Failed on LAST_INSERTID")
 		return err
 	}
-	return err
+	return nil
 }
 
 func (t *Ticker) getOrCreate(ctx context.Context) error {
@@ -83,11 +92,12 @@ func (t *Ticker) createOrUpdate(ctx context.Context) error {
 
 	err := t.getBySymbol(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("")
 		return t.create(ctx)
 	}
 
-	var update = "UPDATE ticker SET exchange_id=?, ticker_name=? WHERE ticker_id=?"
-	_, err = db.Exec(update, t.ExchangeId, t.TickerName, t.TickerId)
+	var update = "UPDATE ticker SET exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=? WHERE ticker_id=?"
+	_, err = db.Exec(update, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry, t.TickerId)
 	if err != nil {
 		logger.Warn().Err(err).
 			Str("table_name", "ticker").
@@ -97,44 +107,95 @@ func (t *Ticker) createOrUpdate(ctx context.Context) error {
 	return t.getBySymbol(ctx)
 }
 
-func (t *Ticker) waitingForClosingPrice(ctx context.Context) bool {
-	EasternTZ, _ := time.LoadLocation("America/New_York")
-	currentDate := time.Now().In(EasternTZ)
-	timeStr := currentDate.Format("1505")
-	currentDateStr := currentDate.Format("2006-01-02")
-	weekday := currentDate.Weekday()
-	tickerDaily, err := t.getMostRecentPrice(ctx)
-	lastWorkDate := mytime.PriorWorkDate(currentDate)
-	lastWorkDateStr := lastWorkDate.Format("2006-01-02")
-
-	// if we have todays closing price, end of question
-	if err == nil && tickerDaily.PriceDate == currentDateStr {
-		return false
-	}
-
-	// if it's the weekend or prior to market open
-	if weekday == time.Saturday || weekday == time.Sunday || timeStr < "0930" {
-		// and we have the prior workday's closing price, we're good
-		if err == nil && tickerDaily.PriceDate == lastWorkDateStr {
-			return false
-		}
-	}
-
-	return true
-}
-
-func (t *Ticker) getMostRecentPrice(ctx context.Context) (*TickerDaily, error) {
+func (t *Ticker) createOrUpdateAttribute(ctx context.Context, attributeName string, attributeValue string) error {
 	db := ctx.Value("db").(*sqlx.DB)
 
-	var tickerDaily TickerDaily
-	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? ORDER BY price_date DESC LIMIT 1`, t.TickerId).StructScan(&tickerDaily)
-	return &tickerDaily, err
+	var attribute = TickerAttribute{0, t.TickerId, attributeName, attributeValue, "", ""}
+	err := attribute.getByUniqueKey(ctx)
+	if err == nil {
+		var update = "UPDATE ticker_attribute SET attribute_value=? WHERE ticker_id=? AND attribute_name=?"
+		db.Exec(update, attributeValue, t.TickerId, attributeName)
+		return nil
+	}
+
+	var insert = "INSERT INTO ticker_attribute SET ticker_id=?, attribute_name=?, attribute_value=?"
+	db.Exec(insert, t.TickerId, attributeName, attributeValue)
+	return nil
 }
 
-func (t Ticker) EarliestEOD(db *sqlx.DB) (string, float32, error) {
+// if it is a workday after 4 and we don't have the EOD, or we don't have the prior workday EOD, get them
+func (t *Ticker) needEODs(ctx context.Context) bool {
+	EasternTZ, _ := time.LoadLocation("America/New_York")
+	currentDate := time.Now().In(EasternTZ)
+	currentTimeStr := currentDate.Format("1505")
+	currentDateStr := currentDate.Format("2006-01-02")
+	currentWeekday := currentDate.Weekday()
+
+	todayEOD := t.haveEODForDate(ctx, currentDateStr)
+
+	// if it's a workday and the market is open, then yes, we are
+	if currentWeekday != time.Saturday && currentWeekday != time.Sunday && currentTimeStr >= "1600" && todayEOD == false {
+		return true
+	}
+
+	priorWorkDate := mytime.PriorWorkDate(currentDate)
+	priorWorkDateStr := priorWorkDate.Format("2006-01-02")
+
+	priorEOD := t.haveEODForDate(ctx, priorWorkDateStr)
+
+	if priorEOD == false {
+		return true
+	}
+
+	// if we have one for the prior work day, we should have them going back a year
+	return false
+}
+
+// we need to get two days of the most recent EOD prices for this ticker
+// on a weekend, or a weekday before open, we need the last work day, and the day before
+// on a weekday during market hours, or after close, we need the live quote and the prior work day
+func (t *Ticker) getLastAndPriorClose(ctx context.Context) (*TickerDaily, *TickerDaily) {
+	db := ctx.Value("db").(*sqlx.DB)
+
+	EasternTZ, _ := time.LoadLocation("America/New_York")
+	currentDate := time.Now().In(EasternTZ)
+	currentWeekday := currentDate.Weekday()
+	timeStr := currentDate.Format("1505")
+
+	// Lets assume "today's" close
+	lastCloseDate := currentDate
+	lastCloseDateStr := currentDate.Format("2006-01-02")
+
+	// but: up until 9:30am on weekdays or anytime on weekends, we want prior workday's close
+	if currentWeekday == time.Saturday || currentWeekday == time.Sunday || timeStr < "0930" {
+		lastCloseDate = mytime.PriorWorkDate(lastCloseDate)
+		lastCloseDateStr = lastCloseDate.Format("2006-01-02")
+	}
+
+	var lastClose TickerDaily
+	db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? AND price_date<=? ORDER BY price_date DESC LIMIT 1`, t.TickerId, lastCloseDateStr).StructScan(&lastClose)
+
+	// ok and now get the prior day to that
+	lastCloseDate = mytime.PriorWorkDate(lastCloseDate)
+	lastCloseDateStr = lastCloseDate.Format("2006-01-02")
+
+	var priorClose TickerDaily
+	db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? AND price_date<=? ORDER BY price_date DESC LIMIT 1`, t.TickerId, lastCloseDateStr).StructScan(&priorClose)
+	return &lastClose, &priorClose
+}
+
+func (t Ticker) haveEODForDate(ctx context.Context, dateStr string) bool {
+	db := ctx.Value("db").(*sqlx.DB)
+
+	var count int
+	err := db.QueryRowx("SELECT COUNT(*) FROM ticker_daily WHERE ticker_id=? AND price_date=?", t.TickerId, dateStr).StructScan(&count)
+	return err == nil && count > 0
+}
+
+func (t Ticker) EarliestEOD(db *sqlx.DB) (string, float64, error) {
 	type Earliest struct {
 		date  string
-		price float32
+		price float64
 	}
 	var earliest Earliest
 	err := db.QueryRowx("SELECT price_date, close_price FROM ticker_daily WHERE ticker_id=? ORDER BY price_date LIMIT 1", t.TickerId).StructScan(&earliest)
@@ -190,12 +251,12 @@ func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) bool {
 	return true
 }
 
-func (t *Ticker) getQuote(ctx context.Context) {
-	loadTickerQuote(ctx, t)
-}
+func (t Ticker) getTickerEODs(ctx context.Context, days int) ([]TickerDaily, error) {
+	db := ctx.Value("db").(*sqlx.DB)
+	logger := log.Ctx(ctx)
 
-func (t Ticker) LoadTickerDailies(db *sqlx.DB, days int) ([]TickerDaily, error) {
 	var ticker_daily TickerDaily
+
 	fromDate := mytime.DateStr(days * -1)
 	dailies := make([]TickerDaily, 0, days)
 
@@ -213,7 +274,7 @@ func (t Ticker) LoadTickerDailies(db *sqlx.DB, days int) ([]TickerDaily, error) 
 	for rows.Next() {
 		err = rows.StructScan(&ticker_daily)
 		if err != nil {
-			log.Warn().Err(err).
+			logger.Warn().Err(err).
 				Str("table_name", "ticker_daily").
 				Msg("Error reading result rows")
 		} else {
@@ -225,141 +286,6 @@ func (t Ticker) LoadTickerDailies(db *sqlx.DB, days int) ([]TickerDaily, error) 
 	}
 
 	return dailies, nil
-}
-
-func (t Ticker) LoadTickerIntraday(db *sqlx.DB, intradate string) ([]TickerIntraday, error) {
-	var intraday TickerIntraday
-	intradays := make([]TickerIntraday, 0)
-
-	rows, err := db.Queryx(
-		`SELECT * FROM intraday                                                                                                                                                  
-		 WHERE ticker_id=? AND price_date LIKE ? AND volume > 0                                                                                                                  
-		 ORDER BY price_date`,
-		t.TickerId, intradate+"%")
-	if err != nil {
-		return intradays, err
-	}
-	defer rows.Close()
-
-	// add pre-closing price
-	priorBusinessDay, err := mytime.PriorBusinessDayStr(intradate + " 21:05:00")
-	if err != nil {
-		return intradays, fmt.Errorf("Failed to get prior business day date")
-	}
-	preTickerDaily, err := getTickerDaily(db, t.TickerId, priorBusinessDay)
-	if err == nil {
-		intradays = append(intradays, TickerIntraday{0, t.TickerId, priorBusinessDay, preTickerDaily.ClosePrice, 0, "", ""})
-	} else {
-		log.Info().Msg("PriorBusinessDay close price was NOT included")
-	}
-
-	// add these intraday prices
-	for rows.Next() {
-		err = rows.StructScan(&intraday)
-		if err != nil {
-			log.Warn().Err(err).
-				Str("table_name", "intraday").
-				Msg("Error reading result rows")
-		} else {
-			intradays = append(intradays, intraday)
-		}
-	}
-	if err := rows.Err(); err != nil {
-		return intradays, err
-	}
-
-	// add post-opening price
-	nextBusinessDay, err := mytime.NextBusinessDayStr(intradate + " 13:55:00")
-	if err != nil {
-		return intradays, fmt.Errorf("Failed to get next business day date")
-	}
-	postTickerDaily, err := getTickerDaily(db, t.TickerId, nextBusinessDay)
-	if err == nil {
-		intradays = append(intradays, TickerIntraday{0, t.TickerId, nextBusinessDay, postTickerDaily.OpenPrice, 0, "", ""})
-	} else {
-		log.Info().Msg("NextBusinessDay open price was NOT included")
-	}
-
-	return intradays, nil
-}
-
-// see if we need to pull a ticker daily update:
-//  if we don't have the EOD price for the prior business day
-//  OR if we don't have it for the current business day and it's now 7pm or later
-func (t *Ticker) updateTickerPrices(ctx context.Context) (bool, error) {
-	logger := log.Ctx(ctx)
-
-	mostRecentPrice, err := t.getMostRecentPrice(ctx)
-	if err != nil {
-		mostRecentPrice = &TickerDaily{}
-	}
-	mostRecentPriceDate := mostRecentPrice.PriceDate
-	mostRecentAvailable := mostRecentPricesAvailable()
-
-	logger.Info().
-		Str("ticker", t.TickerSymbol).
-		Str("most_recent_price_date", mostRecentPriceDate).
-		Str("most_recent_available", mostRecentAvailable).
-		Msg("check if new EOD available for ticker")
-
-	if mostRecentPriceDate < mostRecentAvailable {
-		err = loadTickerPrices(ctx, t)
-		if err != nil {
-			return false, err
-		}
-		logger.Info().
-			Str("ticker", t.TickerSymbol).
-			Msg("Updated ticker with latest EOD prices")
-		return true, nil
-	}
-
-	return false, nil
-}
-
-// see if we need to pull intradays for the selected date:
-//  if we don't have the intraday prices for the selected date
-//  AND it was a prior business day or today and it's now 7pm or later
-func (t Ticker) updateTickerIntradays(ctx context.Context, intradate string) (bool, error) {
-	logger := log.Ctx(ctx)
-	db := ctx.Value("db").(*sqlx.DB)
-
-	haveTickerIntradayData, err := gotTickerIntradayData(db, t.TickerId, intradate)
-	if err != nil {
-		return false, err
-	}
-	if haveTickerIntradayData {
-		return false, nil
-	}
-
-	exchange, err := getExchangeById(ctx, t.ExchangeId)
-	if err != nil {
-		return false, err
-	}
-
-	mostRecentAvailable := mostRecentPricesAvailable()
-
-	logger.Info().
-		Str("symbol", t.TickerSymbol).
-		Str("acronym", exchange.ExchangeAcronym).
-		Str("intradate", intradate).
-		Str("mostRecentAvailable", mostRecentAvailable).
-		Msg("check if intraday data available for ticker")
-
-	if intradate <= mostRecentAvailable {
-		//err = fetchTickerIntraday(ctx, t, exchange, intradate)
-		err := fmt.Errorf("")
-		if err != nil {
-			return false, err
-		}
-		logger.Info().
-			Str("symbol", t.TickerSymbol).
-			Int64("tickerId", t.TickerId).
-			Str("intradate", intradate).
-			Msg("Updated ticker with intraday prices")
-		return true, nil
-	}
-
-	return false, nil
 }
 
 func (t Ticker) getUpDowns(ctx context.Context, daysAgo int) ([]TickerUpDown, error) {
@@ -392,6 +318,14 @@ func (t Ticker) getUpDowns(ctx context.Context, daysAgo int) ([]TickerUpDown, er
 	}
 
 	return upDowns, nil
+}
+
+func (t *Ticker) getLastDaily(ctx context.Context) (*TickerDaily, error) {
+	db := ctx.Value("db").(*sqlx.DB)
+
+	var tickerdaily TickerDaily
+	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? ORDER BY price_date DESC LIMIT 1`, t.TickerId).StructScan(&tickerdaily)
+	return &tickerdaily, err
 }
 
 // misc -----------------------------------------------------------------------

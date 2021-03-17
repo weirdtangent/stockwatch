@@ -205,7 +205,7 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 	session := getSession(r)
 	recents, _ := getRecents(session, r)
 	webdata["config"] = ConfigData{}
-	webdata["recents"] = Recents{*recents}
+	webdata["recents"] = *recents
 	webdata["nonce"] = nonce
 
 	if wid, err := r.Cookie("WID"); err == nil {

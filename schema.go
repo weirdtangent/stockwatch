@@ -29,7 +29,7 @@ type Watch struct {
 	TickerId       int64          `db:"ticker_id"`
 	SourceId       int64          `db:"source_id"`
 	SourceDate     string         `db:"source_date"`
-	TargetPrice    float32        `db:"target_price"`
+	TargetPrice    float64        `db:"target_price"`
 	TargetDate     sql.NullString `db:"target_date"`
 	CreateDatetime string         `db:"create_datetime"`
 	UpdateDatetime string         `db:"update_datetime"`
@@ -51,19 +51,17 @@ type GoogleProfileData struct {
 type ConfigData struct {
 	TmplName      string
 	GoogleProfile GoogleProfileData
+	ViewQuote     struct {
+		QuoteRefresh int
+	}
 }
 
 type WebWatch struct {
 	SourceDate    string
-	TargetPrice   float32
+	TargetPrice   float64
 	TargetDate    sql.NullString
 	SourceName    sql.NullString
 	SourceCompany sql.NullString
-}
-
-type ViewPair struct {
-	Symbol  string
-	Acronym string
 }
 
 type Message struct {

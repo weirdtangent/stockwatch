@@ -6,28 +6,22 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-type Recents struct {
-	ViewPairs []ViewPair
-}
-
-func getRecents(session *sessions.Session, r *http.Request) (*[]ViewPair, error) {
+func getRecents(session *sessions.Session, r *http.Request) (*[]string, error) {
 	//logger := log.Ctx(r.Context())
 	// get current list (if any) from session
-	recents := session.Values["view_recents"].([]ViewPair)
+	recents := session.Values["view_recents"].([]string)
 
 	return &recents, nil
 }
 
-func addTickerToRecents(session *sessions.Session, r *http.Request, symbol string, acronym string) (*[]ViewPair, error) {
+func addTickerToRecents(session *sessions.Session, r *http.Request, symbol string) (*[]string, error) {
 	//logger := log.Ctx(r.Context())
 	// get current list (if any) from session
-	recents := session.Values["view_recents"].([]ViewPair)
-
-	this_view := ViewPair{symbol, acronym}
+	recents := session.Values["view_recents"].([]string)
 
 	// if this symbol/exchange is already on their list just bomb out
 	for _, viewed := range recents {
-		if viewed == this_view {
+		if viewed == symbol {
 			return &recents, nil
 		}
 	}
@@ -37,7 +31,7 @@ func addTickerToRecents(session *sessions.Session, r *http.Request, symbol strin
 		recents = recents[len(recents)-4:]
 	}
 	// now append this new one to the end
-	recents = append(recents, this_view)
+	recents = append(recents, symbol)
 
 	// write it to the session
 	session.Values["view_recents"] = recents

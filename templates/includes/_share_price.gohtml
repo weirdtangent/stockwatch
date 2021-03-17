@@ -1,8 +1,0 @@
-{{- define "_share_price" -}}
-                    Share price: <span class="h4 text-light">{{ printf "$%.2f" .ticker_daily.ClosePrice }}</span>
-                    {{if eq .last_ticker_daily_move "up"}}<i class="fas fa-arrow-up text-success"></i>
-                    {{else if eq .last_ticker_daily_move "down"}}<i class="fas fa-arrow-down text-danger"></i>
-                    {{end}}
-                    <span class="text-info">at close on </span>
-                    <a class="h6 text-white text-decoration-none" href="/view/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeAcronym}}/{{.ticker_daily.PriceDate}}">{{ FormatDatetimeStr .ticker_daily.PriceDate "Jan 2" }}</a>
-{{- end}}

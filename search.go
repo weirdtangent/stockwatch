@@ -85,7 +85,7 @@ func searchHandler() http.HandlerFunc {
 					Str("search_string", searchString).
 					Str("symbol", searchResultTicker.TickerSymbol).
 					Msg("Search results")
-				http.Redirect(w, r, fmt.Sprintf("/view/%s/%s", searchResultTicker.TickerSymbol, searchResultTicker.ExchangeAcronym), http.StatusFound)
+				http.Redirect(w, r, fmt.Sprintf("/view/%s", searchResultTicker.TickerSymbol), http.StatusFound)
 				return
 			} else if searchType == "search" {
 				searchResults, err := listSearch(ctx, searchString, "both")

@@ -7,11 +7,11 @@
     <link href="/static/css/custom-dark.css" rel="stylesheet">
     <link href="/static/css/internal.css" rel="stylesheet">
     <script src="https://kit.fontawesome.com/beb4827de9.js" crossorigin="anonymous"></script>
-    <title>Graystorm StockWatch</title>
+    <title>{{if .ticker}}{{.ticker.TickerSymbol}} - {{.ticker.TickerName}}{{else}}Graystorm StockWatch{{end}}</title>
   </head>
 
-  <body id="page-top" class="{{.config.TmplName}}">
-    <script src="/static/vendor/jquery/jquery-3.5.1.min.js"></script>
+  <body id="page-top" class="{{.config.template_name}}">
+    <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
     <script src="/static/vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
@@ -40,11 +40,11 @@
             {{- if .WID}}
             <div class="flex-grow-1">
               {{- if not .hideRecents}}
-                {{- if .recents.ViewPairs}}
+                {{- if .recents}}
                   <ul class="flex-grow-1 nav">
                     <li class="nav-item me-2 pt-2">Recent:</li>
-                    {{range .recents.ViewPairs}}
-                      <li class="nav-item me-1 pt-2 recent"><a class="badge text-dark bg-warning text-decoration-none" href="/view/{{.Symbol}}/{{.Acronym}}"><i class="fas fa-dollar-sign"></i>{{.Symbol}}</a></li>
+                    {{range .recents}}
+                      <li class="nav-item me-1 pt-2 recent"><a class="badge text-dark bg-warning text-decoration-none" href="/view/{{.}}"><i class="fas fa-dollar-sign"></i>{{.}}</a></li>
                     {{end}}
                   </ul>
                 {{end}}

@@ -2,7 +2,7 @@ package main
 
 import (
 	//"fmt"
-	"encoding/gob"
+	//"encoding/gob"
 	"net/http"
 	"strconv"
 	"strings"
@@ -69,7 +69,7 @@ func main() {
 	var hashKey = []byte(*cookieAuthKey)
 	var blockKey = []byte(*cookieEncryptionKey)
 	var secureCookie = securecookie.New(hashKey, blockKey)
-	gob.RegisterName("ViewPair", []ViewPair{})
+	//gob.RegisterName("ViewPair", []ViewPair{})
 
 	// Initialize session manager and configure the session lifetime -------------
 	store, err := dynastore.New(
@@ -98,17 +98,20 @@ func main() {
 
 	router.HandleFunc("/ping", pingHandler()).Methods("GET")
 	router.HandleFunc("/internal/cspviolations", JSONReportHandler()).Methods("GET")
+	router.HandleFunc("/api/v1/{endpoint}", apiV1Handler()).Methods("GET")
+
 	router.HandleFunc("/login", googleLoginHandler(clientId)).Methods("POST")
 	router.HandleFunc("/logout", googleLogoutHandler(clientId)).Methods("GET")
 	router.HandleFunc("/desktop", desktopHandler()).Methods("GET")
-	router.HandleFunc("/view/{symbol}/{acronym}", viewTickerDailyHandler()).Methods("GET")
-	router.HandleFunc("/view/{symbol}/{acronym}/{intradate}", viewTickerIntradayHandler()).Methods("GET")
+	router.HandleFunc("/view/{symbol}", viewTickerDailyHandler()).Methods("GET")
+	//router.HandleFunc("/view/{symbol}/{acronym}/{intradate}", viewTickerIntradayHandler()).Methods("GET")
 	router.HandleFunc("/{action:bought|sold}/{symbol}/{acronym}", transactionHandler()).Methods("POST")
 	router.HandleFunc("/search/{type}", searchHandler()).Methods("POST")
 	router.HandleFunc("/update/{action}", updateHandler()).Methods("GET")
 	router.HandleFunc("/update/{action}/{symbol}", updateHandler()).Methods("GET")
 	router.HandleFunc("/terms", homeHandler("terms")).Methods("GET")
 	router.HandleFunc("/privacy", homeHandler("privacy")).Methods("GET")
+
 	router.HandleFunc("/", homeHandler("home")).Methods("GET")
 
 	// middleware chain
@@ -121,8 +124,8 @@ func main() {
 	server := &http.Server{
 		Handler:      chainedMux4,
 		Addr:         ":3001",
-		WriteTimeout: 5 * time.Second,
-		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
 	}
 
 	if err = server.ListenAndServe(); err != nil {

@@ -5,12 +5,11 @@
                     <p class="text-truncate">
                       <span class="h5 text-info">Symbol:</span>
                       <a class="h3 text-white link-white text-decoration-none" href="/view/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeAcronym}}">{{.ticker.TickerSymbol}}</a>
-                      <span class="h5 text-light pe-3 text-lowercase">/{{.exchange.ExchangeAcronym}}</span>
+                      <span class="h5 text-light pe-3 text-lowercase">/{{.exchange.ExchangeName}}</span>
                       <span class="h5 text-info">Name:</span>
                       <span class="h3 text-white">{{.ticker.TickerName}}</span>
                     </p>
-                    <h6 class="small ps-1 text-info">{{ template "_share_price" . }}</span></h6>
-                    {{if .quote}}<h6 class="small ps-1 text-info">{{ template "_ticker_quote" . }}</span><h6>{{end}}
+                    {{ template "_ticker_info" . }}
                   </div>
                   <div class="flex-grow-1 text-end">
                     {{- template "_messages" . }}

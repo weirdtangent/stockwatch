@@ -230,16 +230,16 @@ func chartHandlerTickerIntradayLine(ctx context.Context, ticker *Ticker, exchang
 
 // utils ----------------------------------------------------------------------
 
-func calcMovingLineAvg(days float32, prices []opts.LineData) []opts.LineData {
+func calcMovingLineAvg(days float64, prices []opts.LineData) []opts.LineData {
 	movingAvg := make([]opts.LineData, 0, 100)
 	for i, _ := range prices {
 		if i < int(days) {
 			movingAvg = append(movingAvg, opts.LineData{Value: "-"})
 		} else {
-			var sum float32 = 0
+			var sum float64 = 0
 			for j := 0; j < int(days); j++ {
 				val := reflect.ValueOf(prices[i-j])
-				sum += val.FieldByName("Value").Interface().(float32)
+				sum += val.FieldByName("Value").Interface().(float64)
 			}
 			movingAvg = append(movingAvg, opts.LineData{Value: sum / days})
 		}
