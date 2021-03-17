@@ -1,6 +1,7 @@
 body {
   min-height: 880px;
   background-color: #444444;
+  font-family: 'Noto Sans', sans-serif !important;
 }
 
 .logo {
@@ -44,6 +45,11 @@ body.privacy .main-content {
 
 .sm {
   font-size: .75em;
+}
+
+div.paragraph {
+  display: inline-block;
+  max-width: 750px;
 }
 
 .doubleChart > div:first-of-type {

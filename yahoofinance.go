@@ -70,6 +70,14 @@ func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 		return ticker, err
 	}
 
+	tickerDescription := &TickerDescription{0, ticker.TickerId, summaryResponse.SummaryProfile.LongBusinessSummary, "", ""}
+	err = tickerDescription.createIfNew(ctx)
+	if err != nil {
+		logger.Error().Err(err).
+			Str("ticker", ticker.TickerSymbol).
+			Msg("Failed to create ticker description")
+	}
+
 	// create upgrade/downgrade recommendations
 	for _, updown := range summaryResponse.UpgradeDowngradeHistory.Histories {
 		updownDate := UnixToDatetimeStr(updown.GradeDate)

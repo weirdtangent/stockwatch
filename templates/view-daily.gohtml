@@ -14,8 +14,9 @@
               <div class="d-flex flex-row mt-3">
                 <div class="mx-1">
                   {{ template "_chart_js" }}
-                  <div id="tickerChart1elem" class="flex-fill doubleChart">{{.lineChart}}</div>
-                  <div id="tickerChart2elem" class="flex-fill doubleChart extraChart">{{.klineChart}}</div>
+                  <div id="tickerChart1elem" class="doubleChart">{{.lineChart}}</div>
+                  <div id="tickerChart2elem" class="doubleChart extraChart">{{.klineChart}}</div>
+                  <div class="mt-3 px-2 py-1 bg-dark text-light small paragraph">{{.ticker_description.BusinessSummary}}</div>
 
                   {{if gt .ticker_dailies.Count 0}}
                   <div id="tickerChart3elem" class="extraChart">
@@ -43,6 +44,7 @@
                     </div>
                   </div><!-- tickerChart3elem -->
                   {{- end -}}
+
                 </div>
 
                 <div class="flex-fill small">

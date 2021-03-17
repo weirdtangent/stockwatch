@@ -28,6 +28,8 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 		*messages = append(*messages, Message{fmt.Sprintf("Company/Symbol data updated for %s", ticker.TickerSymbol), "success"})
 	}
 
+	tickerDescription, _ := getTickerDescriptionByTickerId(ctx, ticker.TickerId)
+
 	// get Exchange info
 	exchange, err := getExchangeById(ctx, ticker.ExchangeId)
 	if err != nil {
@@ -65,6 +67,7 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 	var klineChartHTML = chartHandlerTickerDailyKLine(ctx, ticker, exchange, ticker_dailies, webwatches)
 
 	webdata["ticker"] = ticker
+	webdata["ticker_description"] = tickerDescription
 	webdata["exchange"] = exchange
 	webdata["timespan"] = timespan
 	webdata["lastClose"] = lastClose
