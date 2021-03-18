@@ -159,7 +159,8 @@ func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// we've been around the block, grab that logger back from the context to log with
 	logger := log.Ctx(r.Context())
 
-	if r.URL.String() != "/ping" {
+	// don't logs these, no reason to
+	if r.URL.String() != "/ping" && r.URL.String() != "/metrics" {
 		logger.Info().
 			Stringer("url", r.URL).
 			Int("status_code", 200).
