@@ -78,7 +78,7 @@ func main() {
 		dynastore.HTTPOnly(),
 		dynastore.Domain("stockwatch.graystorm.com"),
 		dynastore.Path("/"),
-		dynastore.MaxAge(24*60*60),
+		dynastore.MaxAge(31*24*60*60),
 		dynastore.Codecs(secureCookie),
 	)
 	if err != nil {
@@ -99,8 +99,6 @@ func main() {
 	router.HandleFunc("/api/v1/{endpoint}", apiV1Handler()).Methods("GET")
 	router.Handle("/metrics", promhttp.Handler())
 
-	router.HandleFunc("/callback", googleCallbackHandler()).Methods("GET")
-	router.HandleFunc("/logout", googleLogoutHandler()).Methods("GET")
 	router.HandleFunc("/desktop", desktopHandler()).Methods("GET")
 	router.HandleFunc("/view/{symbol}", viewTickerDailyHandler()).Methods("GET")
 	router.HandleFunc("/{action:bought|sold}/{symbol}/{acronym}", transactionHandler()).Methods("POST")

@@ -19,12 +19,6 @@ func homeHandler(tmplname string) http.HandlerFunc {
 			webdata["next"] = nextParam
 		}
 
-		// the opposite of normal, for authenticated visits we redirect if they were on "home"
-		if ok := checkAuthState(w, r); ok && tmplname == "home" {
-			http.Redirect(w, r, "/desktop", 302)
-		} else {
-			renderTemplateDefault(w, r, tmplname)
-		}
-		return
+		renderTemplateDefault(w, r, tmplname)
 	})
 }

@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
 
@@ -16,20 +15,10 @@ func viewTickerDailyHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
-		awssess := ctx.Value("awssess").(*session.Session)
 		messages := ctx.Value("messages").(*[]Message)
 		webdata := ctx.Value("webdata").(map[string]interface{})
 
 		session := getSession(r)
-		if ok := checkAuthState(w, r); ok == false {
-			encoded, err := encryptURL(awssess, ([]byte(r.URL.String())))
-			if err == nil {
-				http.Redirect(w, r, "/?next="+string(encoded), 302)
-			} else {
-				http.Redirect(w, r, "/", 302)
-			}
-			return
-		}
 
 		params := mux.Vars(r)
 		symbol := params["symbol"]

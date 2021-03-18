@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
 )
@@ -36,22 +35,11 @@ func searchHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
-		awssess := ctx.Value("awssess").(*session.Session)
 		webdata := ctx.Value("webdata").(map[string]interface{})
 		messages := ctx.Value("messages").(*[]Message)
 
 		params := mux.Vars(r)
 		searchType := params["type"]
-
-		if ok := checkAuthState(w, r); ok == false {
-			encoded, err := encryptURL(awssess, ([]byte(r.URL.String())))
-			if err == nil {
-				http.Redirect(w, r, "/?next="+string(encoded), 302)
-			} else {
-				http.Redirect(w, r, "/", 302)
-			}
-			return
-		}
 
 		switch searchType {
 		case "ticker":

@@ -18,28 +18,24 @@ func updateHandler() http.HandlerFunc {
 		logger := log.Ctx(ctx)
 		messages := ctx.Value("messages").(*[]Message)
 
-		if ok := checkAuthState(w, r); ok == false {
-			http.Redirect(w, r, "/", 307)
-		} else {
-			params := mux.Vars(r)
-			action := params["action"]
+		params := mux.Vars(r)
+		action := params["action"]
 
-			switch action {
-			case "movers":
-				err := loadMovers(ctx)
-				if err != nil {
-					*messages = append(*messages, Message{fmt.Sprintf("Pulling latest Morningstar Movers failed: %s", err.Error()), "danger"})
-				} else {
-					*messages = append(*messages, Message{fmt.Sprintf("Pulled latest Morningstar Movers"), "success"})
-				}
-			default:
-				logger.Error().Str("action", action).Msg("Unknown update action")
-				*messages = append(*messages, Message{fmt.Sprintf("Unknown update action: %s", action), "danger"})
+		switch action {
+		case "movers":
+			err := loadMovers(ctx)
+			if err != nil {
+				*messages = append(*messages, Message{fmt.Sprintf("Pulling latest Morningstar Movers failed: %s", err.Error()), "danger"})
+			} else {
+				*messages = append(*messages, Message{fmt.Sprintf("Pulled latest Morningstar Movers"), "success"})
 			}
-
-			logger.Info().Msgf("Update operation ended normally")
-			renderTemplateDefault(w, r, "update")
+		default:
+			logger.Error().Str("action", action).Msg("Unknown update action")
+			*messages = append(*messages, Message{fmt.Sprintf("Unknown update action: %s", action), "danger"})
 		}
+
+		logger.Info().Msgf("Update operation ended normally")
+		renderTemplateDefault(w, r, "update")
 	})
 }
 

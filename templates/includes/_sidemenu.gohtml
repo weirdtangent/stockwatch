@@ -12,7 +12,6 @@
               <li class="nav-item"><a class="nav-link ps-3" href="#section1">My Account</a></li>
               <li class="nav-item"><a class="nav-link ps-3" href="#section2">Holding</a></li>
               <li class="nav-item"><a class="nav-link ps-3" href="#section3">Watching</a></li>
-              <li class="nav-item"><a class="nav-link ps-3 signout" href="/logout">Logout</a></li>
             {{- if .watcher.IsAdmin}}
               <li class="nav-item"><a class="nav-link ps-3 link-warning" href="/update/movers">Morningstar Movers</a></li>
               <li class="nav-item"><a class="nav-link ps-3 link-warning" href="#">Updates</a></li>
@@ -20,10 +19,5 @@
             {{- end}}
             </ul>
         {{end -}}
-        {{- if .loggedout }}
-          <div>
-            <a href="https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={{.clientId}}&prompt=consent&scope={{.scope}}&redirect_uri={{.redirectTo}}&state={{.stateStr}}&nonce={{.nonce}}&access_type=offline"><img src="/static/images/google_signin.png"></a>
-          </div>
-        {{- end}}
           </div>
 {{- end}}
