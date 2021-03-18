@@ -1,11 +1,11 @@
 package main
 
 import (
-	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	crand "crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -20,16 +20,13 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-
-	"google.golang.org/api/idtoken"
-	"google.golang.org/api/option"
 
 	"github.com/weirdtangent/myaws"
 )
 
-// google one-tap for web
-func googleLoginHandler(googleClientId *string) http.HandlerFunc {
+func googleCallbackHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
@@ -37,71 +34,64 @@ func googleLoginHandler(googleClientId *string) http.HandlerFunc {
 		db := ctx.Value("db").(*sqlx.DB)
 		sc := ctx.Value("sc").(*securecookie.SecureCookie)
 
-		// first, make sure csrf token in cookie matches one in body
-		csrfToken, err := r.Cookie("g_csrf_token")
-		if err != nil {
-			logger.Error().Err(err).Msg("Failed to get g_csrf_token")
-			http.NotFound(w, r)
-			return
-		}
-		csrfBody := "g_csrf_token=" + r.FormValue("g_csrf_token")
-		if len(csrfBody) == 0 || csrfBody != csrfToken.String() {
-			logger.Error().Err(err).
-				Str("from_cookie", csrfToken.String()).
-				Str("from_field", csrfBody).
-				Msg("Failed to verify double submit cookie")
-			http.NotFound(w, r)
-			return
-		}
-
+		// first, make sure the "state" on this request matches what we stored
+		// in the users session
 		session := getSession(r)
-		id_token := r.FormValue("credential")
-
-		// go get svc account JSON
-		google_svc_acct, err := myaws.AWSGetSecretValue(awssess, "stockwatch_google_svc_acct")
-		if err != nil {
-			logger.Error().Err(err).
-				Msg("Failed to retrieve secret")
+		stateStr := session.Values["state"].(string)
+		stateVal := r.FormValue("state")
+		if stateStr != stateVal {
+			logger.Error().Msg("Failed to match state string")
 			http.NotFound(w, r)
 			return
 		}
 
-		// build our own credentials from that
-		credentials, err := google.CredentialsFromJSON(
-			context.Background(), []byte(*google_svc_acct),
-			"https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile",
-		)
+		// setup the config and scopes we want
+		var googleOauthConfig = &oauth2.Config{
+			RedirectURL:  "https://stockwatch.graystorm.com/callback",
+			ClientID:     ctx.Value("oauth_client_id").(string),
+			ClientSecret: ctx.Value("oauth_client_secret").(string),
+			Scopes:       []string{"openid", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
+			Endpoint:     google.Endpoint,
+		}
+
+		// trade access code we got in request for id_token
+		token, err := googleOauthConfig.Exchange(oauth2.NoContext, r.FormValue("code"))
 		if err != nil {
-			logger.Error().Err(err).
-				Msg("Failed to build credentials")
+			logger.Error().Err(err).Msg("Failed code-for-token exchange")
 			http.NotFound(w, r)
 			return
 		}
 
-		// create ClientOption with those credentials
-		clientOption := option.WithCredentials(credentials)
-
-		// build New Token Validator using that ClientOption
-		tokenValidator, err := idtoken.NewValidator(context.Background(), clientOption)
+		client := googleOauthConfig.Client(oauth2.NoContext, token)
+		resp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
 		if err != nil {
-			logger.Error().Err(err).
-				Msg("Failed to initiate the google idtoken validator")
+			logger.Error().Err(err).Msg("Failed to pull userinfo")
 			http.NotFound(w, r)
 			return
 		}
+		defer resp.Body.Close()
 
-		// attempt to validate the idtoken the user presented
-		payload, err := tokenValidator.Validate(context.Background(), id_token, *googleClientId)
-		if err != nil {
-			logger.Error().Err(err).
-				Msg("Failed to validate the google idtoken")
-			http.NotFound(w, r)
-			return
+		type GoogleUser struct {
+			ID            string `json:"id"`
+			Email         string `json:"email"`
+			VerifiedEmail bool   `json:"verified_email"`
+			Name          string `json:"name"`
+			GivenName     string `json:"given_name"`
+			FamilyName    string `json:"family_name"`
+			Link          string `json:"link"`
+			Picture       string `json:"picture"`
+			Gender        string `json:"gender"`
+			Locale        string `json:"locale"`
 		}
+
+		var userinfo GoogleUser
+		json.NewDecoder(resp.Body).Decode(&userinfo)
+
+		logger.Info().Int64("expires", token.Expiry.Unix()).Msg("oauth passed")
 
 		// get (or create) watcher account based on oauth properties
-		var emailAddress = payload.Claims["email"].(string)
-		var watcher = &Watcher{0, payload.Claims["name"].(string), emailAddress, "active", "standard", 0, "", ""}
+		var emailAddress = userinfo.Email
+		var watcher = &Watcher{0, userinfo.Name, emailAddress, "active", "standard", 0, "", ""}
 		watcher, err = getOrCreateWatcher(db, watcher)
 		if err != nil {
 			logger.Error().Err(err).Msg("Failed to get/create watcher from one-tap")
@@ -110,7 +100,7 @@ func googleLoginHandler(googleClientId *string) http.HandlerFunc {
 		}
 
 		// get (or write) oauth record tied to watcher until it expires
-		var oauth = &OAuth{0, payload.Issuer, payload.IssuedAt, payload.Expires, emailAddress, watcher.WatcherId, payload.Claims["picture"].(string), "active", session.ID, "", "", ""}
+		var oauth = &OAuth{0, "accounts.google.com", token.AccessToken, token.RefreshToken, time.Now().Unix(), token.Expiry.Unix(), emailAddress, watcher.WatcherId, userinfo.Picture, "active", session.ID, "", "", ""}
 		oauth, err = createOrUpdateOAuth(db, oauth)
 		if err != nil {
 			logger.Error().Err(err).Msg("Failed to create/update oauth record")
@@ -164,7 +154,7 @@ func googleLoginHandler(googleClientId *string) http.HandlerFunc {
 }
 
 // lougout from google one-tap here
-func googleLogoutHandler(googleClientId *string) http.HandlerFunc {
+func googleLogoutHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
@@ -213,55 +203,62 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 		err = sc.Decode("WID", wid.Value, &WIDstr)
 		switch err {
 		case nil:
-			{
-				WIDvalue, err := strconv.ParseInt(WIDstr, 10, 64)
-				if err != nil {
-					logger.Error().Err(err).Str("wid", WIDstr).Msg("Failed to convert cookie value to id")
-					break
-				}
-				watcher, err := getWatcherById(db, WIDvalue)
-				if err != nil {
-					logger.Error().Err(err).Int64("wid", WIDvalue).Msg("Failed to get watcher via cookie")
-					break
-				}
-				if watcher.WatcherStatus != "active" {
-					logger.Error().Err(err).Int64("wid", WIDvalue).Str("watcher_status", watcher.WatcherStatus).Msg("Watcher record not marked 'active'")
-					break
-				}
-				oauth, err := getOAuthByWatcherId(db, WIDvalue)
-				if err != nil {
-					logger.Error().Err(err).Int64("wid", WIDvalue).Msg("Failed to get oauth record via cookie")
-					break
-				}
-				currentDateTime := time.Now()
-				unixTimeNow := currentDateTime.Unix()
-				logger.Info().Int64("unix_time", unixTimeNow).Int64("oath_expires", oauth.OAuthExpires).Msg("Checking oauth expiration")
-				if unixTimeNow > oauth.OAuthExpires {
-					logger.Error().Err(err).Int64("wid", WIDvalue).Msg("OAuth record has expired")
-					oauth.Delete(db, WIDvalue)
-					if encoded, err := sc.Encode("WID", fmt.Sprintf("%d", watcher.WatcherId)); err == nil {
-						cookie := &http.Cookie{
-							Name:     "WID",
-							Value:    encoded,
-							Path:     "/",
-							Secure:   true,
-							HttpOnly: true,
-							MaxAge:   -1,
-						}
-						http.SetCookie(w, cookie)
-					}
-					break
-				}
-				logger.Info().Msg("Authenticated visitor found")
-				webdata["WID"] = wid
-				webdata["watcher"] = watcher
-				webdata["profilePicURL"] = oauth.PictureURL
-				return true
+			WIDvalue, err := strconv.ParseInt(WIDstr, 10, 64)
+			if err != nil {
+				logger.Error().Err(err).Str("wid", WIDstr).Msg("Failed to convert cookie value to id")
+				break
 			}
+			watcher, err := getWatcherById(db, WIDvalue)
+			if err != nil {
+				logger.Error().Err(err).Int64("wid", WIDvalue).Msg("Failed to get watcher via cookie")
+				break
+			}
+			if watcher.WatcherStatus != "active" {
+				logger.Error().Err(err).Int64("wid", WIDvalue).Str("watcher_status", watcher.WatcherStatus).Msg("Watcher record not marked 'active'")
+				break
+			}
+			oauth, err := getOAuthByWatcherId(db, WIDvalue)
+			if err != nil {
+				logger.Error().Err(err).Int64("wid", WIDvalue).Msg("Failed to get oauth record via cookie")
+				break
+			}
+			currentDateTime := time.Now()
+			unixTimeNow := currentDateTime.Unix()
+			logger.Info().Int64("unix_time", unixTimeNow).Int64("oath_expires", oauth.OAuthExpires).Msg("Checking oauth expiration")
+			if unixTimeNow > oauth.OAuthExpires {
+				logger.Error().Err(err).Int64("wid", WIDvalue).Msg("OAuth record has expired")
+				oauth.SetStatus(db, "expired")
+				//oauth.Delete(db, WIDvalue)
+				//if encoded, err := sc.Encode("WID", fmt.Sprintf("%d", watcher.WatcherId)); err == nil {
+				//	cookie := &http.Cookie{
+				//		Name:     "WID",
+				//		Value:    encoded,
+				//		Path:     "/",
+				//		Secure:   true,
+				//		HttpOnly: true,
+				//		MaxAge:   -1,
+				//	}
+				//	http.SetCookie(w, cookie)
+				//}
+				break
+			}
+			logger.Info().Msg("Authenticated visitor found")
+			webdata["WID"] = wid
+			webdata["watcher"] = watcher
+			webdata["profilePicURL"] = oauth.PictureURL
+			return true
 		}
 	}
 	logger.Info().Msg("Anonymous visitor found")
 	webdata["loggedout"] = 1
+
+	stateStr := session.Values["state"].(string)
+	webdata["stateStr"] = stateStr
+	webdata["clientId"] = ctx.Value("oauth_client_id").(string)
+	webdata["scope"] = "openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
+	webdata["redirectTo"] = "https://stockwatch.graystorm.com/callback"
+	webdata["nonce"] = RandStringMask(32)
+
 	return false
 }
 

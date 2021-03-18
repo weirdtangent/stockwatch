@@ -56,12 +56,6 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to connect to DDB")
 	}
 
-	// config Google OAuth
-	clientId, err := myaws.AWSGetSecretKV(awssess, "stockwatch_google_oauth", "client_id")
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to retrieve secret")
-	}
-
 	// Cookie setup for sessionID ------------------------------------------------
 	cookieAuthKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch_cookie", "auth_key")
 	if err != nil {
@@ -74,7 +68,6 @@ func main() {
 	var hashKey = []byte(*cookieAuthKey)
 	var blockKey = []byte(*cookieEncryptionKey)
 	var secureCookie = securecookie.New(hashKey, blockKey)
-	//gob.RegisterName("ViewPair", []ViewPair{})
 
 	// Initialize session manager and configure the session lifetime -------------
 	store, err := dynastore.New(
@@ -106,11 +99,10 @@ func main() {
 	router.HandleFunc("/api/v1/{endpoint}", apiV1Handler()).Methods("GET")
 	router.Handle("/metrics", promhttp.Handler())
 
-	router.HandleFunc("/login", googleLoginHandler(clientId)).Methods("POST")
-	router.HandleFunc("/logout", googleLogoutHandler(clientId)).Methods("GET")
+	router.HandleFunc("/callback", googleCallbackHandler()).Methods("GET")
+	router.HandleFunc("/logout", googleLogoutHandler()).Methods("GET")
 	router.HandleFunc("/desktop", desktopHandler()).Methods("GET")
 	router.HandleFunc("/view/{symbol}", viewTickerDailyHandler()).Methods("GET")
-	//router.HandleFunc("/view/{symbol}/{acronym}/{intradate}", viewTickerIntradayHandler()).Methods("GET")
 	router.HandleFunc("/{action:bought|sold}/{symbol}/{acronym}", transactionHandler()).Methods("POST")
 	router.HandleFunc("/search/{type}", searchHandler()).Methods("POST")
 	router.HandleFunc("/update/{action}", updateHandler()).Methods("GET")

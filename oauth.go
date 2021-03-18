@@ -6,18 +6,20 @@ import (
 )
 
 type OAuth struct {
-	OAuthId         int64  `db:"oauth_id"`
-	OAuthIssuer     string `db:"oauth_issuer"`
-	OAuthIssued     int64  `db:"oauth_issued"`
-	OAuthExpires    int64  `db:"oauth_expires"`
-	OAuthEmail      string `db:"oauth_email"`
-	WatcherId       int64  `db:"watcher_id"`
-	PictureURL      string `db:"picture_url"`
-	OAuthStatus     string `db:"oauth_status"`
-	LastUseDatetime string `db:"lastuse_datetime"`
-	SessionID       string `db:"session_id"`
-	CreateDatetime  string `db:"create_datetime"`
-	UpdateDatetime  string `db:"update_datetime"`
+	OAuthId           int64  `db:"oauth_id"`
+	OAuthIssuer       string `db:"oauth_issuer"`
+	OAuthAccessToken  string `db:"oauth_access_token"`
+	OAuthRefreshToken string `db:"oauth_refresh_token"`
+	OAuthIssued       int64  `db:"oauth_issued"`
+	OAuthExpires      int64  `db:"oauth_expires"`
+	OAuthEmail        string `db:"oauth_email"`
+	WatcherId         int64  `db:"watcher_id"`
+	PictureURL        string `db:"picture_url"`
+	OAuthStatus       string `db:"oauth_status"`
+	LastUseDatetime   string `db:"lastuse_datetime"`
+	SessionID         string `db:"session_id"`
+	CreateDatetime    string `db:"create_datetime"`
+	UpdateDatetime    string `db:"update_datetime"`
 }
 
 func (o OAuth) Delete(db *sqlx.DB, watcherId int64) error {
@@ -28,6 +30,18 @@ func (o OAuth) Delete(db *sqlx.DB, watcherId int64) error {
 		log.Warn().Err(err).
 			Str("table_name", "oauth").
 			Msg("Failed on DELETE")
+	}
+	return err
+}
+
+func (o OAuth) SetStatus(db *sqlx.DB, newStatus string) error {
+	var updateSQL = "UPDATE oauth SET oauth_status=? WHERE oauth_id=?"
+
+	_, err := db.Exec(updateSQL, newStatus, o.OAuthId)
+	if err != nil {
+		log.Warn().Err(err).
+			Str("table_name", "oauth").
+			Msg("Failed on UPDATE")
 	}
 	return err
 }
@@ -51,9 +65,9 @@ func getOAuthByWatcherId(db *sqlx.DB, watcherId int64) (*OAuth, error) {
 }
 
 func createOAuth(db *sqlx.DB, oauth *OAuth) (*OAuth, error) {
-	var insert = "INSERT INTO oauth SET oauth_issuer=?, oauth_issued=?, oauth_expires=?, watcher_id=?, oauth_email=?, picture_url=?, session_id=?, lastuse_datetime=current_timestamp()"
+	var insert = "INSERT INTO oauth SET oauth_issuer=?, oauth_access_token=?, oauth_refresh_token=?, oauth_issued=?, oauth_expires=?, watcher_id=?, oauth_email=?, picture_url=?, session_id=?, lastuse_datetime=current_timestamp()"
 
-	res, err := db.Exec(insert, oauth.OAuthIssuer, oauth.OAuthIssued, oauth.OAuthExpires, oauth.WatcherId, oauth.OAuthEmail, oauth.PictureURL, oauth.SessionID)
+	res, err := db.Exec(insert, oauth.OAuthIssuer, oauth.OAuthAccessToken, oauth.OAuthRefreshToken, oauth.OAuthIssued, oauth.OAuthExpires, oauth.WatcherId, oauth.OAuthEmail, oauth.PictureURL, oauth.SessionID)
 	if err != nil {
 		log.Fatal().Err(err).
 			Str("table_name", "oauth").
@@ -77,14 +91,14 @@ func getOrCreateOAuth(db *sqlx.DB, country *Country) (*Country, error) {
 }
 
 func createOrUpdateOAuth(db *sqlx.DB, oauth *OAuth) (*OAuth, error) {
-	var update = "UPDATE oauth SET oauth_issuer=?, oauth_issued=?, oauth_expires=?, watcher_id=?, oauth_email=?, picture_url=?, lastuse_datetime=current_timestamp() WHERE oauth_id=?"
+	var update = "UPDATE oauth SET oauth_issuer=?, oauth_access_token=?, oauth_refresh_token=?, oauth_issued=?, oauth_expires=?, watcher_id=?, oauth_email=?, picture_url=?, lastuse_datetime=current_timestamp() WHERE oauth_id=?"
 
 	existing, err := getOAuth(db, oauth.OAuthEmail)
 	if err != nil {
 		return createOAuth(db, oauth)
 	}
 
-	_, err = db.Exec(update, oauth.OAuthIssuer, oauth.OAuthIssued, oauth.OAuthExpires, oauth.WatcherId, oauth.OAuthEmail, oauth.PictureURL, existing.OAuthId)
+	_, err = db.Exec(update, oauth.OAuthIssuer, oauth.OAuthAccessToken, oauth.OAuthRefreshToken, oauth.OAuthIssued, oauth.OAuthExpires, oauth.WatcherId, oauth.OAuthEmail, oauth.PictureURL, existing.OAuthId)
 	if err != nil {
 		log.Warn().Err(err).
 			Str("table_name", "oauth").

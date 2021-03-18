@@ -40,7 +40,6 @@ func apiV1Handler() http.HandlerFunc {
 
 		case "quote":
 			symbol := r.FormValue("symbol")
-			//acronym := params["acronym"]
 
 			ticker, err := getTickerBySymbol(ctx, symbol)
 			if err != nil {

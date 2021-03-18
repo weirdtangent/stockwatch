@@ -15,9 +15,6 @@ func homeHandler(tmplname string) http.HandlerFunc {
 		if tmplname == "home" || tmplname == "terms" || tmplname == "privacy" {
 			webdata["hideRecents"] = true
 		}
-		if tmplname == "home" {
-			webdata["allowLogin"] = true
-		}
 		if len(nextParam) > 0 {
 			webdata["next"] = nextParam
 		}

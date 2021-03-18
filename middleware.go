@@ -86,6 +86,16 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	messages := make([]Message, 0)
 
+	// config Google OAuth
+	oauthClientId, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch_google_oauth", "client_id")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+	oauthSecret, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch_google_oauth", "client_secret")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+
 	defaultConfig := make(map[string]interface{})
 	defaultConfig["is_market_open"] = isMarketOpen()
 	defaultConfig["quote_refresh"] = 20
@@ -93,6 +103,8 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r = r.Clone(context.WithValue(r.Context(), "awssess", ac.awssess))
 	r = r.Clone(context.WithValue(r.Context(), "db", ac.db))
 	r = r.Clone(context.WithValue(r.Context(), "sc", ac.sc))
+	r = r.Clone(context.WithValue(r.Context(), "oauth_client_id", *oauthClientId))
+	r = r.Clone(context.WithValue(r.Context(), "oauth_client_secret", *oauthSecret))
 	r = r.Clone(context.WithValue(r.Context(), "yahoofinance_apikey", *yf_api_access_key))
 	r = r.Clone(context.WithValue(r.Context(), "yahoofinance_apihost", *yf_api_access_host))
 	r = r.Clone(context.WithValue(r.Context(), "morningstar_apikey", *ms_api_access_key))
@@ -187,6 +199,8 @@ func (s *Session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		logger.Fatal().Err(err).Msg("Failed to get/create session")
 	}
 	if session.IsNew {
+		state := RandStringMask(32)
+		session.Values["state"] = state
 		session.Values["view_recents"] = []string{}
 		session.Values["theme"] = "light"
 		err := session.Save(r, w)

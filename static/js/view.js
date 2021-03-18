@@ -3,8 +3,8 @@ var lastScript = scripts[scripts.length-1];
 var scriptName = lastScript;
 
 var showing = 'tickerChart1';
-var symbol = scriptName.getAttribute('data-symbol');
-var acronym = scriptName.getAttribute('data-acronym');
+var ticker = scriptName.getAttribute('data-ticker');
+var exchange = scriptName.getAttribute('data-exchange');
 var is_market_open = scriptName.getAttribute('data-is-market-open');
 var quote_refresh = scriptName.getAttribute('data-quote-refresh');
 
@@ -13,7 +13,7 @@ function update_quote(count) {
 
   var response = $.ajax({
     type: 'GET',
-    url: '/api/v1/quote?symbol=' + symbol + '&acronym=' + acronym,
+    url: '/api/v1/quote?symbol=' + ticker,
     async: true,
     success: function(response) {
       ['quote_shareprice', 'quote_ask', 'quote_asksize', 'quote_bid', 'quote_bidsize', 'quote_asof', 'quote_change', 'quote_change_pct'].forEach(function(item) {
