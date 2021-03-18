@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/savaki/dynastore"
@@ -103,6 +104,7 @@ func main() {
 	router.HandleFunc("/ping", pingHandler()).Methods("GET")
 	router.HandleFunc("/internal/cspviolations", JSONReportHandler()).Methods("GET")
 	router.HandleFunc("/api/v1/{endpoint}", apiV1Handler()).Methods("GET")
+	router.Handle("/metrics", promhttp.Handler())
 
 	router.HandleFunc("/login", googleLoginHandler(clientId)).Methods("POST")
 	router.HandleFunc("/logout", googleLogoutHandler(clientId)).Methods("GET")
@@ -112,7 +114,6 @@ func main() {
 	router.HandleFunc("/{action:bought|sold}/{symbol}/{acronym}", transactionHandler()).Methods("POST")
 	router.HandleFunc("/search/{type}", searchHandler()).Methods("POST")
 	router.HandleFunc("/update/{action}", updateHandler()).Methods("GET")
-	router.HandleFunc("/update/{action}/{symbol}", updateHandler()).Methods("GET")
 	router.HandleFunc("/terms", homeHandler("terms")).Methods("GET")
 	router.HandleFunc("/privacy", homeHandler("privacy")).Methods("GET")
 

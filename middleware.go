@@ -73,6 +73,17 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Msg("Failed to get Yahoo Finance API key")
 	}
 
+	// get morningstar api access key and host
+	ms_api_access_key, err := myaws.AWSGetSecretKV(ac.awssess, "morningstar", "rapidapi-key")
+	if err != nil {
+		log.Fatal().Err(err).
+			Msg("Failed to get Morningstar API key")
+	}
+	ms_api_access_host, err := myaws.AWSGetSecretKV(ac.awssess, "morningstar", "rapidapi-host")
+	if err != nil {
+		log.Fatal().Err(err).
+			Msg("Failed to get Morningstar API key")
+	}
 	messages := make([]Message, 0)
 
 	defaultConfig := make(map[string]interface{})
@@ -84,6 +95,8 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r = r.Clone(context.WithValue(r.Context(), "sc", ac.sc))
 	r = r.Clone(context.WithValue(r.Context(), "yahoofinance_apikey", *yf_api_access_key))
 	r = r.Clone(context.WithValue(r.Context(), "yahoofinance_apihost", *yf_api_access_host))
+	r = r.Clone(context.WithValue(r.Context(), "morningstar_apikey", *ms_api_access_key))
+	r = r.Clone(context.WithValue(r.Context(), "morningstar_apihost", *ms_api_access_host))
 	r = r.Clone(context.WithValue(r.Context(), "config", defaultConfig))
 	r = r.Clone(context.WithValue(r.Context(), "webdata", make(map[string]interface{})))
 	r = r.Clone(context.WithValue(r.Context(), "messages", &messages))

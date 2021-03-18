@@ -14,23 +14,24 @@ import (
 )
 
 type Ticker struct {
-	TickerId       int64  `db:"ticker_id"`
-	TickerSymbol   string `db:"ticker_symbol"`
-	ExchangeId     int64  `db:"exchange_id"`
-	TickerName     string `db:"ticker_name"`
-	CompanyName    string `db:"company_name"`
-	Address        string `db:"address"`
-	City           string `db:"city"`
-	State          string `db:"state"`
-	Zip            string `db:"zip"`
-	Country        string `db:"country"`
-	Website        string `db:"website"`
-	Phone          string `db:"phone"`
-	Sector         string `db:"sector"`
-	Industry       string `db:"industry"`
-	FetchDatetime  string `db:"fetch_datetime"`
-	CreateDatetime string `db:"create_datetime"`
-	UpdateDatetime string `db:"update_datetime"`
+	TickerId        int64  `db:"ticker_id"`
+	TickerSymbol    string `db:"ticker_symbol"`
+	ExchangeId      int64  `db:"exchange_id"`
+	TickerName      string `db:"ticker_name"`
+	CompanyName     string `db:"company_name"`
+	Address         string `db:"address"`
+	City            string `db:"city"`
+	State           string `db:"state"`
+	Zip             string `db:"zip"`
+	Country         string `db:"country"`
+	Website         string `db:"website"`
+	Phone           string `db:"phone"`
+	Sector          string `db:"sector"`
+	Industry        string `db:"industry"`
+	FetchDatetime   string `db:"fetch_datetime"`
+	MSPerformanceId string `db:"ms_performance_id"`
+	CreateDatetime  string `db:"create_datetime"`
+	UpdateDatetime  string `db:"update_datetime"`
 }
 
 type TickersEODTask struct {

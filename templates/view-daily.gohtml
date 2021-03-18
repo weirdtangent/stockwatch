@@ -1,8 +1,8 @@
 {{- define "view-daily" -}}
 {{- template "_header" . }}
           <script src="/static/js/view.js"
-            data-symbol="{{.ticker.TickerSymbol}}"
-            data-acronym="{{.exchange.ExchangeAcronym}}"
+            data-ticker="{{.ticker.TickerSymbol}}"
+            data-exchange="{{.exchange.ExchangeMic}}"
             data-is-market-open="{{.config.is_market_open}}"
             data-quote-refresh="{{.config.quote_refresh}}">
           </script>
@@ -31,7 +31,7 @@
                         </tr>
                       {{range .ticker_dailies.Reverse.Days}}
                        <tr>
-                         <td class="text-center"><a class="text-white" href="/view/{{$.ticker.TickerSymbol}}/{{$.exchange.ExchangeAcronym}}/{{.PriceDate}}">{{.PriceDate}}</a> {{if .IsFinalPrice}}{{else}}<i class="fas fa-lock-open-alt"></i>{{end}}</td>
+                         <td class="text-center">{{.PriceDate}} {{if .IsFinalPrice}}{{else}}<i class="fas fa-lock-open-alt"></i>{{end}}</td>
                          <td class="pe-2 text-end">{{printf "%.2f" .OpenPrice}}</td>
                          <td class="pe-2 text-end">{{printf "%.2f" .HighPrice}}</td>
                          <td class="pe-2 text-end">{{printf "%.2f" .LowPrice}}</td>

@@ -15,7 +15,6 @@ import (
 func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 	logger := log.Ctx(ctx)
 	var ticker *Ticker
-	var exchange *Exchange
 
 	apiKey := ctx.Value("yahoofinance_apikey").(string)
 	apiHost := ctx.Value("yahoofinance_apihost").(string)
@@ -32,22 +31,23 @@ func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 	var summaryResponse yahoofinance.YFSummaryResponse
 	json.NewDecoder(strings.NewReader(response)).Decode(&summaryResponse)
 
-	// create exchange
-	exchange = &Exchange{0, summaryResponse.Price.ExchangeMic, summaryResponse.Price.ExchangeName, summaryResponse.Price.ExchangeMic, 0, "", summaryResponse.QuoteType.ExchangeTZName, "", ""}
-	err = exchange.getOrCreate(ctx)
+	// can't create exchange - all we get is ExchangeCode and I can't find a
+	// table to translate those to Exchange MIC or Acronym... so I have to
+	// link them manually for now
+	exchangeId, err := getExchangeByCode(ctx, summaryResponse.Price.ExchangeCode)
 	if err != nil {
 		logger.Error().Err(err).
 			Str("ticker", summaryResponse.QuoteType.Symbol).
-			Str("exchange", summaryResponse.QuoteType.Acronym).
-			Msg("Failed to create or update exchange")
+			Str("exchange_code", summaryResponse.Price.ExchangeCode).
+			Msg("Failed to find exchange_code matched to exchange mic record")
 		return ticker, err
 	}
 
 	// create/update ticker
 	ticker = &Ticker{
-		0,
+		0, // id
 		summaryResponse.QuoteType.Symbol,
-		exchange.ExchangeId,
+		exchangeId,
 		summaryResponse.QuoteType.ShortName,
 		summaryResponse.QuoteType.LongName,
 		summaryResponse.SummaryProfile.Address1,
@@ -60,14 +60,15 @@ func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 		summaryResponse.SummaryProfile.Sector,
 		summaryResponse.SummaryProfile.Industry,
 		"now()",
-		"",
-		"",
+		"", // ms_performance_id
+		"", // create_datetime
+		"", // update_datetime
 	}
 	err = ticker.createOrUpdate(ctx)
 	if err != nil {
 		logger.Error().Err(err).
 			Str("ticker", summaryResponse.QuoteType.Symbol).
-			Str("exchange", summaryResponse.QuoteType.Acronym).
+			Str("exchange_code", summaryResponse.QuoteType.ExchangeCode).
 			Msg("Failed to create or update ticker")
 		return ticker, err
 	}
@@ -247,18 +248,22 @@ func listSearch(ctx context.Context, searchString string, resultTypes string) ([
 
 	if resultTypes == "ticker" || resultTypes == "both" {
 		for _, quoteResult := range searchResponse.Quotes {
-			searchResults = append(searchResults, SearchResult{
-				ResultType: "ticker",
-				News:       SearchResultNews{},
-				Ticker: SearchResultTicker{
-					TickerSymbol:    quoteResult.Symbol,
-					ExchangeAcronym: quoteResult.Acronym,
-					Type:            quoteResult.Type,
-					ShortName:       quoteResult.ShortName,
-					LongName:        quoteResult.LongName,
-					SearchScore:     quoteResult.Score,
-				},
-			})
+			exchangeId, err := getExchangeByCode(ctx, quoteResult.ExchangeCode)
+			if err == nil && exchangeId > 0 {
+				exchange, _ := getExchangeById(ctx, exchangeId)
+				searchResults = append(searchResults, SearchResult{
+					ResultType: "ticker",
+					News:       SearchResultNews{},
+					Ticker: SearchResultTicker{
+						TickerSymbol: quoteResult.Symbol,
+						ExchangeMic:  exchange.ExchangeMic,
+						Type:         quoteResult.Type,
+						ShortName:    quoteResult.ShortName,
+						LongName:     quoteResult.LongName,
+						SearchScore:  quoteResult.Score,
+					},
+				})
+			}
 		}
 	}
 

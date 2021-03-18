@@ -18,12 +18,12 @@ type SearchResultNews struct {
 }
 
 type SearchResultTicker struct {
-	TickerSymbol    string
-	ExchangeAcronym string
-	ShortName       string
-	LongName        string
-	Type            string
-	SearchScore     float64
+	TickerSymbol string
+	ExchangeMic  string
+	ShortName    string
+	LongName     string
+	Type         string
+	SearchScore  float64
 }
 
 type SearchResult struct {

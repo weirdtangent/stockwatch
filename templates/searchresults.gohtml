@@ -21,7 +21,7 @@
                 {{range .results}}
                   {{if eq .ResultType "ticker"}}
                   <tr>
-                    <td class=""><a class="text-white table-white" href="/view/{{.Ticker.TickerSymbol}}/{{.Ticker.ExchangeAcronym}}">{{.Ticker.TickerSymbol}}/{{.Ticker.ExchangeAcronym}}</a> <span class="text-light sm">({{.Ticker.Type}})</span></td>
+                    <td class=""><a class="text-white table-white" href="/view/{{.Ticker.TickerSymbol}}">{{.Ticker.TickerSymbol}}/{{.Ticker.ExchangeMic}}</a> <span class="text-light sm">({{.Ticker.Type}})</span></td>
                     <td class="">{{.Ticker.ShortName}} ({{.Ticker.LongName}})</td>
                   </tr>
                   {{end}}

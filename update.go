@@ -16,7 +16,6 @@ func updateHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
-		//db := ctx.Value("db").(*sqlx.DB)
 		messages := ctx.Value("messages").(*[]Message)
 
 		if ok := checkAuthState(w, r); ok == false {
@@ -26,67 +25,12 @@ func updateHandler() http.HandlerFunc {
 			action := params["action"]
 
 			switch action {
-			case "exchanges":
-				//count, err := fetchExchanges(ctx)
-				count := 0
-				err := fmt.Errorf("")
+			case "movers":
+				err := loadMovers(ctx)
 				if err != nil {
-					logger.Error().Msgf("Bulk update of Exchanges failed: %s", err)
-					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Exchanges failed: %s", err.Error()), "danger"})
-				} else if count == 0 {
-					logger.Error().Msgf("Bulk update of Exchanges failed, no error msg but 0 exchanges retrieved")
-					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Exchanges failed: no error msg but 0 exchanges retrieved"), "danger"})
+					*messages = append(*messages, Message{fmt.Sprintf("Pulling latest Morningstar Movers failed: %s", err.Error()), "danger"})
 				} else {
-					logger.Info().Int("count", count).Msg("Update of exchanges completed")
-					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Exchanges succeeded: %d exchanges updates", count), "success"})
-				}
-			case "indexes":
-				//count, err := fetchMarketIndexes(ctx)
-				count := 0
-				err := fmt.Errorf("")
-				if err != nil {
-					logger.Error().Msgf("Bulk update of Market Indexes failed: %s", err)
-					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Market Indexes failed: %s", err.Error()), "danger"})
-				} else if count == 0 {
-					logger.Error().Msgf("Bulk update of Market Indexes failed, no error msg but 0 market indexes retrieved")
-					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Market Indexes failed: no error msg but 0 market indexes retrieved"), "danger"})
-				} else {
-					logger.Info().Int("count", count).Msg("Update of market indexes completed")
-					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Market Indexes succeeded: %d market indexes updates", count), "success"})
-				}
-			case "currencies":
-				//count, err := fetchCurrencies(ctx)
-				count := 0
-				err := fmt.Errorf("")
-				if err != nil {
-					logger.Error().Msgf("Bulk update of Currencies failed: %s", err)
-					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Currencies failed: %s", err.Error()), "danger"})
-				} else if count == 0 {
-					logger.Error().Msgf("Bulk update of Currencies failed, no error msg but 0 currencies retrieved")
-					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Currencies failed: no error msg but 0 currencies retrieved"), "danger"})
-				} else {
-					logger.Info().Int("count", count).Msg("Update of currencies completed")
-					*messages = append(*messages, Message{fmt.Sprintf("Bulk update of Currencies succeeded: %d currencies updates", count), "success"})
-				}
-			case "ticker":
-				symbol := params["symbol"]
-				//acronym := params["acronym"]
-				//exchange, err := getExchange(db, acronym, "")
-				//exchange := Exchange{}
-				err := fmt.Errorf("")
-				if err != nil {
-					logger.Error().Msgf("Update of ticker symbol %s failed: %s", symbol, err)
-					*messages = append(*messages, Message{fmt.Sprintf("Update of ticker symbol %s failed: %s", symbol, err), "danger"})
-				}
-
-				//_, err = fetchTicker(ctx, symbol, exchange.ExchangeMic)
-				err = fmt.Errorf("")
-				if err != nil {
-					logger.Error().Msgf("Update of ticker symbol %s failed: %s", symbol, err)
-					*messages = append(*messages, Message{fmt.Sprintf("Update of ticker symbol %s failed: %s", symbol, err), "danger"})
-				} else {
-					logger.Info().Str("symbol", symbol).Msg("Update of ticker symbol completed")
-					*messages = append(*messages, Message{fmt.Sprintf("Update of ticker symbol %s succeeded", symbol), "success"})
+					*messages = append(*messages, Message{fmt.Sprintf("Pulled latest Morningstar Movers"), "success"})
 				}
 			default:
 				logger.Error().Str("action", action).Msg("Unknown update action")
@@ -94,7 +38,6 @@ func updateHandler() http.HandlerFunc {
 			}
 
 			logger.Info().Msgf("Update operation ended normally")
-
 			renderTemplateDefault(w, r, "update")
 		}
 	})

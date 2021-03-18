@@ -3,10 +3,10 @@
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-primary">
           <div class="modal-header">
-            <h5 class="modal-title" id="modalSoldLabel">Record Shares Sold of {{.ticker.TickerSymbol}} ({{.exchange.ExchangeAcronym}})</h5>
+            <h5 class="modal-title" id="modalSoldLabel">Record Shares Sold of {{.ticker.TickerSymbol}} ({{.exchange.ExchangeMic}})</h5>
             <button type="button" class="btn-close bg-danger" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <form method="POST" action="/sold/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeAcronym}}">
+          <form method="POST" action="/sold/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeMic}}">
             <div class="modal-body">
               <div class="container-fluid">
                 <div class="row">
