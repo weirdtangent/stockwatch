@@ -10,7 +10,8 @@ require (
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.1
 	github.com/jmoiron/sqlx v1.3.1
-	github.com/prometheus/client_golang v1.9.0
+	github.com/prometheus/client_golang v1.10.0
+	github.com/prometheus/common v0.19.0 // indirect
 	github.com/rs/zerolog v1.20.0
 	github.com/savaki/dynastore v0.0.0-20171109173440-28d8558bb429
 	github.com/stretchr/testify v1.6.1 // indirect
@@ -20,6 +21,7 @@ require (
 	github.com/weirdtangent/mytime v0.1.1
 	github.com/weirdtangent/yahoofinance v0.1.11
 	golang.org/x/net v0.0.0-20210316092652-d523dce5a7f4 // indirect
+	golang.org/x/oauth2 v0.0.0-20210313182246-cd4f82c27b84 // indirect
 	golang.org/x/sys v0.0.0-20210317225723-c4fcb01b228e // indirect
 	golang.org/x/text v0.3.5 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
