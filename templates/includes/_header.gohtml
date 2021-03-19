@@ -3,18 +3,22 @@
 <html lang="en">
   <head>
     <meta http-equiv="content-type" content="text/html;charset=utf-8">
-    <meta name="google-signin-client_id" content="602086455575-vj2spkou0ucsntgol9srfkf8mka3o5i2.apps.googleusercontent.com">
+    <meta name="google-signin-client_id" content="602086455575-42rg6ja1qb8sebu2tqbokrd8h8n70j3e.apps.googleusercontent.com">
+
     <link href="/static/css/custom-dark.css" rel="stylesheet">
-    <link href="/static/css/internal.css" rel="stylesheet">
+    <link href="/static/css/global.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet">
+
     <script src="https://kit.fontawesome.com/beb4827de9.js" crossorigin="anonymous"></script>
+    <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
+    <script src="/static/vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://apis.google.com/js/platform.js?onload=initGSO" async defer></script>
+    <script src="/static/js/global.js"></script>
     <title>{{if .ticker}}{{.ticker.TickerSymbol}} - {{.ticker.TickerName}}{{else}}Graystorm StockWatch{{end}}</title>
   </head>
 
   <body id="page-top" class="{{.config.template_name}}">
-    <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
-    <script src="/static/vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 
     <div><!-- Navigation -->
       <div class="row g-0"><!-- row -->

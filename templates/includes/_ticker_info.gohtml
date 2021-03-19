@@ -19,15 +19,11 @@
                     {{else}}
                       {{if eq .last_ticker_daily_move "up"}}
                         <span class="h5 text-success"><i id="quote_dailymove" class="fas fa-arrow-up"></i>
-                        {{if .quote}}{{ printf "$%.2f" .quote.QuoteChange }} ({{ .quote.QuoteChangePct }})
-                        {{else}}{{ PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }} ({{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }})
-                        {{end}}
+                        {{ PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }} ({{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }})
                         </span>
                       {{else if eq .last_ticker_daily_move "down"}}
                         <span class="h5 text-danger"><i id="quote_dailymove" class="fas fa-arrow-down"></i>
-                        {{if .quote}}{{ printf "$%.2f" .quote.QuoteChange }} ({{ .quote.QuoteChangePct }})
-                        {else}}{{ PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }} ({{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }})
-                        {{end}}
+                        {{ PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }} ({{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }})
                         </span>
                       {{end}}
                     {{end}}

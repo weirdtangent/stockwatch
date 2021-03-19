@@ -1,30 +1,74 @@
 package main
 
 import (
+	"context"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 )
 
 type Watcher struct {
 	WatcherId      int64  `db:"watcher_id"`
+	WatcherSub     string `db:"watcher_sub"`
 	WatcherName    string `db:"watcher_name"`
 	WatcherEmail   string `db:"watcher_email"`
 	WatcherStatus  string `db:"watcher_status"`
 	WatcherLevel   string `db:"watcher_level"`
-	OAuthId        int64  `db:"oauth_id"`
+	WatcherPicURL  string `db:"watcher_pic_url"`
 	CreateDatetime string `db:"create_datetime"`
 	UpdateDatetime string `db:"update_datetime"`
 }
 
-func (w Watcher) Update(db *sqlx.DB) error {
-	var update = "UPDATE watcher SET watcher_name=?, watcher_email=?, oauth_id=? WHERE watcher_id=?"
+func (w *Watcher) update(ctx context.Context) error {
+	db := ctx.Value("db").(*sqlx.DB)
 
-	_, err := db.Exec(update, w.WatcherName, w.WatcherEmail, w.OAuthId, w.WatcherId)
+	var update = "UPDATE watcher SET watcher_name=?, watcher_email=? WHERE watcher_id=?"
+	_, err := db.Exec(update, w.WatcherName, w.WatcherEmail, w.WatcherId)
 	if err != nil {
-		log.Warn().Err(err).
-			Str("table_name", "watcher").
-			Msg("Failed on UPDATE")
+		log.Warn().Err(err).Str("table_name", "watcher").Msg("Failed on UPDATE")
 	}
+	return err
+}
+
+func (w *Watcher) create(ctx context.Context) error {
+	db := ctx.Value("db").(*sqlx.DB)
+
+	var insert = "INSERT INTO watcher SET watcher_sub=?, watcher_name=?, watcher_email=?, watcher_status=?"
+	res, err := db.Exec(insert, w.WatcherSub, w.WatcherName, w.WatcherEmail, w.WatcherStatus)
+	if err != nil {
+		log.Fatal().Err(err).Str("table_name", "watcher").Msg("Failed on INSERT")
+		return err
+	}
+	watcherId, err := res.LastInsertId()
+	if err != nil {
+		log.Fatal().Err(err).Str("table_name", "watcher").Msg("Failed on LAST_INSERT_ID")
+		return err
+	}
+	w, err = getWatcherById(ctx, watcherId)
+	return err
+}
+
+func (w *Watcher) getWatcherIdBySub(ctx context.Context) (int64, error) {
+	db := ctx.Value("db").(*sqlx.DB)
+
+	var watcherId int64
+	err := db.QueryRowx("SELECT watcher_id FROM watcher WHERE watcher_sub=?", w.WatcherSub).Scan(&watcherId)
+	return watcherId, err
+}
+
+func (w *Watcher) createOrUpdate(ctx context.Context) error {
+	db := ctx.Value("db").(*sqlx.DB)
+
+	watcherId, err := w.getWatcherIdBySub(ctx)
+	if watcherId == 0 {
+		return w.create(ctx)
+	}
+	w.WatcherId = watcherId
+
+	var update = "UPDATE watcher SET watcher_name=?, watcher_email=?, watcher_status=?, watcher_pic_url=? WHERE watcher_sub=?"
+	_, err = db.Exec(update, w.WatcherName, w.WatcherEmail, w.WatcherStatus, w.WatcherPicURL, w.WatcherSub)
+
+	w, err = getWatcherBySub(ctx, w.WatcherSub)
 	return err
 }
 
@@ -36,57 +80,19 @@ func (w Watcher) IsRoot() bool {
 	return w.WatcherLevel == "root"
 }
 
-func getWatcher(db *sqlx.DB, emailAddress string) (*Watcher, error) {
-	var watcher Watcher
-	err := db.QueryRowx("SELECT * FROM watcher WHERE watcher_email=?", emailAddress).StructScan(&watcher)
-	return &watcher, err
-}
+// misc -----------------------------------------------------------------------
+func getWatcherById(ctx context.Context, watcherId int64) (*Watcher, error) {
+	db := ctx.Value("db").(*sqlx.DB)
 
-func getWatcherById(db *sqlx.DB, watcherId int64) (*Watcher, error) {
 	var watcher Watcher
 	err := db.QueryRowx("SELECT * FROM watcher WHERE watcher_id=?", watcherId).StructScan(&watcher)
 	return &watcher, err
 }
 
-func createWatcher(db *sqlx.DB, watcher *Watcher) (*Watcher, error) {
-	var insert = "INSERT INTO watcher SET watcher_name=?, watcher_email=?, watcher_status=?, oauth_id=?"
+func getWatcherBySub(ctx context.Context, watcherSub string) (*Watcher, error) {
+	db := ctx.Value("db").(*sqlx.DB)
 
-	res, err := db.Exec(insert, watcher.WatcherName, watcher.WatcherEmail, watcher.WatcherStatus, watcher.OAuthId)
-	if err != nil {
-		log.Fatal().Err(err).
-			Str("table_name", "watcher").
-			Msg("Failed on INSERT")
-	}
-	watcherId, err := res.LastInsertId()
-	if err != nil {
-		log.Fatal().Err(err).
-			Str("table_name", "watcher").
-			Msg("Failed on LAST_INSERT_ID")
-	}
-	return getWatcherById(db, watcherId)
-}
-
-func getOrCreateWatcher(db *sqlx.DB, watcher *Watcher) (*Watcher, error) {
-	existing, err := getWatcher(db, watcher.WatcherEmail)
-	if err != nil && existing.WatcherId == 0 {
-		return createWatcher(db, watcher)
-	}
-	return existing, err
-}
-
-func createOrUpdateWatcher(db *sqlx.DB, watcher *Watcher) (*Watcher, error) {
-	var update = "UPDATE watcher SET watcher_name=?, watcher_email=?, watcher_status=?, oauth_id=? WHERE watcher_id=?"
-
-	existing, err := getWatcher(db, watcher.WatcherEmail)
-	if err != nil {
-		return createWatcher(db, watcher)
-	}
-
-	_, err = db.Exec(update, watcher.WatcherName, watcher.WatcherEmail, watcher.WatcherStatus, watcher.OAuthId, existing.WatcherId)
-	if err != nil {
-		log.Warn().Err(err).
-			Str("table_name", "watcher").
-			Msg("Failed on UPDATE")
-	}
-	return getWatcherById(db, existing.WatcherId)
+	var watcher Watcher
+	err := db.QueryRowx("SELECT * FROM watcher WHERE watcher_sub=?", watcherSub).StructScan(&watcher)
+	return &watcher, err
 }

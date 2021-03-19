@@ -18,6 +18,7 @@ func homeHandler(tmplname string) http.HandlerFunc {
 		if len(nextParam) > 0 {
 			webdata["next"] = nextParam
 		}
+		webdata["loggedout"] = true
 
 		renderTemplateDefault(w, r, tmplname)
 	})

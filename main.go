@@ -94,6 +94,9 @@ func main() {
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 	router.PathPrefix("/favicon.ico").Handler(http.FileServer(http.Dir("static/images")))
 
+	router.HandleFunc("/tokensignin", signinHandler()).Methods("POST")
+	router.HandleFunc("/signout", signoutHandler()).Methods("GET")
+
 	router.HandleFunc("/ping", pingHandler()).Methods("GET")
 	router.HandleFunc("/internal/cspviolations", JSONReportHandler()).Methods("GET")
 	router.HandleFunc("/api/v1/{endpoint}", apiV1Handler()).Methods("GET")

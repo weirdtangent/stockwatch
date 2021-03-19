@@ -70,7 +70,7 @@ func Over24HoursUTC(dateStr string) bool {
 	currentDate := time.Now()
 
 	dur := currentDate.Sub(dateObj)
-	log.Info().Msgf("The diff between %s and %s is %d hours", dateObj, currentDate, dur.Hours())
+	log.Info().Msgf("The diff between %s and %s is %.2f hours", dateObj, currentDate, dur.Hours())
 	return dur.Hours() >= 24.0
 }
 

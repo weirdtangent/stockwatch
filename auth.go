@@ -1,18 +1,214 @@
 package main
 
 import (
+	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	crand "crypto/rand"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 	"math/rand"
+	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/gorilla/securecookie"
+	"github.com/rs/zerolog/log"
+
+	"golang.org/x/oauth2/google"
+
+	"google.golang.org/api/idtoken"
+	"google.golang.org/api/option"
 
 	"github.com/weirdtangent/myaws"
 )
+
+func signinHandler() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		logger := log.Ctx(ctx)
+		session := getSession(r)
+		sc := ctx.Value("sc").(*securecookie.SecureCookie)
+
+		payload, err := validateGoogleJWT(ctx, r.FormValue("idtoken"))
+		if err != nil {
+			http.NotFound(w, r)
+		}
+
+		// get (or create) watcher account based on oauth properties
+		// specifically, based on the sub value, because email addresses can change
+		// and we want a watchers session and "account" to follow them even if they change
+		var watcher = &Watcher{0, payload.Claims["sub"].(string), payload.Claims["name"].(string), payload.Claims["email"].(string), "active", "standard", payload.Claims["picture"].(string), "", ""}
+		err = watcher.createOrUpdate(ctx)
+		if err != nil {
+			logger.Error().Err(err).Msg("Failed to get/create watcher from one-tap")
+			http.NotFound(w, r)
+			return
+		}
+
+		// get (or write) oauth record tied to watcher until it expires
+		var oauth = &OAuth{0, payload.Issuer, payload.Claims["sub"].(string), payload.IssuedAt, payload.Expires, session.ID, "", ""}
+		err = oauth.createOrUpdate(ctx)
+		if err != nil {
+			logger.Error().Err(err).Msg("Failed to create/update oauth record")
+			http.NotFound(w, r)
+			return
+		}
+
+		if watcher.WatcherId == 0 {
+			logger.Fatal().Msg("WatcherId should not be 0 here")
+		}
+
+		// set WID (WatcherId) session cookie, meaning the user is authenticated and logged-in
+		if encoded, err := sc.Encode("WID", fmt.Sprintf("%d", watcher.WatcherId)); err == nil {
+			cookie := &http.Cookie{
+				Name:     "WID",
+				Value:    encoded,
+				Path:     "/",
+				Secure:   true,
+				HttpOnly: true,
+			}
+			http.SetCookie(w, cookie)
+		} else {
+			logger.Error().Err(err).Msg("Failed to encode cookie")
+		}
+	})
+}
+
+func validateGoogleJWT(ctx context.Context, id_token string) (*idtoken.Payload, error) {
+	logger := log.Ctx(ctx)
+	google_svc_acct := ctx.Value("google_svc_acct").(string)
+	google_oauth_client_id := ctx.Value("google_oauth_client_id").(string)
+
+	var payload *idtoken.Payload
+
+	// build our own credentials from that
+	credentials, err := google.CredentialsFromJSON(
+		context.Background(), []byte(google_svc_acct),
+		"openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile",
+	)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to build Google credentials")
+		return payload, err
+	}
+
+	// create ClientOption with those credentials
+	clientOption := option.WithCredentials(credentials)
+
+	// build New Token Validator using that ClientOption
+	tokenValidator, err := idtoken.NewValidator(context.Background(), clientOption)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to initiate the google idtoken validator")
+		return payload, err
+	}
+
+	// attempt to validate the idtoken the user presented
+	payload, err = tokenValidator.Validate(context.Background(), id_token, google_oauth_client_id)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to validate the google idtoken")
+		return payload, err
+	}
+
+	return payload, nil
+}
+
+// logout from google one-tap here
+func signoutHandler() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		deleteWIDCookie(w, r)
+		http.Redirect(w, r, "/", 302)
+	})
+}
+
+func deleteWIDCookie(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := log.Ctx(ctx)
+	sc := ctx.Value("sc").(*securecookie.SecureCookie)
+
+	if encoded, err := sc.Encode("WID", "invalid"); err == nil {
+		cookie := &http.Cookie{
+			Name:     "WID",
+			Value:    encoded,
+			Path:     "/",
+			Secure:   true,
+			HttpOnly: true,
+			MaxAge:   -1,
+		}
+		http.SetCookie(w, cookie)
+	} else {
+		logger.Error().Err(err).Msg("Failed to encode cookie (for removal)")
+	}
+}
+
+// check for WID cookie, set above when authenticated with Google 1-Tap
+// plus set some standard webdata keys we'll need for all/most pages
+func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
+	ctx := r.Context()
+	logger := log.Ctx(ctx)
+	sc := ctx.Value("sc").(*securecookie.SecureCookie)
+	webdata := ctx.Value("webdata").(map[string]interface{})
+	nonce := ctx.Value("nonce").(string)
+
+	session := getSession(r)
+	recents, _ := getRecents(session, r)
+	webdata["config"] = ConfigData{}
+	webdata["recents"] = *recents
+	webdata["nonce"] = nonce
+
+	if wid, err := r.Cookie("WID"); err == nil {
+		var WIDstr string
+		err = sc.Decode("WID", wid.Value, &WIDstr)
+		switch err {
+		case nil:
+			WIDvalue, err := strconv.ParseInt(WIDstr, 10, 64)
+			if err != nil {
+				logger.Error().Err(err).Str("wid", WIDstr).Msg("Failed to convert cookie value to id")
+				deleteWIDCookie(w, r)
+				break
+			}
+			watcher, err := getWatcherById(ctx, WIDvalue)
+			if err != nil {
+				logger.Error().Err(err).Int64("wid", WIDvalue).Msg("Failed to get watcher via cookie")
+				deleteWIDCookie(w, r)
+				break
+			}
+			if watcher.WatcherStatus != "active" {
+				logger.Error().Err(err).Int64("watcher_id", WIDvalue).Str("watcher_status", watcher.WatcherStatus).Msg("Watcher record not marked 'active'")
+				deleteWIDCookie(w, r)
+				break
+			}
+			oauth, err := getOAuthBySub(ctx, watcher.WatcherSub)
+			if err != nil {
+				logger.Error().Err(err).Int64("watcher_id", WIDvalue).Msg("Failed to get oauth record by sub")
+				break
+			}
+			currentDateTime := time.Now()
+			unixTimeNow := currentDateTime.Unix()
+			logger.Info().Int64("unix_time", unixTimeNow).Int64("oath_expires", oauth.OAuthExpires).Msg("Checking oauth expiration")
+			if unixTimeNow > oauth.OAuthExpires {
+				logger.Warn().Int64("watcher_id", WIDvalue).Msg("OAuth record has expired")
+			}
+			logger.Info().Msg("Authenticated visitor found")
+			webdata["WID"] = wid
+			webdata["watcher"] = watcher
+			return true
+		}
+	}
+	logger.Info().Msg("Anonymous visitor found")
+	webdata["loggedout"] = 1
+
+	stateStr := session.Values["state"].(string)
+	webdata["stateStr"] = stateStr
+	webdata["clientId"] = ctx.Value("google_oauth_client_id").(string)
+	webdata["scope"] = "openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
+	webdata["redirectTo"] = "https://stockwatch.graystorm.com/callback"
+	webdata["nonce"] = RandStringMask(32)
+
+	return false
+}
 
 // random string of bytes, use in nonce values, for example
 //   https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-go

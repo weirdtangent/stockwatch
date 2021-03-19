@@ -87,11 +87,17 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	messages := make([]Message, 0)
 
 	// config Google OAuth
-	oauthClientId, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch_google_oauth", "client_id")
+	googleOAuthClientId, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch_google_oauth", "client_id")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
-	oauthSecret, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch_google_oauth", "client_secret")
+	googleOAuthSecret, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch_google_oauth", "client_secret")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+
+	// google svc account
+	google_svc_acct, err := myaws.AWSGetSecretValue(ac.awssess, "stockwatch_google_svc_acct")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
@@ -103,8 +109,9 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r = r.Clone(context.WithValue(r.Context(), "awssess", ac.awssess))
 	r = r.Clone(context.WithValue(r.Context(), "db", ac.db))
 	r = r.Clone(context.WithValue(r.Context(), "sc", ac.sc))
-	r = r.Clone(context.WithValue(r.Context(), "oauth_client_id", *oauthClientId))
-	r = r.Clone(context.WithValue(r.Context(), "oauth_client_secret", *oauthSecret))
+	r = r.Clone(context.WithValue(r.Context(), "google_oauth_client_id", *googleOAuthClientId))
+	r = r.Clone(context.WithValue(r.Context(), "google_oauth_client_secret", *googleOAuthSecret))
+	r = r.Clone(context.WithValue(r.Context(), "google_svc_acct", *google_svc_acct))
 	r = r.Clone(context.WithValue(r.Context(), "yahoofinance_apikey", *yf_api_access_key))
 	r = r.Clone(context.WithValue(r.Context(), "yahoofinance_apihost", *yf_api_access_host))
 	r = r.Clone(context.WithValue(r.Context(), "morningstar_apikey", *ms_api_access_key))

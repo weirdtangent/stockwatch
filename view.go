@@ -20,6 +20,11 @@ func viewTickerDailyHandler() http.HandlerFunc {
 
 		session := getSession(r)
 
+		if ok := checkAuthState(w, r); ok == false {
+			http.Redirect(w, r, "/", 307)
+			return
+		}
+
 		params := mux.Vars(r)
 		symbol := params["symbol"]
 
