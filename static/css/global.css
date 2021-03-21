@@ -95,9 +95,13 @@ form.no-border {
 }
 
 li.welcome,
-li.g_id_signout {
+li.signout {
   border-bottom: 1px solid gray;
   padding-bottom: 0.75em;
+}
+
+.signout {
+  cursor: pointer;
 }
 
 li.welcome {

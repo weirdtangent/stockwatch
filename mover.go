@@ -21,10 +21,16 @@ type Mover struct {
 	UpdateDatetime string  `db:"update_datetime"`
 }
 
+type WebMover struct {
+	Mover  Mover
+	Ticker Ticker
+}
+
 type Movers struct {
-	Gainers []Mover
-	Losers  []Mover
-	Actives []Mover
+	Gainers []WebMover
+	Losers  []WebMover
+	Actives []WebMover
+	ForDate string
 }
 
 func (m *Mover) getByUniqueKey(ctx context.Context) error {
@@ -72,12 +78,13 @@ func getMovers(ctx context.Context) (*Movers, error) {
 	}
 
 	var mover Mover
-	gainers := make([]Mover, 0)
-	losers := make([]Mover, 0)
-	actives := make([]Mover, 0)
+	gainers := make([]WebMover, 0)
+	losers := make([]WebMover, 0)
+	actives := make([]WebMover, 0)
 
-	rows, err := db.Queryx(`SELECT * FROM movers WHERE mover_date=?`, latestDateStr)
+	rows, err := db.Queryx(`SELECT * FROM mover WHERE mover_date=?`, latestDateStr)
 	if err != nil {
+		logger.Error().Err(err).Str("mover_date", latestDateStr).Msg("Failed to load movers")
 		return &movers, err
 	}
 	defer rows.Close()
@@ -89,13 +96,16 @@ func getMovers(ctx context.Context) (*Movers, error) {
 				Str("table_name", "mover").
 				Msg("Error reading result rows")
 		} else {
-			switch mover.MoverType {
-			case "gainer":
-				gainers = append(gainers, mover)
-			case "loser":
-				losers = append(losers, mover)
-			case "active":
-				actives = append(actives, mover)
+			ticker, err := getTickerById(ctx, mover.TickerId)
+			if err == nil {
+				switch mover.MoverType {
+				case "gainer":
+					gainers = append(gainers, WebMover{mover, *ticker})
+				case "loser":
+					losers = append(losers, WebMover{mover, *ticker})
+				case "active":
+					actives = append(actives, WebMover{mover, *ticker})
+				}
 			}
 		}
 	}
@@ -103,7 +113,7 @@ func getMovers(ctx context.Context) (*Movers, error) {
 		return &movers, err
 	}
 
-	movers = Movers{gainers, losers, actives}
+	movers = Movers{gainers, losers, actives, latestDateStr}
 	return &movers, nil
 }
 
@@ -111,6 +121,6 @@ func getLatestMoversDate(ctx context.Context) (string, error) {
 	db := ctx.Value("db").(*sqlx.DB)
 	var dateStr string
 
-	err := db.QueryRowx(`SELECT mover_date FROM mover ORDER BY mover_date DESC LIMIT 1`).StructScan(&dateStr)
+	err := db.QueryRowx(`SELECT mover_date FROM mover ORDER BY mover_date DESC LIMIT 1`).Scan(&dateStr)
 	return dateStr, err
 }

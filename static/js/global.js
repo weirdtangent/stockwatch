@@ -8,7 +8,7 @@ function initGSO() {
         console.log("found auth instance");
         auth2.signOut().then(function () {
           console.log("signed out, redirecting");
-          document.location.href = "https://stockwatch.graystorm.com/";
+          document.location.href = "https://stockwatch.graystorm.com/?signout=1";
         });
       } else {
         console.log("gapi isn't responding");

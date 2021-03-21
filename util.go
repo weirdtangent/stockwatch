@@ -109,17 +109,17 @@ func SinceColor(sinceStr string) string {
 func isMarketOpen() bool {
 	EasternTZ, _ := time.LoadLocation("America/New_York")
 	currentDate := time.Now().In(EasternTZ)
-	timeStr := currentDate.Format("1505")
+	timeStr := currentDate.Format("1504")
 	weekday := currentDate.Weekday()
 
 	if weekday == time.Saturday || weekday == time.Sunday {
 		return false
 	}
-	if timeStr < "0930" || timeStr > "1600" {
-		return false
+	if timeStr >= "0930" && timeStr < "1600" {
+		return true
 	}
 
-	return true
+	return false
 }
 
 func PriceDiffAmt(a, b float64) string {

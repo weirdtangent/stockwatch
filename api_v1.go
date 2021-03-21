@@ -45,7 +45,7 @@ func apiV1Handler() http.HandlerFunc {
 			if err != nil {
 				logger.Error().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", endpoint).Str("ticker", symbol).Msg("Failed to find ticker")
 				jsonResponse.Success = false
-				jsonResponse.Message = "Failure: unknown endpoint"
+				jsonResponse.Message = "Failure: unknown symbol"
 			} else {
 				// if the market is open, lets get a live quote
 				if isMarketOpen() {
@@ -54,7 +54,7 @@ func apiV1Handler() http.HandlerFunc {
 					if err != nil {
 						logger.Error().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", endpoint).Str("ticker", symbol).Msg("Failed to get live quote")
 						jsonResponse.Success = false
-						jsonResponse.Message = "Failure: unknown endpoint"
+						jsonResponse.Message = "Failure: could not load quote"
 					} else {
 						jsonResponse.Success = true
 						jsonResponse.Message = "ok"

@@ -27,9 +27,15 @@ func (o *OAuth) setStatus(ctx context.Context, newStatus string) error {
 
 func (o *OAuth) checkBySubscriber(ctx context.Context) int64 {
 	db := ctx.Value("db").(*sqlx.DB)
+	logger := log.Ctx(ctx)
 
 	var oauthId int64
-	db.QueryRowx("SELECT oauth_id FROM oauth WHERE oauth_sub=?", o.OAuthSub).Scan(&oauthId)
+	err := db.QueryRowx("SELECT oauth_id FROM oauth WHERE oauth_sub=?", o.OAuthSub).Scan(&oauthId)
+	if err != nil {
+		logger.Fatal().Err(err).
+			Str("table_name", "oauth").
+			Msg("Failed on checking for sub")
+	}
 	return oauthId
 }
 

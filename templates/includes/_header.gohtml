@@ -7,6 +7,7 @@
 
     <link href="/static/css/custom-dark.css" rel="stylesheet">
     <link href="/static/css/global.css" rel="stylesheet">
+    <link href="/static/css/{{.config.template_name}}.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet">
 
@@ -15,6 +16,7 @@
     <script src="/static/vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://apis.google.com/js/platform.js?onload=initGSO" async defer></script>
     <script src="/static/js/global.js"></script>
+    <script src="/static/js/{{.config.template_name}}.js"></script>
     <title>{{if .ticker}}{{.ticker.TickerSymbol}} - {{.ticker.TickerName}}{{else}}Graystorm StockWatch{{end}}</title>
   </head>
 
@@ -58,7 +60,7 @@
             {{end}}
 
             <div id="is_market_open_color" class="flex-grow-1 align-self-center flush-right {{if .config.is_market_open}}text-success{{else}}text-danger{{end}}">
-              <i class="fad fa-power-off"></i> <span id="is_market_open">{{if .config.is_market_open}}TRADING{{else}}CLOSED{{end}}</span>
+              <span class="me-3"><span class="text-light">US MARKETS: </span><i class="fad fa-power-off"></i> <span id="is_market_open">{{if .config.is_market_open}}TRADING{{else}}CLOSED{{end}}</span></span>
             </div>
           </div><!-- d-flex menubar -->
 {{- end}}

@@ -425,3 +425,11 @@ func getTickerBySymbol(ctx context.Context, symbol string) (*Ticker, error) {
 	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_symbol=?", symbol).StructScan(&ticker)
 	return &ticker, err
 }
+
+func getTickerById(ctx context.Context, ticker_id int64) (*Ticker, error) {
+	db := ctx.Value("db").(*sqlx.DB)
+
+	var ticker Ticker
+	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_id=?", ticker_id).StructScan(&ticker)
+	return &ticker, err
+}
