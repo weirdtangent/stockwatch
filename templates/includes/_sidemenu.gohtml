@@ -20,9 +20,10 @@
                 {{end}}
               </ul>
             {{else}}
-              <div class="ms-4 pb-2 login"><a href="/auth/twitter" class="btn btn-primary"><span class="fa fa-twitter"></span> Sign in with Twitter</a></div>
-              <!-- <div class="g-signin2 pb-2 ms-4" data-onsuccess="onSignIn" data-width="253" data-height="50" data-longtitle="true" data-theme="dark"></div> -->
-              <div class="pb-2 ms-4 login"><a href="/auth/google" class="btn btn-primary"><span class="fa fa-google"></span> Sign in with Google</a></div>
+              <div class="d-flex flex-column align-items-center pt-3">
+                <div class="login"><a href="/auth/twitter"><img src="/static/images/vendor/twitter-sign-in.png"></a></div>
+                <div class="login"><a href="/auth/google"><img src="/static/images/vendor/google-sign-in.png"></a></div>
+              </div>
             {{end}}
           </div>
 {{- end}}
