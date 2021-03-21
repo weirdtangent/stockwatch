@@ -143,7 +143,7 @@ func (ah *AddHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"connect-src 'self' accounts.google.com *.fontawesome.com",
 		"style-src 'self' fonts.googleapis.com accounts.google.com 'unsafe-inline'",
 		"script-src 'self' apis.google.com accounts.google.com kit.fontawesome.com 'nonce-" + nonce + "'",
-		"img-src 'self' data: *.googleusercontent.com",
+		"img-src 'self' data: *.googleusercontent.com *.twimg.com",
 		"font-src 'self' fonts.gstatic.com *.fontawesome.com",
 		"frame-src 'self' accounts.google.com",
 		"report-uri /internal/cspviolations",
@@ -208,7 +208,7 @@ func (s *Session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if session.IsNew {
 		state := RandStringMask(32)
 		session.Values["state"] = state
-		session.Values["view_recents"] = []string{}
+		session.Values["recents"] = []string{}
 		session.Values["theme"] = "light"
 		err := session.Save(r, w)
 		if err != nil {

@@ -3,7 +3,7 @@
             {{if .WID}}
               {{if .watcher.WatcherPicURL}}
               <div class="my-1 text-center">
-                <img class="image-fluid rounded" alt="User's Google profile picture" src="{{.watcher.WatcherPicURL}}">
+                <img class="image-fluid rounded" alt="User's social media profile picture" src="{{.watcher.WatcherPicURL}}">
               </div>
               {{ end}}
               <ul class="nav flex-column me-auto mb-2 mb-lg-0">
@@ -12,7 +12,7 @@
                 <li class="nav-item"><a class="nav-link ps-3" href="#section1">My Account</a></li>
                 <li class="nav-item"><a class="nav-link ps-3" href="#section2">Holding</a></li>
                 <li class="nav-item"><a class="nav-link ps-3" href="#section3">Watching</a></li>
-                <li class="nav-item"><a class="nav-link ps-3 signout">Sign Out</a></li>
+                <li class="nav-item"><a class="nav-link ps-3" href="/signout/{{.provider}}">Sign Out</a></li>
                 {{if .watcher.IsAdmin}}
                 <li class="nav-item"><a class="nav-link ps-3 link-warning" href="/update/movers">Morningstar Movers</a></li>
                 <li class="nav-item"><a class="nav-link ps-3 link-warning" href="#">Updates</a></li>
@@ -20,7 +20,9 @@
                 {{end}}
               </ul>
             {{else}}
-              <div class="g-signin2 ms-1" data-onsuccess="onSignIn" data-width="253" data-height="50" data-longtitle="true" data-theme="dark"></div>
+              <div class="ms-4 pb-2 login"><a href="/auth/twitter" class="btn btn-primary"><span class="fa fa-twitter"></span> Sign in with Twitter</a></div>
+              <!-- <div class="g-signin2 pb-2 ms-4" data-onsuccess="onSignIn" data-width="253" data-height="50" data-longtitle="true" data-theme="dark"></div> -->
+              <div class="pb-2 ms-4 login"><a href="/auth/google" class="btn btn-primary"><span class="fa fa-google"></span> Sign in with Google</a></div>
             {{end}}
           </div>
 {{- end}}

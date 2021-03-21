@@ -13,7 +13,6 @@ type OAuth struct {
 	OAuthSub       string `db:"oauth_sub"`
 	OAuthIssued    int64  `db:"oauth_issued"`
 	OAuthExpires   int64  `db:"oauth_expires"`
-	SessionId      string `db:"session_id"`
 	CreateDatetime string `db:"create_datetime"`
 	UpdateDatetime string `db:"update_datetime"`
 }
@@ -27,15 +26,9 @@ func (o *OAuth) setStatus(ctx context.Context, newStatus string) error {
 
 func (o *OAuth) checkBySubscriber(ctx context.Context) int64 {
 	db := ctx.Value("db").(*sqlx.DB)
-	logger := log.Ctx(ctx)
 
 	var oauthId int64
-	err := db.QueryRowx("SELECT oauth_id FROM oauth WHERE oauth_sub=?", o.OAuthSub).Scan(&oauthId)
-	if err != nil {
-		logger.Fatal().Err(err).
-			Str("table_name", "oauth").
-			Msg("Failed on checking for sub")
-	}
+	db.QueryRowx("SELECT oauth_id FROM oauth WHERE oauth_sub=?", o.OAuthSub).Scan(&oauthId)
 	return oauthId
 }
 
@@ -43,8 +36,8 @@ func (o *OAuth) create(ctx context.Context) error {
 	db := ctx.Value("db").(*sqlx.DB)
 	logger := log.Ctx(ctx)
 
-	var insert = "INSERT INTO oauth SET oauth_issuer=?, oauth_sub=?, oauth_issued=?, oauth_expires=?, session_id=?"
-	_, err := db.Exec(insert, o.OAuthIssuer, o.OAuthSub, o.OAuthIssued, o.OAuthExpires, o.SessionId)
+	var insert = "INSERT INTO oauth SET oauth_issuer=?, oauth_sub=?, oauth_issued=?, oauth_expires=?"
+	_, err := db.Exec(insert, o.OAuthIssuer, o.OAuthSub, o.OAuthIssued, o.OAuthExpires)
 	if err != nil {
 		logger.Fatal().Err(err).
 			Str("table_name", "oauth").
@@ -65,8 +58,8 @@ func (o *OAuth) createOrUpdate(ctx context.Context) error {
 		return o.create(ctx)
 	}
 
-	var update = "UPDATE oauth SET oauth_issued=?, oauth_expires=?, session_id=? WHERE oauth_id=?"
-	_, err := db.Exec(update, o.OAuthIssued, o.OAuthExpires, o.SessionId, o.OAuthId)
+	var update = "UPDATE oauth SET oauth_issued=?, oauth_expires=? WHERE oauth_id=?"
+	_, err := db.Exec(update, o.OAuthIssued, o.OAuthExpires, o.OAuthId)
 	if err != nil {
 		logger.Warn().Err(err).
 			Str("table_name", "oauth").

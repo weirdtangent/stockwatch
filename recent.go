@@ -9,7 +9,11 @@ import (
 func getRecents(session *sessions.Session, r *http.Request) (*[]string, error) {
 	//logger := log.Ctx(r.Context())
 	// get current list (if any) from session
-	recents := session.Values["view_recents"].([]string)
+	var recents []string
+
+	if session.Values["recents"] != nil {
+		recents = session.Values["recents"].([]string)
+	}
 
 	return &recents, nil
 }
@@ -17,7 +21,7 @@ func getRecents(session *sessions.Session, r *http.Request) (*[]string, error) {
 func addTickerToRecents(session *sessions.Session, r *http.Request, symbol string) (*[]string, error) {
 	//logger := log.Ctx(r.Context())
 	// get current list (if any) from session
-	recents := session.Values["view_recents"].([]string)
+	recents := session.Values["recents"].([]string)
 
 	// if this symbol/exchange is already on their list just bomb out
 	for _, viewed := range recents {
@@ -34,7 +38,7 @@ func addTickerToRecents(session *sessions.Session, r *http.Request, symbol strin
 	recents = append(recents, symbol)
 
 	// write it to the session
-	session.Values["view_recents"] = recents
+	session.Values["recents"] = recents
 
 	return &recents, nil
 }

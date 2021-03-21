@@ -15,6 +15,11 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/savaki/dynastore"
 
+	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
+	"github.com/markbates/goth/providers/google"
+	"github.com/markbates/goth/providers/twitter"
+
 	"github.com/weirdtangent/myaws"
 )
 
@@ -85,6 +90,29 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to setup session management")
 	}
 
+	// auth api setup ---------------------------------------------------------
+	googleOAuthClientId, err := myaws.AWSGetSecretKV(awssess, "stockwatch_google_oauth", "client_id")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+	googleOAuthSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch_google_oauth", "client_secret")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+	twitterApiKey, err := myaws.AWSGetSecretKV(awssess, "twitter_api", "api_key")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+	twitterApiSecret, err := myaws.AWSGetSecretKV(awssess, "twitter_api", "api_secret_key")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+	goth.UseProviders(
+		google.New(*googleOAuthClientId, *googleOAuthSecret, "https://stockwatch.graystorm.com/auth/google/callback", "openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"),
+		twitter.New(*twitterApiKey, *twitterApiSecret, "https://stockwatch.graystorm.com/auth/twitter/callback"),
+	)
+	gothic.Store = store
+
 	// starting up web service ---------------------------------------------------
 	log.Info().Int("port", 3001).Msg("Started serving requests")
 
@@ -94,8 +122,10 @@ func main() {
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 	router.PathPrefix("/favicon.ico").Handler(http.FileServer(http.Dir("static/images")))
 
-	router.HandleFunc("/tokensignin", signinHandler()).Methods("POST")
-	router.HandleFunc("/signout", signoutHandler()).Methods("GET")
+	//router.HandleFunc("/tokensignin", signinHandler()).Methods("POST")
+	router.HandleFunc("/signout/{provider}", signoutHandler()).Methods("GET")
+	router.HandleFunc("/auth/{provider}", authLoginHandler()).Methods("GET")
+	router.HandleFunc("/auth/{provider}/callback", authCallbackHandler()).Methods("GET")
 
 	router.HandleFunc("/ping", pingHandler()).Methods("GET")
 	router.HandleFunc("/internal/cspviolations", JSONReportHandler()).Methods("GET")

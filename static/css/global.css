@@ -100,6 +100,10 @@ li.signout {
   padding-bottom: 0.75em;
 }
 
+.login a {
+  width: 253px;
+}
+
 .signout {
   cursor: pointer;
 }

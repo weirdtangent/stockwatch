@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	crand "crypto/rand"
@@ -18,107 +17,89 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/rs/zerolog/log"
 
-	"golang.org/x/oauth2/google"
-
-	"google.golang.org/api/idtoken"
-	"google.golang.org/api/option"
+	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
+	//"github.com/markbates/goth/providers/twitter"
 
 	"github.com/weirdtangent/myaws"
 )
 
-func signinHandler() http.HandlerFunc {
+func authLoginHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		logger := log.Ctx(ctx)
-		session := getSession(r)
-		sc := ctx.Value("sc").(*securecookie.SecureCookie)
-
-		payload, err := validateGoogleJWT(ctx, r.FormValue("idtoken"))
-		if err != nil {
-			http.NotFound(w, r)
-		}
-
-		// get (or create) watcher account based on oauth properties
-		// specifically, based on the sub value, because email addresses can change
-		// and we want a watchers session and "account" to follow them even if they change
-		var watcher = &Watcher{0, payload.Claims["sub"].(string), payload.Claims["name"].(string), payload.Claims["email"].(string), "active", "standard", payload.Claims["picture"].(string), "", ""}
-		err = watcher.createOrUpdate(ctx)
-		if err != nil {
-			logger.Error().Err(err).Msg("Failed to get/create watcher from one-tap")
-			http.NotFound(w, r)
-			return
-		}
-
-		// get (or write) oauth record tied to watcher until it expires
-		var oauth = &OAuth{0, payload.Issuer, payload.Claims["sub"].(string), payload.IssuedAt, payload.Expires, session.ID, "", ""}
-		err = oauth.createOrUpdate(ctx)
-		if err != nil {
-			logger.Error().Err(err).Msg("Failed to create/update oauth record")
-			http.NotFound(w, r)
-			return
-		}
-
-		if watcher.WatcherId == 0 {
-			logger.Fatal().Msg("WatcherId should not be 0 here")
-		}
-
-		// set WID (WatcherId) session cookie, meaning the user is authenticated and logged-in
-		if encoded, err := sc.Encode("WID", fmt.Sprintf("%d", watcher.WatcherId)); err == nil {
-			cookie := &http.Cookie{
-				Name:     "WID",
-				Value:    encoded,
-				Path:     "/",
-				Secure:   true,
-				HttpOnly: true,
-			}
-			http.SetCookie(w, cookie)
+		if user, err := gothic.CompleteUserAuth(w, r); err == nil {
+			signinUser(w, r, user)
 		} else {
-			logger.Error().Err(err).Msg("Failed to encode cookie")
+			gothic.BeginAuthHandler(w, r)
 		}
 	})
 }
 
-func validateGoogleJWT(ctx context.Context, id_token string) (*idtoken.Payload, error) {
+func authCallbackHandler() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		logger := log.Ctx(ctx)
+
+		user, err := gothic.CompleteUserAuth(w, r)
+		if err != nil {
+			logger.Error().Err(err).Msg("Failed to complete auth")
+			return
+		}
+		signinUser(w, r, user)
+	})
+}
+
+func signinUser(w http.ResponseWriter, r *http.Request, gothUser goth.User) {
+	ctx := r.Context()
 	logger := log.Ctx(ctx)
-	google_svc_acct := ctx.Value("google_svc_acct").(string)
-	google_oauth_client_id := ctx.Value("google_oauth_client_id").(string)
+	session := getSession(r)
+	sc := ctx.Value("sc").(*securecookie.SecureCookie)
 
-	var payload *idtoken.Payload
-
-	// build our own credentials from that
-	credentials, err := google.CredentialsFromJSON(
-		context.Background(), []byte(google_svc_acct),
-		"openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile",
-	)
+	// get (or create) watcher account based on oauth properties
+	// specifically, based on the sub value, because email addresses can change
+	// and we want a watchers session and "account" to follow them even if they change
+	var watcher = &Watcher{0, gothUser.UserID, gothUser.Name, "active", "standard", gothUser.AvatarURL, session.ID, "", ""}
+	err := watcher.createOrUpdate(ctx, gothUser.Email)
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to build Google credentials")
-		return payload, err
+		logger.Error().Err(err).Msg("Failed to get/create watcher from one-tap")
+		http.NotFound(w, r)
+		return
+	}
+	if watcher.WatcherId == 0 {
+		logger.Fatal().Msg("WatcherId should not be 0 here")
 	}
 
-	// create ClientOption with those credentials
-	clientOption := option.WithCredentials(credentials)
-
-	// build New Token Validator using that ClientOption
-	tokenValidator, err := idtoken.NewValidator(context.Background(), clientOption)
+	// get (or write) oauth record tied to watcher until it expires
+	var oauth = &OAuth{0, gothUser.Provider, gothUser.UserID, time.Now().Unix(), gothUser.ExpiresAt.Unix(), "", ""}
+	err = oauth.createOrUpdate(ctx)
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to initiate the google idtoken validator")
-		return payload, err
+		logger.Error().Err(err).Msg("Failed to create/update oauth record")
+		http.NotFound(w, r)
+		return
 	}
 
-	// attempt to validate the idtoken the user presented
-	payload, err = tokenValidator.Validate(context.Background(), id_token, google_oauth_client_id)
-	if err != nil {
-		logger.Error().Err(err).Msg("Failed to validate the google idtoken")
-		return payload, err
+	// set WID (WatcherId) session cookie, meaning the user is authenticated and logged-in
+	if encoded, err := sc.Encode("WID", fmt.Sprintf("%d", watcher.WatcherId)); err == nil {
+		cookie := &http.Cookie{
+			Name:     "WID",
+			Value:    encoded,
+			Path:     "/",
+			Secure:   true,
+			HttpOnly: true,
+		}
+		http.SetCookie(w, cookie)
+	} else {
+		logger.Error().Err(err).Msg("Failed to encode cookie")
 	}
 
-	return payload, nil
+	session.Values["provider"] = gothUser.Provider
+	http.Redirect(w, r, "/desktop", 302)
 }
 
 // logout from google one-tap here
 func signoutHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		deleteWIDCookie(w, r)
+		gothic.Logout(w, r)
 		http.Redirect(w, r, "/", 302)
 	})
 }
@@ -154,6 +135,9 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 
 	session := getSession(r)
 	recents, _ := getRecents(session, r)
+	if session.Values["provider"] != nil {
+		webdata["provider"] = session.Values["provider"].(string)
+	}
 	webdata["config"] = ConfigData{}
 	webdata["recents"] = *recents
 	webdata["nonce"] = nonce
@@ -169,7 +153,8 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 				deleteWIDCookie(w, r)
 				break
 			}
-			watcher, err := getWatcherById(ctx, WIDvalue)
+			var watcher Watcher
+			err = getWatcherById(ctx, &watcher, WIDvalue)
 			if err != nil {
 				logger.Error().Err(err).Int64("wid", WIDvalue).Msg("Failed to get watcher via cookie")
 				deleteWIDCookie(w, r)
