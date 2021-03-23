@@ -17,7 +17,10 @@
                 <h3 class="ps-2 bg-warning text-dark">Latest Changes (commits)</h3>
                 <dl class="list-group">
                 {{range .commits}}
-                  <dt class="list-group-item list-group-item-primary">{{.Commit.Author.Date}} by <a href="{{.Author.URL}}" target="_blank">{{.Author.Login}}</a></dt>
+                  <dt class="list-group-item list-group-item-primary">
+                    {{.Commit.Author.Date}} by <a href="{{.Author.URL}}" target="_blank">{{.Author.Login}}</a>
+                    SHA: <a class="small text-danger" href="{{.URL}}" target="_blank">{{.SHA}}</a>
+                  </dt>
                   <dd class="list-group-item ps-5">{{.Commit.Message}}</dd>
                 {{end}}
                 </dl>
