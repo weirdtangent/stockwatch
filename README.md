@@ -14,9 +14,9 @@ and used on the website itself : https://stockwatch.graystorm.com/about
 * JQuery
 * Open-Id Connect/OAuth2
 * AWS
-  * * EC2
-  * * RDS
-  * * Secrets
-  * * DynamoDB
-  * * SQS
+  * EC2
+  * RDS
+  * Secrets
+  * DynamoDB
+  * SQS
 
