@@ -21,7 +21,11 @@ func getRecents(session *sessions.Session, r *http.Request) (*[]string, error) {
 func addTickerToRecents(session *sessions.Session, r *http.Request, symbol string) (*[]string, error) {
 	//logger := log.Ctx(r.Context())
 	// get current list (if any) from session
-	recents := session.Values["recents"].([]string)
+	var recents []string
+
+	if session.Values["recents"] != nil {
+		recents = session.Values["recents"].([]string)
+	}
 
 	// if this symbol/exchange is already on their list just bomb out
 	for _, viewed := range recents {

@@ -65,7 +65,7 @@ func (w *Watcher) create(ctx context.Context, email string) error {
 	}
 
 	var insert = "INSERT INTO watcher SET watcher_sub=?, watcher_name=?, watcher_status=?, watcher_pic_url=?, session_id=?"
-	res, err := db.Exec(insert, w.WatcherSub, w.WatcherName, w.WatcherStatus, w.WatcherPicURL, w.SessionId)
+	res, err := tx.Exec(insert, w.WatcherSub, w.WatcherName, w.WatcherStatus, w.WatcherPicURL, w.SessionId)
 	if err != nil {
 		tx.Rollback()
 		logger.Fatal().Err(err).Str("table_name", "watcher").Msg("Failed on INSERT")
@@ -82,7 +82,7 @@ func (w *Watcher) create(ctx context.Context, email string) error {
 	err = getWatcherById(ctx, w, watcherId)
 	if err == nil {
 		var insert = "INSERT INTO watcher_email SET watcher_id=?, email_address=?, email_is_primary=1"
-		_, err = db.Exec(insert, w.WatcherId, email)
+		_, err = tx.Exec(insert, w.WatcherId, email)
 		if err != nil {
 			tx.Rollback()
 			logger.Warn().Err(err).Str("table_name", "watcher_email").Msg("Failed to store/ignore email address after INSERT")

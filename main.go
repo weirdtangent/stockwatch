@@ -17,6 +17,7 @@ import (
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
+	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/google"
 	"github.com/markbates/goth/providers/twitter"
 
@@ -107,9 +108,18 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
+	githubApiKey, err := myaws.AWSGetSecretKV(awssess, "github_api", "api_key")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+	githubApiSecret, err := myaws.AWSGetSecretKV(awssess, "github_api", "api_secret_key")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
 	goth.UseProviders(
 		google.New(*googleOAuthClientId, *googleOAuthSecret, "https://stockwatch.graystorm.com/auth/google/callback", "openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"),
 		twitter.New(*twitterApiKey, *twitterApiSecret, "https://stockwatch.graystorm.com/auth/twitter/callback"),
+		github.New(*githubApiKey, *githubApiSecret, "https://stockwatch.graystorm.com/auth/github/callback"),
 	)
 	gothic.Store = store
 
@@ -137,6 +147,7 @@ func main() {
 	router.HandleFunc("/{action:bought|sold}/{symbol}/{acronym}", transactionHandler()).Methods("POST")
 	router.HandleFunc("/search/{type}", searchHandler()).Methods("POST")
 	router.HandleFunc("/update/{action}", updateHandler()).Methods("GET")
+	router.HandleFunc("/about", homeHandler("about")).Methods("GET")
 	router.HandleFunc("/terms", homeHandler("terms")).Methods("GET")
 	router.HandleFunc("/privacy", homeHandler("privacy")).Methods("GET")
 

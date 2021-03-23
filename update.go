@@ -18,6 +18,11 @@ func updateHandler() http.HandlerFunc {
 		logger := log.Ctx(ctx)
 		messages := ctx.Value("messages").(*[]Message)
 
+		if ok := checkAuthState(w, r); ok == false {
+			http.Redirect(w, r, "/", 307)
+			return
+		}
+
 		params := mux.Vars(r)
 		action := params["action"]
 
@@ -28,6 +33,18 @@ func updateHandler() http.HandlerFunc {
 				*messages = append(*messages, Message{fmt.Sprintf("Pulling latest Morningstar Movers failed: %s", err.Error()), "danger"})
 			} else {
 				*messages = append(*messages, Message{fmt.Sprintf("Pulled latest Morningstar Movers"), "success"})
+			}
+		case "news":
+			query := r.FormValue("q")
+			if len(query) < 1 {
+				*messages = append(*messages, Message{fmt.Sprintf("No query string found"), "danger"})
+			} else {
+				err := loadNewsArticles(ctx, query)
+				if err != nil {
+					*messages = append(*messages, Message{fmt.Sprintf("Pulling latest Morningstar News failed: %s", err.Error()), "danger"})
+				} else {
+					*messages = append(*messages, Message{fmt.Sprintf("Pulled latest Morningstar News"), "success"})
+				}
 			}
 		default:
 			logger.Error().Str("action", action).Msg("Unknown update action")

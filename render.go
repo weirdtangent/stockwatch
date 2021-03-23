@@ -38,6 +38,9 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 	if err != nil {
 		logger.Error().Err(err).Str("template_dir", "modals").Msg("Failed to parse template(s)")
 	}
+	if val, ok := webdata["about-contents_template"]; ok {
+		tmpl, err = tmpl.Parse("{{ define \"about-contents\" }}" + *val.(*string) + "{{end}}")
+	}
 	tmpl, err = tmpl.ParseFiles("templates/" + tmplname + ".gohtml")
 	if err != nil {
 		logger.Error().Err(err).Str("template", tmplname).Msg("Failed to parse template")

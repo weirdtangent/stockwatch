@@ -96,6 +96,12 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
 
+	// github OAuth key
+	githubOAuthKey, err := myaws.AWSGetSecretKV(ac.awssess, "github_api", "oauth_key")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+
 	// google svc account
 	google_svc_acct, err := myaws.AWSGetSecretValue(ac.awssess, "stockwatch_google_svc_acct")
 	if err != nil {
@@ -111,6 +117,7 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r = r.Clone(context.WithValue(r.Context(), "sc", ac.sc))
 	r = r.Clone(context.WithValue(r.Context(), "google_oauth_client_id", *googleOAuthClientId))
 	r = r.Clone(context.WithValue(r.Context(), "google_oauth_client_secret", *googleOAuthSecret))
+	r = r.Clone(context.WithValue(r.Context(), "github_oauth_key", *githubOAuthKey))
 	r = r.Clone(context.WithValue(r.Context(), "google_svc_acct", *google_svc_acct))
 	r = r.Clone(context.WithValue(r.Context(), "yahoofinance_apikey", *yf_api_access_key))
 	r = r.Clone(context.WithValue(r.Context(), "yahoofinance_apihost", *yf_api_access_host))
@@ -143,7 +150,7 @@ func (ah *AddHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"connect-src 'self' accounts.google.com *.fontawesome.com",
 		"style-src 'self' fonts.googleapis.com accounts.google.com 'unsafe-inline'",
 		"script-src 'self' apis.google.com accounts.google.com kit.fontawesome.com 'nonce-" + nonce + "'",
-		"img-src 'self' data: *.googleusercontent.com *.twimg.com",
+		"img-src 'self' data: *.googleusercontent.com *.twimg.com avatars.githubusercontent.com",
 		"font-src 'self' fonts.gstatic.com *.fontawesome.com",
 		"frame-src 'self' accounts.google.com",
 		"report-uri /internal/cspviolations",

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"sort"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
@@ -16,7 +17,7 @@ type Mover struct {
 	LastPrice      float64 `db:"last_price"`
 	PriceChange    float64 `db:"price_change"`
 	PriceChangePct float64 `db:"price_change_pct"`
-	Volume         int64   `db:"volume"`
+	Volume         float64 `db:"volume"`
 	CreateDatetime string  `db:"create_datetime"`
 	UpdateDatetime string  `db:"update_datetime"`
 }
@@ -31,6 +32,45 @@ type Movers struct {
 	Losers  []WebMover
 	Actives []WebMover
 	ForDate string
+}
+
+type ByGainers Movers
+
+func (a ByGainers) Len() int { return len(a.Gainers) }
+func (a ByGainers) Less(i, j int) bool {
+	return a.Gainers[i].Mover.PriceChangePct < a.Gainers[j].Mover.PriceChangePct
+}
+func (a ByGainers) Swap(i, j int) { a.Gainers[i], a.Gainers[j] = a.Gainers[j], a.Gainers[i] }
+
+type ByLosers Movers
+
+func (a ByLosers) Len() int { return len(a.Losers) }
+func (a ByLosers) Less(i, j int) bool {
+	return a.Losers[i].Mover.PriceChangePct < a.Losers[j].Mover.PriceChangePct
+}
+func (a ByLosers) Swap(i, j int) { a.Losers[i], a.Losers[j] = a.Losers[j], a.Losers[i] }
+
+type ByActives Movers
+
+func (a ByActives) Len() int { return len(a.Actives) }
+func (a ByActives) Less(i, j int) bool {
+	return a.Actives[i].Mover.Volume < a.Actives[j].Mover.Volume
+}
+func (a ByActives) Swap(i, j int) { a.Actives[i], a.Actives[j] = a.Actives[j], a.Actives[i] }
+
+func (m Movers) SortGainers() *[]WebMover {
+	sort.Sort(sort.Reverse(ByGainers(m)))
+	return &m.Gainers
+}
+
+func (m Movers) SortLosers() *[]WebMover {
+	sort.Sort(ByLosers(m))
+	return &m.Losers
+}
+
+func (m Movers) SortActives() *[]WebMover {
+	sort.Sort(sort.Reverse(ByActives(m)))
+	return &m.Actives
 }
 
 func (m *Mover) getByUniqueKey(ctx context.Context) error {

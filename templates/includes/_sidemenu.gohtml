@@ -3,7 +3,7 @@
             {{if .WID}}
               {{if .watcher.WatcherPicURL}}
               <div class="my-1 text-center">
-                <img class="image-fluid rounded" alt="User's social media profile picture" src="{{.watcher.WatcherPicURL}}">
+                <img id="profile_img" class="image-fluid rounded" alt="User's social media profile picture" src="{{.watcher.WatcherPicURL}}">
               </div>
               {{ end}}
               <ul class="nav flex-column me-auto mb-2 mb-lg-0">
@@ -15,7 +15,7 @@
                 <li class="nav-item"><a class="nav-link ps-3" href="/signout/{{.provider}}">Sign Out</a></li>
                 {{if .watcher.IsAdmin}}
                 <li class="nav-item"><a class="nav-link ps-3 link-warning" href="/update/movers">Morningstar Movers</a></li>
-                <li class="nav-item"><a class="nav-link ps-3 link-warning" href="#">Updates</a></li>
+                <li class="nav-item"><a class="nav-link ps-3 link-warning" href="/update/news?q=SPCE">Morningstar News: SPCE</a></li>
                 <li class="nav-item"><a class="nav-link ps-3 link-warning" href="#">Fixes and Do-overs</a></li>
                 {{end}}
               </ul>
@@ -23,6 +23,7 @@
               <div class="d-flex flex-column align-items-center pt-3">
                 <div class="login"><a href="/auth/twitter"><img src="/static/images/vendor/twitter-sign-in.png"></a></div>
                 <div class="login"><a href="/auth/google"><img src="/static/images/vendor/google-sign-in.png"></a></div>
+                <div class="login"><a href="/auth/github" class="bg-primary mt-3 btn btn-block btn-social btn-github"><i class="fa fa-github"></i> Sign in with GitHub</a></div>
               </div>
             {{end}}
           </div>

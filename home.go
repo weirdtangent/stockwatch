@@ -23,6 +23,9 @@ func homeHandler(tmplname string) http.HandlerFunc {
 		if tmplname == "home" || tmplname == "terms" || tmplname == "privacy" {
 			webdata["hideRecents"] = true
 		}
+		if tmplname == "about" {
+			webdata["about-contents_template"], webdata["commits"], _ = getGithubCommits(ctx)
+		}
 		if len(nextParam) > 0 {
 			webdata["next"] = nextParam
 		}
