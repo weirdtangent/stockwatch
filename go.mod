@@ -7,6 +7,7 @@ require (
 	github.com/go-echarts/go-echarts/v2 v2.2.3
 	github.com/golang/protobuf v1.5.1 // indirect
 	github.com/gomarkdown/markdown v0.0.0-20210208175418-bda154fe17d8 // indirect
+	github.com/gomodule/redigo v1.8.4 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.1

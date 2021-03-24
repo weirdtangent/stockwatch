@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/rs/zerolog/log"
 	"github.com/weirdtangent/yahoofinance"
 )
@@ -14,18 +15,38 @@ import (
 // load new ticker (and possibly new exchange)
 func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 	logger := log.Ctx(ctx)
+	redisPool := ctx.Value("redisPool").(*redis.Pool)
+
+	redisConn := redisPool.Get()
+	defer redisConn.Close()
+
 	var ticker *Ticker
 
 	apiKey := ctx.Value("yahoofinance_apikey").(string)
 	apiHost := ctx.Value("yahoofinance_apihost").(string)
 
-	summaryParams := map[string]string{"symbol": symbol}
-	response, err := yahoofinance.GetFromYahooFinance(&apiKey, &apiHost, "summary", summaryParams)
-	if err != nil {
-		logger.Warn().Err(err).
-			Str("ticker", ticker.TickerSymbol).
-			Msg("Failed to retrieve ticker")
-		return ticker, err
+	// pull recent response from redis (1 day expire), or go get from YF
+	redisKey := "yahoofinance/summary/" + symbol
+	response, err := redis.String(redisConn.Do("GET", redisKey))
+	if err == nil {
+		log.Info().Str("redis_key", redisKey).Msg("redis cache hit")
+	} else {
+		var err error
+		summaryParams := map[string]string{"symbol": symbol}
+		response, err = yahoofinance.GetFromYahooFinance(&apiKey, &apiHost, "summary", summaryParams)
+		if err != nil {
+			logger.Warn().Err(err).
+				Str("ticker", symbol).
+				Msg("Failed to retrieve ticker")
+			return ticker, err
+		}
+		_, err = redisConn.Do("SET", redisKey, response, "EX", 60*60*24)
+		if err != nil {
+			logger.Error().Err(err).
+				Str("ticker", symbol).
+				Str("redis_key", redisKey).
+				Msg("Failed to save to redis")
+		}
 	}
 
 	var summaryResponse yahoofinance.YFSummaryResponse
@@ -103,19 +124,39 @@ func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 
 // load ticker up-to-date quote
 func loadTickerQuote(ctx context.Context, symbol string) (yahoofinance.YFQuote, error) {
+	logger := log.Ctx(ctx)
+	redisPool := ctx.Value("redisPool").(*redis.Pool)
+
+	redisConn := redisPool.Get()
+	defer redisConn.Close()
+
 	apiKey := ctx.Value("yahoofinance_apikey").(string)
 	apiHost := ctx.Value("yahoofinance_apihost").(string)
-	logger := log.Ctx(ctx)
 
 	var quote yahoofinance.YFQuote
 
-	quoteParams := map[string]string{"symbols": symbol}
-	response, err := yahoofinance.GetFromYahooFinance(&apiKey, &apiHost, "quote", quoteParams)
-	if err != nil {
-		logger.Warn().Err(err).
-			Str("ticker", symbol).
-			Msg("Failed to retrieve quote")
-		return quote, err
+	// pull recent response from redis (20 sec expire), or go get from YF
+	redisKey := "yahoofinance/quote/" + symbol
+	response, err := redis.String(redisConn.Do("GET", redisKey))
+	if err == nil {
+		log.Info().Str("redis_key", redisKey).Msg("redis cache hit")
+	} else {
+		var err error
+		quoteParams := map[string]string{"symbols": symbol}
+		response, err = yahoofinance.GetFromYahooFinance(&apiKey, &apiHost, "quote", quoteParams)
+		if err != nil {
+			logger.Warn().Err(err).
+				Str("ticker", symbol).
+				Msg("Failed to retrieve quote")
+			return quote, err
+		}
+		_, err = redisConn.Do("SET", redisKey, response, "EX", 20)
+		if err != nil {
+			logger.Error().Err(err).
+				Str("ticker", symbol).
+				Str("redis_key", redisKey).
+				Msg("Failed to save to redis")
+		}
 	}
 
 	var quoteResponse yahoofinance.YFGetQuotesResponse

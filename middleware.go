@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
@@ -108,6 +109,15 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
 
+	// redis connection
+	redisPool := &redis.Pool{
+		MaxIdle:     10,
+		IdleTimeout: 240 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			return redis.Dial("tcp", "localhost:6379")
+		},
+	}
+
 	defaultConfig := make(map[string]interface{})
 	defaultConfig["is_market_open"] = isMarketOpen()
 	defaultConfig["quote_refresh"] = 20
@@ -115,6 +125,7 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r = r.Clone(context.WithValue(r.Context(), "awssess", ac.awssess))
 	r = r.Clone(context.WithValue(r.Context(), "db", ac.db))
 	r = r.Clone(context.WithValue(r.Context(), "sc", ac.sc))
+	r = r.Clone(context.WithValue(r.Context(), "redisPool", redisPool))
 	r = r.Clone(context.WithValue(r.Context(), "google_oauth_client_id", *googleOAuthClientId))
 	r = r.Clone(context.WithValue(r.Context(), "google_oauth_client_secret", *googleOAuthSecret))
 	r = r.Clone(context.WithValue(r.Context(), "github_oauth_key", *githubOAuthKey))
@@ -130,6 +141,7 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ac.handler.ServeHTTP(w, r)
 }
+
 func withAddContext(h http.Handler, awssess *session.Session, db *sqlx.DB, sc *securecookie.SecureCookie) *AddContext {
 	return &AddContext{h, awssess, db, sc}
 }
