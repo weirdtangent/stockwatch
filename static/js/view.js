@@ -9,7 +9,6 @@ var is_market_open = scriptName.getAttribute('data-is-market-open') === "true";
 var quote_refresh = scriptName.getAttribute('data-quote-refresh');
 
 function update_quote(count) {
-  $('#auto_refresh_working').html('<i class="ms-2 mb-2 myyellow fad fa-pulse fa-signal-stream"></i>')
 
   var response = $.ajax({
     type: 'GET',
@@ -18,28 +17,32 @@ function update_quote(count) {
     success: function(response) {
       ['quote_shareprice', 'quote_ask', 'quote_asksize', 'quote_bid', 'quote_bidsize', 'quote_asof', 'quote_change', 'quote_change_pct'].forEach(function(item) {
         if ($('#' + item).text() != response['data'][item]) {
-          $('#' + item).animate({opacity: 0}, 400, function() { ($('#' + item).text(response['data'][item]).animate({opacity: 1}, 400)) });
+          $('#' + item).animate({opacity: 0}, 400, function() { $('#' + item).text(response['data'][item]).animate({opacity: 1}, 400) });
         }
       });
       if (response.data.quote_dailymove === 'down' && $('#quote_dailymove').hasClass("fa-arrow-up")) {
-        $('#quote_dailymove').animate({opacity: 0}, 400, function() { ($('#quote_dailymove').removeClass("fa-arrow-up text-success").addClass("fa-arrow-down text-danger").animate({opacity: 1}, 400)) });
+        $('#quote_dailymove').animate({opacity: 0}, 400, function() { $('#quote_dailymove').removeClass("fa-arrow-up text-success").addClass("fa-arrow-down text-danger").animate({opacity: 1}, 400) });
       } else if (response.data.quote_dailymove === 'up' && $('#quote_dailymove').hasClass("fa-arrow-down")) {
-        $('#quote_dailymove').animate({opacity: 0}, 400, function() { ($('#quote_dailymove').removeClass("fa-arrow-down text-danger").addClass("fa-arrow-up text-success").animate({opacity: 1}, 400)) });
+        $('#quote_dailymove').animate({opacity: 0}, 400, function() { $('#quote_dailymove').removeClass("fa-arrow-down text-danger").addClass("fa-arrow-up text-success").animate({opacity: 1}, 400) });
       }
-      is_market_open = response.data.is_market_open
+      is_market_open = response.data.is_market_open === true;
       if (is_market_open && $('#is_market_open_color').hasClass("text-danger")) {
         $("#ticker_quote_info").show();
         $("#ticker_eod_info").hide();
-        $('#is_market_open_color').animate({opacity: 0}, 400, function() { ($('#is_market_open_color').removeClass("text-danger").addClass("text-success").animate({opacity: 1}, 400)) });
-        $('#is_market_open').animate({opacity: 0}, 400, function() { ($('#is_market_open').text("TRADING").animate({opacity: 1}, 400)) });
+        $('#is_market_open_color').animate({opacity: 0}, 400, function() { $('#is_market_open_color').removeClass("text-danger").addClass("text-success").animate({opacity: 1}, 400) });
+        $('#is_market_open').animate({opacity: 0}, 400, function() { $('#is_market_open').text("TRADING").animate({opacity: 1}, 400) });
+        $('#auto_refresh_working').html('<i class="ms-2 mb-2 myyellow fad fa-pulse fa-signal-stream"></i>')
       } else if (!is_market_open && $('#is_market_open_color').hasClass("text-success")) {
         $("#ticker_quote_info").hide();
         $("#ticker_eod_info").show();
         $('#is_market_open_color').animate({opacity: 0}, 400, function() { ($('#is_market_open_color').removeClass("text-success").addClass("text-danger").animate({opacity: 1}, 400)) });
-        $('#is_market_open').animate({opacity: 0}, 400, function() { ($('#is_market_open').text("CLOSED").animate({opacity: 1}, 400)) });
+        $('#is_market_open').animate({opacity: 0}, 400, function() { $('#is_market_open').text("CLOSED").animate({opacity: 1}, 400) });
+        $('#auto_refresh').html('<i class="ms-2 mb-2 far fa-pause-circle"></i> paused');
       }
       if (count == 0) {
-        $('#auto_refresh').animate({opacity: 0}, 400, function() { ($('#auto_refresh').html('<i class="ms-2 mb-2 far fa-pause-circle"></i> paused').animate({opacity: 1}, 400)) });
+        $('#auto_refresh').html('<i class="ms-2 mb-2 far fa-pause-circle"></i> paused');
+      } else if ($('#auto_refresh').html() == "") {
+        $('#auto_refresh').html('<i class="ms-2 mb-2 fad fa-sync fa-spin"></i> ' + quote_refresh + 'sec');
       }
     },
     complete: function() {
@@ -68,6 +71,7 @@ $(document).ready(function() {
 
   if (is_market_open) {
     $("#ticker_quote_info").show();
+    $("#auto_refresh").show();
   } else {
     $("#ticker_eod_info").show();
   }

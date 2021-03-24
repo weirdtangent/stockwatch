@@ -44,7 +44,7 @@
                       Low: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.LowPrice }}</span>
                       Close: <span class="text-light">{{ printf "$%.2f" .lastClose.ClosePrice }}</span>
                     </span>
-                    <span id="auto_refresh">{{if .config.is_market_open}}<i class="ms-2 mb-2 fad fa-sync fa-spin"></i> {{.config.quote_refresh }} sec{{end}}</span><span id="auto_refresh_working"></span>
-                    <span id="ticker_info_spacer">&nbsp;</span>
+                    <span id="auto_refresh" class="hide">{{if .config.is_market_open}}<i class="ms-2 mb-2 fad fa-sync fa-spin"></i> {{.config.quote_refresh }} sec{{end}}</span><span id="auto_refresh_working"></span>
+                    <span id="ticker_info_type">&nbsp;</span>
                   </div>
 {{- end}}
