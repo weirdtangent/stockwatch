@@ -5,7 +5,7 @@ var scriptName = lastScript;
 var showing = 'tickerChart1';
 var ticker = scriptName.getAttribute('data-ticker');
 var exchange = scriptName.getAttribute('data-exchange');
-var is_market_open = scriptName.getAttribute('data-is-market-open');
+var is_market_open = scriptName.getAttribute('data-is-market-open') === "true";
 var quote_refresh = scriptName.getAttribute('data-quote-refresh');
 
 function update_quote(count) {
@@ -28,9 +28,13 @@ function update_quote(count) {
       }
       is_market_open = response.data.is_market_open
       if (is_market_open && $('#is_market_open_color').hasClass("text-danger")) {
+        $("#ticker_quote_info").show();
+        $("#ticker_eod_info").hide();
         $('#is_market_open_color').animate({opacity: 0}, 400, function() { ($('#is_market_open_color').removeClass("text-danger").addClass("text-success").animate({opacity: 1}, 400)) });
         $('#is_market_open').animate({opacity: 0}, 400, function() { ($('#is_market_open').text("TRADING").animate({opacity: 1}, 400)) });
       } else if (!is_market_open && $('#is_market_open_color').hasClass("text-success")) {
+        $("#ticker_quote_info").hide();
+        $("#ticker_eod_info").show();
         $('#is_market_open_color').animate({opacity: 0}, 400, function() { ($('#is_market_open_color').removeClass("text-success").addClass("text-danger").animate({opacity: 1}, 400)) });
         $('#is_market_open').animate({opacity: 0}, 400, function() { ($('#is_market_open').text("CLOSED").animate({opacity: 1}, 400)) });
       }
@@ -61,6 +65,12 @@ $(document).ready(function() {
   setTimeout(function() {
     update_quote(30);
   }, quote_refresh * 1000);
+
+  if (is_market_open) {
+    $("#ticker_quote_info").show();
+  } else {
+    $("#ticker_eod_info").show();
+  }
 
   $('#auto_refresh').on('click', function() {
     $('#auto_refresh').animate({opacity: 0}, 400, function() { ($('#auto_refresh').html('<i class="ms-2 mb-2 fad fa-sync fa-spin"></i> ' + quote_refresh + ' sec</span>').animate({opacity: 1}, 400)) });

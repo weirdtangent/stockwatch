@@ -105,6 +105,10 @@ li.signout {
   max-height: 100px;
 }
 
+.hide {
+  display: none;
+}
+
 .login {
   height: 50px;
 }

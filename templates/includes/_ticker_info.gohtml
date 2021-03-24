@@ -33,16 +33,18 @@
                     {{end}}
                   </div>
                   <div class="small text-info">
-                  {{if .quote}}
-                    Ask: <span id="quote_ask" class="h6 text-light">{{ printf "$%.2f" .quote.QuoteAsk}}</span> for <span id="quote_asksize" class="h6 text-light pe-2">{{.quote.QuoteAskSize}}</span>
-                    Bid: <span id="quote_bid" class="h6 text-light">{{ printf "$%.2f" .quote.QuoteBid}}</span> for <span id="quote_bidsize" class="h6 text-light pe-2">{{.quote.QuoteBidSize}}</span>
-                    Today's range: <span id="quote_range" class="h6 text-light">{{ printf "$%.2f" .quote.QuoteLow }} - {{ printf "$%.2f" .quote.QuoteHigh }}</span>
-                  {{else}}
-                    Open: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.OpenPrice }}</span>
-                    High: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.HighPrice }}</span>
-                    Low: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.LowPrice }}</span>
-                    Close: <span class="text-light">{{ printf "$%.2f" .lastClose.ClosePrice }}</span>
-                  {{end}}
-                  <span id="auto_refresh">{{if .config.is_market_open}}<i class="ms-2 mb-2 fad fa-sync fa-spin"></i> {{.config.quote_refresh }} sec{{end}}</span><span id="auto_refresh_working"></span>
+                    <span id="ticker_quote_info" class="hide">
+                      Ask: <span id="quote_ask" class="h6 text-light">{{if .quote}}{{ printf "$%.2f" .quote.QuoteAsk}}{{end}}</span> for <span id="quote_asksize" class="h6 text-light pe-2">{{if .quote}}{{.quote.QuoteAskSize}}{{end}}</span>
+                      Bid: <span id="quote_bid" class="h6 text-light">{{if .quote}}{{ printf "$%.2f" .quote.QuoteBid}}{{end}}</span> for <span id="quote_bidsize" class="h6 text-light pe-2">{{if .quote}}{{.quote.QuoteBidSize}}{{end}}</span>
+                      Today's range: <span id="quote_range" class="h6 text-light">{{if .quote}}{{ printf "$%.2f" .quote.QuoteLow }} - {{ printf "$%.2f" .quote.QuoteHigh }}{{end}}</span>
+                    </span>
+                    <span id="ticker_eod_info" class="hide">
+                      Open: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.OpenPrice }}</span>
+                      High: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.HighPrice }}</span>
+                      Low: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.LowPrice }}</span>
+                      Close: <span class="text-light">{{ printf "$%.2f" .lastClose.ClosePrice }}</span>
+                    </span>
+                    <span id="auto_refresh">{{if .config.is_market_open}}<i class="ms-2 mb-2 fad fa-sync fa-spin"></i> {{.config.quote_refresh }} sec{{end}}</span><span id="auto_refresh_working"></span>
+                    <span id="ticker_info_spacer">&nbsp;</span>
                   </div>
 {{- end}}
