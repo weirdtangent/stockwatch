@@ -25,7 +25,7 @@ type WatcherEmail struct {
 	WatcherEmailId int64  `db:"watcher_email_id"`
 	WatcherId      int64  `db:"watcher_id"`
 	EmailAddress   string `db:"email_address"`
-	EmailIsPrimary bool   `db:"email_is_primary"`
+	IsPrimary      bool   `db:"email_is_primary"`
 	CreateDatetime string `db:"create_datetime"`
 	UpdateDatetime string `db:"update_datetime"`
 }

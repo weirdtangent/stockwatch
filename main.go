@@ -142,6 +142,7 @@ func main() {
 	router.HandleFunc("/api/v1/{endpoint}", apiV1Handler()).Methods("GET")
 	router.Handle("/metrics", promhttp.Handler())
 
+	router.HandleFunc("/profile", profileHandler()).Methods("GET")
 	router.HandleFunc("/desktop", desktopHandler()).Methods("GET")
 	router.HandleFunc("/view/{symbol}", viewTickerDailyHandler()).Methods("GET")
 	router.HandleFunc("/{action:bought|sold}/{symbol}/{acronym}", transactionHandler()).Methods("POST")
