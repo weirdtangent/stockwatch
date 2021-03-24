@@ -8,11 +8,11 @@
                     </span>
                     {{if .quote}}
                       {{if ge .quote.QuoteChange 0.0 }}
-                        <span class="h5 text-success"><i id="quote_dailymove" class="fas fa-arrow-up"></i>
+                        <span id="quote_dailymove_text" class="h5 text-success"><i id="quote_dailymove" class="fas fa-arrow-up"></i>
                           <span id="quote_change">{{ printf "$%.2f" .quote.QuoteChange }}</span> (<span id="quote_change_pct">{{ printf "%.2f%%" .quote.QuoteChangePct }}</span>)
                         </span>
                       {{else}}
-                        <span class="h5 text-danger"><i id="quote_dailymove" class="fas fa-arrow-down"></i>
+                        <span id="quote_dailmove_text" class="h5 text-danger"><i id="quote_dailymove" class="fas fa-arrow-down"></i>
                           <span id="quote_change">{{ printf "$%.2f" .quote.QuoteChange }}</span> (<span id="quote_change_pct">{{ printf "%.2f%%" .quote.QuoteChangePct }}</span>)
                         </span>
                       {{end}}
