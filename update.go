@@ -34,16 +34,28 @@ func updateHandler() http.HandlerFunc {
 			} else {
 				*messages = append(*messages, Message{fmt.Sprintf("Pulled latest Morningstar Movers"), "success"})
 			}
-		case "news":
+		case "msnews":
 			query := r.FormValue("q")
 			if len(query) < 1 {
 				*messages = append(*messages, Message{fmt.Sprintf("No query string found"), "danger"})
 			} else {
-				err := loadNewsArticles(ctx, query)
+				err := loadMSNewsArticles(ctx, query)
 				if err != nil {
 					*messages = append(*messages, Message{fmt.Sprintf("Pulling latest Morningstar News failed: %s", err.Error()), "danger"})
 				} else {
 					*messages = append(*messages, Message{fmt.Sprintf("Pulled latest Morningstar News"), "success"})
+				}
+			}
+		case "bbnews":
+			query := r.FormValue("q")
+			if len(query) < 1 {
+				*messages = append(*messages, Message{fmt.Sprintf("No query string found"), "danger"})
+			} else {
+				err := loadBBNewsArticles(ctx, query)
+				if err != nil {
+					*messages = append(*messages, Message{fmt.Sprintf("Pulling latest Bloomberg Market News failed: %s", err.Error()), "danger"})
+				} else {
+					*messages = append(*messages, Message{fmt.Sprintf("Pulled latest Bloomberg Market News"), "success"})
 				}
 			}
 		default:

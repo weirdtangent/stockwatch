@@ -85,6 +85,19 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Fatal().Err(err).
 			Msg("Failed to get Morningstar API key")
 	}
+
+	// get bloomberg api access key and host
+	bb_api_access_key, err := myaws.AWSGetSecretKV(ac.awssess, "bloomberg", "rapidapi-key")
+	if err != nil {
+		log.Fatal().Err(err).
+			Msg("Failed to get Bloomberg API key")
+	}
+	bb_api_access_host, err := myaws.AWSGetSecretKV(ac.awssess, "bloomberg", "rapidapi-host")
+	if err != nil {
+		log.Fatal().Err(err).
+			Msg("Failed to get Bloomberg API key")
+	}
+
 	messages := make([]Message, 0)
 
 	// config Google OAuth
@@ -134,6 +147,8 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r = r.Clone(context.WithValue(r.Context(), "yahoofinance_apihost", *yf_api_access_host))
 	r = r.Clone(context.WithValue(r.Context(), "morningstar_apikey", *ms_api_access_key))
 	r = r.Clone(context.WithValue(r.Context(), "morningstar_apihost", *ms_api_access_host))
+	r = r.Clone(context.WithValue(r.Context(), "bloomberg_apikey", *bb_api_access_key))
+	r = r.Clone(context.WithValue(r.Context(), "bloomberg_apihost", *bb_api_access_host))
 	r = r.Clone(context.WithValue(r.Context(), "config", defaultConfig))
 	r = r.Clone(context.WithValue(r.Context(), "webdata", make(map[string]interface{})))
 	r = r.Clone(context.WithValue(r.Context(), "messages", &messages))
@@ -162,7 +177,7 @@ func (ah *AddHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"connect-src 'self' accounts.google.com *.fontawesome.com",
 		"style-src 'self' fonts.googleapis.com accounts.google.com 'unsafe-inline'",
 		"script-src 'self' apis.google.com accounts.google.com kit.fontawesome.com 'nonce-" + nonce + "'",
-		"img-src 'self' data: *.googleusercontent.com *.twimg.com avatars.githubusercontent.com",
+		"img-src 'self' data: *.googleusercontent.com *.twimg.com avatars.githubusercontent.com assets.bwbx.io",
 		"font-src 'self' fonts.gstatic.com *.fontawesome.com",
 		"frame-src 'self' accounts.google.com",
 		"report-uri /internal/cspviolations",

@@ -2,13 +2,10 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"strings"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 	"github.com/weirdtangent/morningstar"
 )
@@ -91,8 +88,7 @@ func loadMovers(ctx context.Context) error {
 }
 
 // load news
-func loadNewsArticles(ctx context.Context, query string) error {
-	db := ctx.Value("db").(*sqlx.DB)
+func loadMSNewsArticles(ctx context.Context, query string) error {
 	logger := log.Ctx(ctx)
 
 	apiKey := ctx.Value("morningstar_apikey").(string)
@@ -137,34 +133,10 @@ func loadNewsArticles(ctx context.Context, query string) error {
 			json.NewDecoder(strings.NewReader(response)).Decode(&articlesListResponse)
 
 			for _, article := range articlesListResponse {
-				if existingId, err := getArticleByExternalId(ctx, sourceId, article.Id); err == nil && existingId == 0 {
-					tx, _ := db.BeginTx(ctx, nil)
-
-					tx.Rollback()
-					tx.Commit()
+				if existingId, err := getArticleByExternalId(ctx, sourceId, article.InternalId); err == nil && existingId == 0 {
 				}
 			}
 		}
 	}
 	return nil
-}
-
-func getSourceId(_ string) (int64, error) {
-	return 2, nil
-}
-
-func getArticleByExternalId(ctx context.Context, sourceId int64, externalId int64) (int64, error) {
-	logger := log.Ctx(ctx)
-	db := ctx.Value("db").(*sqlx.DB)
-
-	var articleId int64
-	err := db.QueryRowx("SELECT article_id FROM article WHERE source_id=? && external_id=?", sourceId, externalId).Scan(&articleId)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return 0, nil
-		} else {
-			logger.Warn().Err(err).Str("table_name", "article").Msg("Failed to check for existing record")
-		}
-	}
-	return articleId, err
 }

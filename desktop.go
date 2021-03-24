@@ -17,6 +17,10 @@ func desktopHandler() http.HandlerFunc {
 
 		movers, _ := getMovers(ctx)
 		webdata["movers"] = movers
+
+		articles, _ := getArticlesByKeyword(ctx, "")
+		webdata["articles"] = articles
+
 		renderTemplateDefault(w, r, "desktop")
 	})
 }

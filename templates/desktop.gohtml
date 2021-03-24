@@ -87,6 +87,24 @@
                 </div>
               </div><!-- col-10 movers and shakers -->
 
+              <div class="d-flex flex-wrap mt-3 col-10 offset-1 opacity-6 pt-3 px-3 py-2">
+                {{range $num, $a := .articles}}
+                {{if lt $num 5}}
+                <div class="card me-2 mb-2 col-2">
+                  <img src="{{.ImageURL}}" class="card-img-top" alt="Included image for article titled: {{.Title}}">
+                  <div class="card-body">
+                    <a href="{{.ArticleURL}}" target="_blank"><h6 class="card-title">{{.Title}}</h6></a>
+                    <p class="card-text small">{{FormatDatetimeStr .PublishedDatetime "Jan 2 15:04"}}</p>
+                  </div>
+                </div>
+                {{else}}
+                <div class="flex-row bg-dark col-11 me-2">
+                  {{FormatDatetimeStr .PublishedDatetime "Jan 2 15:04"}} <a href="{{.ArticleURL}}" target="_blank"> {{.Title}}</a>
+                </div>
+                {{end}}
+                {{end}}
+              </div>
+
             </div><!-- col-12 -->
           </div><!-- row -->
 {{ template "_footer" . }}

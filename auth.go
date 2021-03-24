@@ -165,17 +165,17 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 				deleteWIDCookie(w, r)
 				break
 			}
-			oauth, err := getOAuthBySub(ctx, watcher.WatcherSub)
-			if err != nil {
-				logger.Error().Err(err).Int64("watcher_id", WIDvalue).Msg("Failed to get oauth record by sub")
-				break
-			}
-			currentDateTime := time.Now()
-			unixTimeNow := currentDateTime.Unix()
-			logger.Info().Int64("unix_time", unixTimeNow).Int64("oath_expires", oauth.OAuthExpires).Msg("Checking oauth expiration")
-			if unixTimeNow > oauth.OAuthExpires {
-				logger.Warn().Int64("watcher_id", WIDvalue).Msg("OAuth record has expired")
-			}
+			//oauth, err := getOAuthBySub(ctx, watcher.WatcherSub)
+			//if err != nil {
+			//	logger.Error().Err(err).Int64("watcher_id", WIDvalue).Msg("Failed to get oauth record by sub")
+			//	break
+			//}
+			//currentDateTime := time.Now()
+			//unixTimeNow := currentDateTime.Unix()
+			//logger.Info().Int64("unix_time", unixTimeNow).Int64("oath_expires", oauth.OAuthExpires).Msg("Checking oauth expiration")
+			//if unixTimeNow > oauth.OAuthExpires {
+			//	logger.Warn().Int64("watcher_id", WIDvalue).Msg("OAuth record has expired")
+			//}
 			logger.Info().Msg("Authenticated visitor found")
 			webdata["WID"] = wid
 			webdata["watcher"] = watcher

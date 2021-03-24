@@ -10,6 +10,9 @@ import (
 )
 
 func FormatUnixTime(unixTime int64, formatStr string) string {
+	if unixTime == 0 {
+		return ""
+	}
 	if formatStr == "" {
 		formatStr = "Jan 2 15:04 MST 2006"
 	}
@@ -70,7 +73,6 @@ func Over24HoursUTC(dateStr string) bool {
 	currentDate := time.Now()
 
 	dur := currentDate.Sub(dateObj)
-	log.Info().Msgf("The diff between %s and %s is %.2f hours", dateObj, currentDate, dur.Hours())
 	return dur.Hours() >= 24.0
 }
 
