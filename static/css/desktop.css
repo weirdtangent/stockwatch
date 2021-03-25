@@ -1,3 +1,7 @@
 .dt-mover:hover {
   background-color: rgba(0, 0, 0, 0.1);
 }
+
+#movers {
+  min-height: 520px;
+}

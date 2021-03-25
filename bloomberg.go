@@ -45,7 +45,15 @@ func loadBBNewsArticles(ctx context.Context, query string) error {
 					Msg("Failed to write new news article")
 				return err
 			}
-
+			if article.ArticleId > 0 {
+				articleAuthor := ArticleAuthor{0, article.ArticleId, story.ByLine, "", "", "", "", "", ""}
+				err := articleAuthor.createArticleAuthor(ctx)
+				if err != nil {
+					logger.Warn().Err(err).Str("id", query).
+						Msg("Failed to write author(s) for new article")
+					return err
+				}
+			}
 		}
 	}
 	return nil

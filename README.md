@@ -1,13 +1,15 @@
-# Graystorm StockWatch
+## Graystorm StockWatch
 
-## Meta
+### Meta
 
 This README.md is not only for the repo, but is converted to HTML
 and used on the website itself : https://stockwatch.graystorm.com/about
 
-## The App
+### The App
 
-## Technologies
+My first attempt at a Go web app... and I had to go crazy... :shrug:
+
+### Technologies
 
 * Go
 * Bootstrap
