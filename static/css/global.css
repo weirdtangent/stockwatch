@@ -107,6 +107,11 @@ li.signout {
   max-height: 100px;
 }
 
+.inline-article {
+  height: calc(100% - 4em);
+  overflow: hidden;
+}
+
 .hide {
   display: none;
 }

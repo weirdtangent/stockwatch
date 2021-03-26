@@ -25,29 +25,23 @@ type Article struct {
 	UpdateDatetime     string `db:"update_datetime"`
 }
 
-// +-------------------+----------+------+-----+-------------------+-----------------------------+
-// | Field             | Type     | Null | Key | Default           | Extra                       |
-// +-------------------+----------+------+-----+-------------------+-----------------------------+
-// | article_ticker_id | int(11)  | NO   | PRI | NULL              | auto_increment              |
-// | article_id        | int(11)  | NO   | MUL | NULL              |                             |
-// | ticker_symbol     | char(20) | NO   |     | NULL              |                             |
-// | ticker_id         | int(11)  | NO   |     | NULL              |                             |
-// | create_datetime   | datetime | NO   |     | CURRENT_TIMESTAMP |                             |
-// | update_datetime   | datetime | NO   |     | NULL              | on update CURRENT_TIMESTAMP |
-// +-------------------+----------+------+-----+-------------------+-----------------------------+
-// 6 rows in set (0.00 sec)
-//
-// +--------------------+----------+------+-----+-------------------+-----------------------------+
-// | Field              | Type     | Null | Key | Default           | Extra                       |
-// +--------------------+----------+------+-----+-------------------+-----------------------------+
-// | article_keyword_id | int(11)  | NO   | PRI | NULL              | auto_increment              |
-// | article_id         | int(11)  | NO   | MUL | NULL              |                             |
-// | keyword            | char(64) | NO   |     | NULL              |                             |
-// | create_datetime    | datetime | NO   |     | CURRENT_TIMESTAMP |                             |
-// | update_datetime    | datetime | NO   |     | NULL              | on update CURRENT_TIMESTAMP |
-// +--------------------+----------+------+-----+-------------------+-----------------------------+
-// 5 rows in set (0.00 sec)
-//
+type ArticleTicker struct {
+	ArticleTickerId int64  `db:"article_ticker_id"`
+	ArticleId       int64  `db:"article_id"`
+	TickerSymbol    string `db:"ticker_symbol"`
+	TickerId        int64  `db:"ticker_id"`
+	CreateDatetime  string `db:"create_datetime"`
+	UpdateDatetime  string `db:"update_datetime"`
+}
+
+type ArticleKeyword struct {
+	ArticleKeywordId int64  `db:"article_keyword_id"`
+	ArticleId        int64  `db:"article_id"`
+	Keyword          string `db:"keyword"`
+	CreateDatetime   string `db:"create_datetime"`
+	UpdateDatetime   string `db:"update_datetime"`
+}
+
 type ArticleAuthor struct {
 	ArticleAuthorId int64  `db:"article_author_id"`
 	ArticleId       int64  `db:"article_id"`
@@ -60,17 +54,13 @@ type ArticleAuthor struct {
 	UpdateDatetime  string `db:"update_datetime"`
 }
 
-//
-// +-----------------+----------+------+-----+-------------------+-----------------------------+
-// | Field           | Type     | Null | Key | Default           | Extra                       |
-// +-----------------+----------+------+-----+-------------------+-----------------------------+
-// | article_tag_id  | int(11)  | NO   | PRI | NULL              | auto_increment              |
-// | article_id      | int(11)  | NO   | MUL | NULL              |                             |
-// | tag             | char(64) | NO   |     | NULL              |                             |
-// | create_datetime | datetime | NO   |     | CURRENT_TIMESTAMP |                             |
-// | update_datetime | datetime | NO   |     | NULL              | on update CURRENT_TIMESTAMP |
-// +-----------------+----------+------+-----+-------------------+-----------------------------+
-// 5 rows in set (0.00 sec)
+type ArticleTag struct {
+	ArticleTagId   int64  `db:"article_tag_id"`
+	Articleid      int64  `db:"article_id"`
+	Tag            string `db:"tag"`
+	CreateDatetime string `db:"create_datetime"`
+	UpdateDatetime string `db:"update_datetime"`
+}
 
 type WebArticle struct {
 	ArticleId          int64  `db:"article_id"`
@@ -85,6 +75,8 @@ type WebArticle struct {
 	CreateDatetime     string `db:"create_datetime"`
 	UpdateDatetime     string `db:"update_datetime"`
 	Byline             string `db:"byline"`
+	AuthorImageURL     string `db:"author_image_url"`
+	SourceName         string `db:"source_name"`
 }
 
 func (a *Article) getArticleById(ctx context.Context) error {
@@ -147,12 +139,39 @@ func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, e
 
 	var article WebArticle
 
-	fromDate := time.Now().AddDate(0, 0, -2).Format("2006-01-02 15:04:05")
+	var query string
+	var fromDate string
+	var rows *sqlx.Rows
+	var err error
 
 	articles := make([]WebArticle, 0)
 
-	rows, err := db.Queryx(`SELECT article.*,article_author.byline FROM article LEFT JOIN article_author USING (article_id) WHERE published_datetime > ? ORDER BY published_datetime DESC`, fromDate)
+	if len(keyword) > 0 {
+		fromDate = time.Now().AddDate(0, 0, -15).Format("2006-01-02 15:04:05")
+		query = `SELECT article.*,article_author.byline,article_author.image_url AS author_image_url, source.source_name AS source_name
+							 FROM article
+					LEFT JOIN article_author USING (article_id)
+					LEFT JOIN article_ticker USING (article_id)
+					LEFT JOIN article_keyword USING (article_id)
+					LEFT JOIN article_tag USING (article_id)
+					LEFT JOIN source USING (source_id)
+							WHERE published_datetime > ?
+								AND (keyword=? OR tag=? OR ticker_symbol=?)
+					 ORDER BY published_datetime DESC`
+		rows, err = db.Queryx(query, fromDate, keyword, keyword, keyword)
+	} else {
+		fromDate := time.Now().AddDate(0, 0, -2).Format("2006-01-02 15:04:05")
+		query = `SELECT article.*,article_author.byline, source.source_name AS source_name
+							 FROM article
+					LEFT JOIN article_author USING (article_id)
+					LEFT JOIN source USING (source_id)
+							WHERE published_datetime > ?
+					 ORDER BY published_datetime DESC`
+		rows, err = db.Queryx(query, fromDate)
+	}
+
 	if err != nil {
+		logger.Warn().Err(err).Msg("Failed to check for articles")
 		return &articles, err
 	}
 	defer rows.Close()
@@ -203,4 +222,35 @@ func (aa *ArticleAuthor) createArticleAuthor(ctx context.Context) error {
 	}
 	aa.ArticleAuthorId = articleAuthorId
 	return aa.getArticleAuthorById(ctx)
+}
+
+// article tickers ------------------------------------------------------------
+
+func (at *ArticleTicker) getArticleTickerById(ctx context.Context) error {
+	db := ctx.Value("db").(*sqlx.DB)
+
+	err := db.QueryRowx("SELECT * FROM article_ticker WHERE article_ticker_id=?", at.ArticleTickerId).StructScan(at)
+	return err
+}
+
+func (at *ArticleTicker) createArticleTicker(ctx context.Context) error {
+	logger := log.Ctx(ctx)
+	db := ctx.Value("db").(*sqlx.DB)
+
+	var insert = "INSERT INTO article_ticker SET article_id=?, ticker_symbol=?, ticker_id=?"
+
+	res, err := db.Exec(insert, at.ArticleId, at.TickerSymbol, at.TickerId)
+	if err != nil {
+		logger.Fatal().Err(err).
+			Str("table_name", "article_ticker").
+			Msg("Failed on INSERT")
+	}
+	articleTickerId, err := res.LastInsertId()
+	if err != nil || articleTickerId == 0 {
+		logger.Fatal().Err(err).
+			Str("table_name", "article_ticker").
+			Msg("Failed on LAST_INSERT_ID")
+	}
+	at.ArticleTickerId = articleTickerId
+	return at.getArticleTickerById(ctx)
 }

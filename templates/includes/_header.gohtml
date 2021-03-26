@@ -4,7 +4,9 @@
   <head>
     <meta http-equiv="content-type" content="text/html;charset=utf-8">
     <meta name="google-signin-client_id" content="602086455575-42rg6ja1qb8sebu2tqbokrd8h8n70j3e.apps.googleusercontent.com">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    <link href="/static/vendor/yahoo/cssnormalize-min.css" rel="stylesheet">
     <link href="/static/css/custom-dark.css" rel="stylesheet">
     <link href="/static/css/global.css" rel="stylesheet">
     <link href="/static/css/{{.config.template_name}}.css" rel="stylesheet">
@@ -13,7 +15,7 @@
 
     <script src="https://kit.fontawesome.com/beb4827de9.js" crossorigin="anonymous"></script>
     <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
-    <script src="/static/vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="https://apis.google.com/js/platform.js?onload=initGSO" async defer></script>
     <script src="/static/js/global.js"></script>
     <script src="/static/js/{{.config.template_name}}.js"></script>
@@ -22,9 +24,9 @@
 
   <body id="page-top" class="{{.config.template_name}}">
 
-    <div><!-- Navigation -->
+    <div><!-- viewport -->
       <div class="row g-0"><!-- row -->
-        <div class="col-6 col-sm-4 col-md-3 col-lg-2 col-xxl-2 bg-dark full-height left-column"><!-- left column -->
+        <div class="col-4 col-sm-3 col-md-2 bg-dark full-height left-column"><!-- left column -->
           <div class="logo">
             <a href="/">
               <img class="img-fluid mx-auto d-block logo" alt="Stockwatch logo: outline of man in hat with monical, in bright yellow" src="/static/images/logo/stockwatch-t200.png">
@@ -33,34 +35,34 @@
           {{ template "_sidemenu" . }}
         </div><!-- left column -->
 
-        <div class="col-6 col-sm-8 col-md-9 col-lg-10 col-xxl-10 top-box"><!-- content -->
-          <div class="d-flex flex-row justify-content-between bg-primary"><!-- d-flex menubar -->
+        <div class="col-8 col-sm-3 col-md-10 top-box"><!-- content -->
+          <div class="container-fluid">
 
-            <div class="align-self-center">
-              <form class="form-control bg-primary no-border" method="POST" action="/search/ticker">
-                <input class=" form-control-sm" name="searchString" type="search" autofocus size=30 placeholder="Symbol or Company name" aria-label="Symbol Search"{{if .searchString}} value="{{.searchString}}"{{end}}>
-                <button class=" form-control-sm bg-light text-dark" type="submit" name="submit" value="jump">Jump</button>
-                <button class=" form-control-sm bg-light text-dark" type="submit" name="submit" value="search">Search</button>
-              </form>
-            </div>
+            <div class="row g-0 bg-primary">
+              <div class="col-5">
+                <form class="form-control bg-primary no-border" method="POST" action="/search/ticker">
+                  <input class=" form-control-sm" name="searchString" type="search" autofocus size=30 placeholder="Symbol or Company name" aria-label="Symbol Search"{{if .searchString}} value="{{.searchString}}"{{end}}>
+                  <button class=" form-control-sm bg-light text-dark" type="submit" name="submit" value="jump">Jump</button>
+                  <button class=" form-control-sm bg-light text-dark" type="submit" name="submit" value="search">Search</button>
+                </form>
+              </div>
             
-            {{- if .WID}}
-            <div class="flex-grow-1">
-              {{- if not .hideRecents}}
-                {{- if .recents}}
-                  <ul class="flex-grow-1 nav">
-                    <li class="nav-item me-2 pt-2">Recent:</li>
-                    {{range .recents}}
-                      <li class="nav-item me-1 pt-2 recent"><a class="badge text-dark bg-warning text-decoration-none" href="/view/{{.}}"><i class="fas fa-dollar-sign"></i>{{.}}</a></li>
-                    {{end}}
-                  </ul>
+              <div class="col-5 align-self-center">
+                {{- if not .hideRecents}}
+                  {{- if .recents}}
+                    <ul class="flex-grow-1 nav">
+                      <li class="nav-item me-2 pt-2">Recent:</li>
+                      {{range .recents}}
+                        <li class="nav-item me-1 pt-2 recent"><a class="badge text-dark bg-warning text-decoration-none" href="/view/{{.}}"><i class="fas fa-dollar-sign"></i>{{.}}</a></li>
+                      {{end}}
+                    </ul>
+                  {{end}}
                 {{end}}
-              {{end}}
-            </div>
-            {{end}}
+              </div>
 
-            <div id="is_market_open_color" class="flex-grow-1 align-self-center flush-right {{if .config.is_market_open}}text-success{{else}}text-danger{{end}}">
-              <span class="me-3"><span class="text-light">US MARKETS: </span><i class="fad fa-power-off"></i> <span id="is_market_open">{{if .config.is_market_open}}TRADING{{else}}CLOSED{{end}}</span></span>
-            </div>
-          </div><!-- d-flex menubar -->
+              <div id="is_market_open_color" class="col-2 flush-right {{if .config.is_market_open}}text-success{{else}}text-danger{{end}}">
+                <div class="me-2 text-light">US MARKETS</div>
+                <div class="me-2"><i class="fad fa-power-off"></i> <span id="is_market_open">{{if .config.is_market_open}}TRADING{{else}}CLOSED{{end}}</span></div>
+              </div>
+            </div><!-- row -->
 {{- end}}

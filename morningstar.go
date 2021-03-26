@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"strings"
 	"time"
 
@@ -132,8 +133,60 @@ func loadMSNewsArticles(ctx context.Context, query string) error {
 			var articlesListResponse []morningstar.MSArticlesListResponse
 			json.NewDecoder(strings.NewReader(response)).Decode(&articlesListResponse)
 
-			for _, article := range articlesListResponse {
-				if existingId, err := getArticleByExternalId(ctx, sourceId, article.InternalId); err == nil && existingId == 0 {
+			for _, story := range articlesListResponse {
+				if existingId, err := getArticleByExternalId(ctx, sourceId, story.InternalId); err == nil && existingId == 0 {
+					var publishedDate string
+					var updatedAtDate string
+					if published, err := strconv.ParseInt(story.Published, 10, 64); err == nil {
+						publishedDate = FormatUnixTime(published, "2006-01-02 15:04:05")
+					} else {
+						log.Fatal().Err(err).Str("published", story.Published).Msg("Failed to convert date")
+					}
+					if updatedat, err := strconv.ParseInt(story.UpdatedAt, 10, 64); err == nil {
+						updatedAtDate = FormatUnixTime(updatedat, "2006-01-02 15:04:05")
+					} else {
+						log.Fatal().Err(err).Str("updatedat", story.UpdatedAt).Msg("Failed to convert date")
+					}
+
+					article := Article{0, sourceId, story.InternalId, publishedDate, updatedAtDate, story.Title, story.Content.Body, story.Content.VideoFileURL, "", "", ""}
+
+					err := article.createArticle(ctx)
+					if err != nil {
+						logger.Warn().Err(err).Str("id", query).
+							Msg("Failed to write new news article")
+						return err
+					}
+					if article.ArticleId > 0 {
+						for _, author := range story.Authors {
+							if author.IsPrimary {
+								for _, profile := range author.Profiles {
+									if profile.IsPrimary {
+										articleAuthor := ArticleAuthor{0, article.ArticleId, profile.ByLine, profile.JobTitle, profile.ShortBio, profile.LongBio, author.ImageURL, "", ""}
+										err := articleAuthor.createArticleAuthor(ctx)
+										if err != nil {
+											logger.Warn().Err(err).Str("id", query).
+												Msg("Failed to write author(s) for new article")
+											return err
+										}
+									}
+								}
+							}
+						}
+
+						for _, security := range story.Securities {
+							ticker, err := getTickerBySymbol(ctx, security.Symbol)
+							if err == nil {
+								articleTicker := ArticleTicker{0, article.ArticleId, ticker.TickerSymbol, ticker.TickerId, "", ""}
+								err := articleTicker.createArticleTicker(ctx)
+								if err != nil {
+									logger.Warn().Err(err).Str("id", query).
+										Msg("Failed to write tickers(s) for new article")
+									return err
+								}
+							}
+						}
+
+					}
 				}
 			}
 		}

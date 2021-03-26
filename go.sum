@@ -437,6 +437,8 @@ github.com/weirdtangent/morningstar v0.0.0-20210322065021-8fed9844c3e9 h1:mIpQWu
 github.com/weirdtangent/morningstar v0.0.0-20210322065021-8fed9844c3e9/go.mod h1:F0DFnnLvM3re19ETMRzeO0nGO81vHP6XfsVLK0IBgs0=
 github.com/weirdtangent/morningstar v0.0.0-20210324175745-0ea9af5a6c3c h1:ZHLjs0kaonhXj0br33S+qhdQEpUTXqasqwPwEeSn1DA=
 github.com/weirdtangent/morningstar v0.0.0-20210324175745-0ea9af5a6c3c/go.mod h1:F0DFnnLvM3re19ETMRzeO0nGO81vHP6XfsVLK0IBgs0=
+github.com/weirdtangent/morningstar v0.0.0-20210325042330-d510a3c1c2e2 h1:azLfANZd9qT/bT2o2M4nYcwkpqqA6t3zagx2Cf3kSIY=
+github.com/weirdtangent/morningstar v0.0.0-20210325042330-d510a3c1c2e2/go.mod h1:F0DFnnLvM3re19ETMRzeO0nGO81vHP6XfsVLK0IBgs0=
 github.com/weirdtangent/myaws v0.1.0 h1:nQ6vIcJ+mCKQDFgAGQA4Vedy1lasWPPG+hT6UHG1HlY=
 github.com/weirdtangent/myaws v0.1.0/go.mod h1:I5SCso9BTs+3OajodyYkwGOMbYH20Wn2MTgNi2qgdPI=
 github.com/weirdtangent/mymath v0.1.0 h1:oFYr1tzTbEbueqx/AWVFziDhueRbqZbmTR5v7HxY5xc=
@@ -557,6 +559,8 @@ golang.org/x/net v0.0.0-20210316092652-d523dce5a7f4 h1:b0LrWgu8+q7z4J+0Y3Umo5q1d
 golang.org/x/net v0.0.0-20210316092652-d523dce5a7f4/go.mod h1:RBQZq4jEuRlivfhVLdyRGr576XBO4/greRjx4P4O3yc=
 golang.org/x/net v0.0.0-20210324051636-2c4c8ecb7826 h1:lNRDRnwZWawoPHDS50ebYHTOHjctRMLSrUSQFcAHiW4=
 golang.org/x/net v0.0.0-20210324051636-2c4c8ecb7826/go.mod h1:RBQZq4jEuRlivfhVLdyRGr576XBO4/greRjx4P4O3yc=
+golang.org/x/net v0.0.0-20210324205630-d1beb07c2056 h1:sANdAef76Ioam9aQUUdcAqricwY/WUaMc4+7LY4eGg8=
+golang.org/x/net v0.0.0-20210324205630-d1beb07c2056/go.mod h1:uSPa2vr4CLtc/ILN5odXGNXS6mhrKVzTaCXzk9m6W3k=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
 golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=
 golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=

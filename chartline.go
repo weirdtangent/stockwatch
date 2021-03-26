@@ -15,10 +15,10 @@ import (
 )
 
 const (
-	mainX  = "750px"
-	mainY  = "350px"
-	smallX = "750px"
-	smallY = "225px"
+	mainX  = "580px"
+	mainY  = "280px"
+	smallX = "580px"
+	smallY = "180px"
 )
 
 func chartHandlerTickerDailyLine(ctx context.Context, ticker *Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {

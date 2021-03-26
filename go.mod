@@ -21,12 +21,12 @@ require (
 	github.com/savaki/dynastore v0.0.0-20171109173440-28d8558bb429
 	github.com/stretchr/testify v1.6.1 // indirect
 	github.com/weirdtangent/bloomberg v0.0.0-20210324175403-ebb8bc746955
-	github.com/weirdtangent/morningstar v0.0.0-20210324175745-0ea9af5a6c3c
+	github.com/weirdtangent/morningstar v0.0.0-20210325042330-d510a3c1c2e2
 	github.com/weirdtangent/myaws v0.1.0
 	github.com/weirdtangent/mymath v0.1.0
 	github.com/weirdtangent/mytime v0.1.1
 	github.com/weirdtangent/yahoofinance v0.1.11
-	golang.org/x/net v0.0.0-20210324051636-2c4c8ecb7826 // indirect
+	golang.org/x/net v0.0.0-20210324205630-d1beb07c2056 // indirect
 	golang.org/x/oauth2 v0.0.0-20210323180902-22b0adad7558
 	golang.org/x/sys v0.0.0-20210324051608-47abb6519492 // indirect
 	golang.org/x/text v0.3.5 // indirect

@@ -177,7 +177,7 @@ func (ah *AddHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"connect-src 'self' accounts.google.com *.fontawesome.com",
 		"style-src 'self' fonts.googleapis.com accounts.google.com 'unsafe-inline'",
 		"script-src 'self' apis.google.com accounts.google.com kit.fontawesome.com 'nonce-" + nonce + "'",
-		"img-src 'self' data: *.googleusercontent.com *.twimg.com avatars.githubusercontent.com assets.bwbx.io",
+		"img-src 'self' data: *.googleusercontent.com *.twimg.com avatars.githubusercontent.com assets.bwbx.io im.mstar.com",
 		"font-src 'self' fonts.gstatic.com *.fontawesome.com",
 		"frame-src 'self' accounts.google.com",
 		"report-uri /internal/cspviolations",

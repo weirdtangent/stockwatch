@@ -41,9 +41,9 @@ func updateHandler() http.HandlerFunc {
 			} else {
 				err := loadMSNewsArticles(ctx, query)
 				if err != nil {
-					*messages = append(*messages, Message{fmt.Sprintf("Pulling latest Morningstar News failed: %s", err.Error()), "danger"})
+					*messages = append(*messages, Message{fmt.Sprintf("Pulling Morningstar News for %s failed: %s", query, err.Error()), "danger"})
 				} else {
-					*messages = append(*messages, Message{fmt.Sprintf("Pulled latest Morningstar News"), "success"})
+					*messages = append(*messages, Message{fmt.Sprintf("Pulled Morningstar News for %s", query), "success"})
 				}
 			}
 		case "bbnews":

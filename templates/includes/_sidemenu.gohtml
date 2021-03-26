@@ -15,7 +15,9 @@
                 <li class="nav-item"><a class="nav-link ps-3" href="/signout/{{.provider}}">Sign Out</a></li>
                 {{if .watcher.IsAdmin}}
                 <li class="nav-item"><a class="nav-link ps-3 link-warning" href="/update/movers">Morningstar Movers</a></li>
-                <li class="nav-item"><a class="nav-link ps-3 link-warning" href="/update/msnews?q=SPCE">Morningstar News: SPCE</a></li>
+                {{if .ticker}}
+                <li class="nav-item"><a class="nav-link ps-3 link-warning" href="/update/msnews?q={{.ticker.TickerSymbol}}">Morningstar News: {{.ticker.TickerSymbol}}</a></li>
+                {{end}}
                 <li class="nav-item"><a class="nav-link ps-3 link-warning" href="/update/bbnews?q=markets">Bloomberg News: markets</a></li>
                 <li class="nav-item"><a class="nav-link ps-3 link-warning" href="/update/bbnews?q=stocks">Bloomberg News: stocks</a></li>
                 <li class="nav-item"><a class="nav-link ps-3 link-warning" href="#">Fixes and Do-overs</a></li>

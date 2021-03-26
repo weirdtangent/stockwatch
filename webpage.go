@@ -72,6 +72,16 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 	// load any active watches about this ticker
 	webwatches, _ := loadWebWatches(db, ticker.TickerId)
 
+	// load any recent news
+	articles, _ := getArticlesByKeyword(ctx, ticker.TickerSymbol)
+	if len(*articles) > 0 {
+		webdata["articles"] = articles
+		webdata["article1_template"] = &((*articles)[0].Body)
+	} else {
+		empty := ""
+		webdata["article1_template"] = &empty
+	}
+
 	// Build charts
 	var lineChartHTML = chartHandlerTickerDailyLine(ctx, ticker, exchange, ticker_dailies, webwatches)
 	var klineChartHTML = chartHandlerTickerDailyKLine(ctx, ticker, exchange, ticker_dailies, webwatches)
