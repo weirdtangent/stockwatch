@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"errors"
 	"fmt"
+	"html/template"
+	"regexp"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -56,7 +59,7 @@ type ArticleAuthor struct {
 
 type ArticleTag struct {
 	ArticleTagId   int64  `db:"article_tag_id"`
-	Articleid      int64  `db:"article_id"`
+	ArticleId      int64  `db:"article_id"`
 	Tag            string `db:"tag"`
 	CreateDatetime string `db:"create_datetime"`
 	UpdateDatetime string `db:"update_datetime"`
@@ -70,13 +73,18 @@ type WebArticle struct {
 	PubUpdatedDatetime string `db:"pubupdated_datetime"`
 	Title              string `db:"title"`
 	Body               string `db:"body"`
+	BodyTemplate       template.HTML
 	ArticleURL         string `db:"article_url"`
 	ImageURL           string `db:"image_url"`
 	CreateDatetime     string `db:"create_datetime"`
 	UpdateDatetime     string `db:"update_datetime"`
-	Byline             string `db:"byline"`
+	AuthorByline       string `db:"author_byline"`
+	AuthorLongBio      string `db:"author_long_bio"`
 	AuthorImageURL     string `db:"author_image_url"`
 	SourceName         string `db:"source_name"`
+	Keywords           string `db:"keywords"`
+	Tags               string `db:"tags"`
+	Symbols            string `db:"symbols"`
 }
 
 func (a *Article) getArticleById(ctx context.Context) error {
@@ -147,8 +155,16 @@ func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, e
 	articles := make([]WebArticle, 0)
 
 	if len(keyword) > 0 {
-		fromDate = time.Now().AddDate(0, 0, -15).Format("2006-01-02 15:04:05")
-		query = `SELECT article.*,article_author.byline,article_author.image_url AS author_image_url, source.source_name AS source_name
+		fromDate = time.Now().AddDate(0, 0, -120).Format("2006-01-02 15:04:05")
+		log.Info().Str("from_date", fromDate).Str("keyword", keyword).Int("limit", 6).Msg("Pulling recent articles by keyword")
+		query = `SELECT article.*,
+                    article_author.byline AS author_byline,
+										article_author.long_bio AS author_long_bio,
+										article_author.image_url AS author_image_url,
+										source.source_name AS source_name,
+										GROUP_CONCAT(DISTINCT article_keyword.keyword ORDER BY article_keyword.keyword SEPARATOR ', ') AS keywords,
+										GROUP_CONCAT(DISTINCT article_tag.tag ORDER BY article_tag.tag SEPARATOR ', ') AS tags,
+										GROUP_CONCAT(DISTINCT article_ticker.ticker_symbol ORDER BY article_ticker.ticker_symbol SEPARATOR ', ') AS symbols
 							 FROM article
 					LEFT JOIN article_author USING (article_id)
 					LEFT JOIN article_ticker USING (article_id)
@@ -157,16 +173,25 @@ func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, e
 					LEFT JOIN source USING (source_id)
 							WHERE published_datetime > ?
 								AND (keyword=? OR tag=? OR ticker_symbol=?)
-					 ORDER BY published_datetime DESC`
+  				 GROUP BY article_id
+					 ORDER BY published_datetime DESC
+    				  LIMIT 6`
 		rows, err = db.Queryx(query, fromDate, keyword, keyword, keyword)
 	} else {
-		fromDate := time.Now().AddDate(0, 0, -2).Format("2006-01-02 15:04:05")
-		query = `SELECT article.*,article_author.byline, source.source_name AS source_name
+		fromDate := time.Now().AddDate(0, 0, -5).Format("2006-01-02 15:04:05")
+		log.Info().Str("from_date", fromDate).Msg("Pulling all articles by date")
+		query = `SELECT article.*,
+                    article_author.byline AS author_byline,
+										article_author.long_bio AS author_long_bio,
+										article_author.image_url AS author_image_url,
+										source.source_name AS source_name
 							 FROM article
 					LEFT JOIN article_author USING (article_id)
 					LEFT JOIN source USING (source_id)
 							WHERE published_datetime > ?
-					 ORDER BY published_datetime DESC`
+					 GROUP BY article_id
+					 ORDER BY published_datetime DESC
+					    LIMIT 15`
 		rows, err = db.Queryx(query, fromDate)
 	}
 
@@ -176,6 +201,8 @@ func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, e
 	}
 	defer rows.Close()
 
+	bodySHA256 := make(map[string]bool)
+
 	for rows.Next() {
 		err = rows.StructScan(&article)
 		if err != nil {
@@ -183,7 +210,27 @@ func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, e
 				Str("table_name", "article,article_author").
 				Msg("Error reading result rows")
 		} else {
-			articles = append(articles, article)
+			if len(article.Body) > 0 {
+				sha := fmt.Sprintf("%x", sha256.Sum256([]byte(article.Body)))
+				if _, ok := bodySHA256[sha]; ok {
+					log.Info().Msg("Skipping, seen this article body already")
+				} else {
+					bodySHA256[sha] = true
+
+					quote_rx := regexp.MustCompile(`'`)
+					article.Body = string(quote_rx.ReplaceAll([]byte(article.Body), []byte("&apos;")))
+
+					http_rx := regexp.MustCompile(`http:`)
+					article.Body = string(http_rx.ReplaceAll([]byte(article.Body), []byte("https:")))
+					article.AuthorImageURL = string(http_rx.ReplaceAll([]byte(article.AuthorImageURL), []byte("https:")))
+
+					log.Info().Str("body", sha).Msg("Selected article to show")
+					articles = append(articles, article)
+				}
+			} else {
+				log.Info().Str("body", "-empty-").Msg("Selected article to show")
+				articles = append(articles, article)
+			}
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -253,4 +300,38 @@ func (at *ArticleTicker) createArticleTicker(ctx context.Context) error {
 	}
 	at.ArticleTickerId = articleTickerId
 	return at.getArticleTickerById(ctx)
+}
+
+// article keywords -----------------------------------------------------------
+
+func (ak *ArticleKeyword) createArticleKeyword(ctx context.Context) error {
+	logger := log.Ctx(ctx)
+	db := ctx.Value("db").(*sqlx.DB)
+
+	var insert = "INSERT INTO article_keyword SET article_id=?, keyword=?"
+
+	_, err := db.Exec(insert, ak.ArticleId, ak.Keyword)
+	if err != nil {
+		logger.Fatal().Err(err).
+			Str("table_name", "article_keyword").
+			Msg("Failed on INSERT")
+	}
+	return err
+}
+
+// article tags -----------------------------------------------------------0000
+
+func (at *ArticleTag) createArticleTag(ctx context.Context) error {
+	logger := log.Ctx(ctx)
+	db := ctx.Value("db").(*sqlx.DB)
+
+	var insert = "INSERT INTO article_tag SET article_id=?, tag=?"
+
+	_, err := db.Exec(insert, at.ArticleId, at.Tag)
+	if err != nil {
+		logger.Fatal().Err(err).
+			Str("table_name", "article_tag").
+			Msg("Failed on INSERT")
+	}
+	return err
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
@@ -76,10 +77,10 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 	articles, _ := getArticlesByKeyword(ctx, ticker.TickerSymbol)
 	if len(*articles) > 0 {
 		webdata["articles"] = articles
-		webdata["article1_template"] = &((*articles)[0].Body)
-	} else {
-		empty := ""
-		webdata["article1_template"] = &empty
+		for _, article := range *articles {
+			key := fmt.Sprintf("_source%d-id%s-body_template", article.SourceId, article.ExternalId)
+			webdata[key] = article
+		}
 	}
 
 	// Build charts

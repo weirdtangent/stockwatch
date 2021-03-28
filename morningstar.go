@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -127,65 +128,82 @@ func loadMSNewsArticles(ctx context.Context, query string) error {
 			if err != nil {
 				logger.Warn().Err(err).Str("performanceId", performanceId).
 					Msg("Failed to retrieve articleList")
-				return err
-			}
+			} else {
 
-			var articlesListResponse []morningstar.MSArticlesListResponse
-			json.NewDecoder(strings.NewReader(response)).Decode(&articlesListResponse)
+				var articlesListResponse []morningstar.MSArticlesListResponse
+				json.NewDecoder(strings.NewReader(response)).Decode(&articlesListResponse)
 
-			for _, story := range articlesListResponse {
-				if existingId, err := getArticleByExternalId(ctx, sourceId, story.InternalId); err == nil && existingId == 0 {
-					var publishedDate string
-					var updatedAtDate string
-					if published, err := strconv.ParseInt(story.Published, 10, 64); err == nil {
-						publishedDate = FormatUnixTime(published, "2006-01-02 15:04:05")
+				for _, story := range articlesListResponse {
+					internalId := fmt.Sprintf("%d", story.InternalId)
+					if story.Status != "Live" {
+						log.Info().Str("status", story.Status).Msg("Skipped article because of status")
 					} else {
-						log.Fatal().Err(err).Str("published", story.Published).Msg("Failed to convert date")
-					}
-					if updatedat, err := strconv.ParseInt(story.UpdatedAt, 10, 64); err == nil {
-						updatedAtDate = FormatUnixTime(updatedat, "2006-01-02 15:04:05")
-					} else {
-						log.Fatal().Err(err).Str("updatedat", story.UpdatedAt).Msg("Failed to convert date")
-					}
+						if existingId, err := getArticleByExternalId(ctx, sourceId, internalId); err != nil || existingId != 0 {
+							log.Info().Err(err).Str("existing_id", internalId).Msg("Skipped article because of err or we already have")
+						} else {
+							var publishedDate string
+							var updatedAtDate string
+							if published, err := strconv.ParseInt(story.Published[0:10], 10, 64); err == nil && published > 0 {
+								publishedDate = FormatUnixTime(published, "2006-01-02 15:04:05")
+							} else {
+								log.Fatal().Err(err).Str("published", story.Published).Msg("Failed to convert date")
+							}
+							if updatedat, err := strconv.ParseInt(story.UpdatedAt[0:10], 10, 64); err == nil && updatedat > 0 {
+								updatedAtDate = FormatUnixTime(updatedat, "2006-01-02 15:04:05")
+							} else {
+								log.Fatal().Err(err).Str("updatedat", story.UpdatedAt).Msg("Failed to convert date")
+							}
 
-					article := Article{0, sourceId, story.InternalId, publishedDate, updatedAtDate, story.Title, story.Content.Body, story.Content.VideoFileURL, "", "", ""}
+							article := Article{0, sourceId, internalId, publishedDate, updatedAtDate, story.Title, story.Content.Body, story.Content.VideoFileURL, "", "", ""}
 
-					err := article.createArticle(ctx)
-					if err != nil {
-						logger.Warn().Err(err).Str("id", query).
-							Msg("Failed to write new news article")
-						return err
-					}
-					if article.ArticleId > 0 {
-						for _, author := range story.Authors {
-							if author.IsPrimary {
-								for _, profile := range author.Profiles {
-									if profile.IsPrimary {
-										articleAuthor := ArticleAuthor{0, article.ArticleId, profile.ByLine, profile.JobTitle, profile.ShortBio, profile.LongBio, author.ImageURL, "", ""}
-										err := articleAuthor.createArticleAuthor(ctx)
-										if err != nil {
-											logger.Warn().Err(err).Str("id", query).
-												Msg("Failed to write author(s) for new article")
-											return err
+							err := article.createArticle(ctx)
+							if err != nil {
+								logger.Warn().Err(err).Str("id", query).Msg("Failed to write new news article")
+							}
+							if article.ArticleId > 0 {
+								for _, author := range story.Authors {
+									if author.IsPrimary {
+										for _, profile := range author.Profiles {
+											if profile.IsPrimary {
+												articleAuthor := ArticleAuthor{0, article.ArticleId, profile.ByLine, profile.JobTitle, profile.ShortBio, profile.LongBio, author.ImageURL, "", ""}
+												err := articleAuthor.createArticleAuthor(ctx)
+												if err != nil {
+													logger.Warn().Err(err).Str("id", query).Msg("Failed to write author(s) for new article")
+												}
+											}
 										}
 									}
 								}
-							}
-						}
 
-						for _, security := range story.Securities {
-							ticker, err := getTickerBySymbol(ctx, security.Symbol)
-							if err == nil {
-								articleTicker := ArticleTicker{0, article.ArticleId, ticker.TickerSymbol, ticker.TickerId, "", ""}
-								err := articleTicker.createArticleTicker(ctx)
-								if err != nil {
-									logger.Warn().Err(err).Str("id", query).
-										Msg("Failed to write tickers(s) for new article")
-									return err
+								for _, security := range story.Securities {
+									ticker, err := getTickerBySymbol(ctx, security.Symbol)
+									if err == nil {
+										articleTicker := ArticleTicker{0, article.ArticleId, ticker.TickerSymbol, ticker.TickerId, "", ""}
+										err := articleTicker.createArticleTicker(ctx)
+										if err != nil {
+											logger.Warn().Err(err).Str("id", query).Msg("Failed to write ticker(s) for new article")
+										}
+									}
 								}
+
+								for _, keyword := range story.Keywords {
+									articleKeyword := ArticleKeyword{0, article.ArticleId, keyword.Name, "", ""}
+									err := articleKeyword.createArticleKeyword(ctx)
+									if err != nil {
+										logger.Warn().Err(err).Str("id", query).Msg("Failed to write keyword(s) for new article")
+									}
+								}
+
+								for _, tag := range story.Tags {
+									articleTag := ArticleTag{0, article.ArticleId, tag.Name, "", ""}
+									err := articleTag.createArticleTag(ctx)
+									if err != nil {
+										logger.Warn().Err(err).Str("id", query).Msg("Failed to write tag(s) for new article")
+									}
+								}
+
 							}
 						}
-
 					}
 				}
 			}

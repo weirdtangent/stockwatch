@@ -71,6 +71,12 @@ $(document).ready(function() {
     update_quote(30);
   }, quote_refresh * 1000);
 
+  $('.inline-article').find('.CMS__Security').each(function (index) {
+    symbol = this.text();
+    console.log("Turning "+symbol+" into a link");
+    this.innerHTML = '<a href="/view/' + symbol + '">' + symbol + '</a>';
+  });
+
   if (is_market_open) {
     $("#ticker_quote_info").show();
     $("#auto_refresh").show();

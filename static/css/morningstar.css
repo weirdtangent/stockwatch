@@ -19,6 +19,13 @@ body {
   color: #cccccc;
 }
 
+img {
+  max-width: 700px;  /*width of parent container*/
+  max-height: 350px; /*height of parent container*/
+  object-fit: contain;
+  background-color: white;
+}
+
 h2 {
   font-size: 1.25em;
   color: #F5E239
@@ -31,3 +38,50 @@ h2 {
 a,a:visited,a:hover {
   color: #F39C12;
 }
+
+.small {
+  font-size: .80em;
+}
+
+.text-light {
+  color: #ADB5BD;
+}
+
+.text-info {
+  color: #3498DB;
+}
+
+.italics {
+  font-style: italic;
+}
+
+.clearfix::after {
+  display: block;
+  clear: both;
+  content: "";
+}
+
+.float-start {
+  float: left !important;
+  padding: 0 5px;
+  color: #ADB5BD;
+}
+
+.float-end {
+  float: right !important;
+  color: #ADB5BD;
+}
+
+#about-author {
+  background-color: white;
+  color: black;
+  white-space: pre-line;
+  font-family: monospace;
+  padding: 0 3px;
+  margin-top: 10px;
+}
+
+#about-author p { 
+  margin-top: -1.3em;
+}
+

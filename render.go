@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"html/template"
 	"net/http"
+	"regexp"
 
 	"github.com/rs/zerolog/log"
 )
@@ -38,11 +39,16 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 	if err != nil {
 		logger.Error().Err(err).Str("template_dir", "modals").Msg("Failed to parse template(s)")
 	}
+	// Parse variable "about" page into template
 	if val, ok := webdata["about-contents_template"]; ok {
 		tmpl, err = tmpl.Parse("{{ define \"about-contents\" }}" + *val.(*string) + "{{end}}")
 	}
-	if val, ok := webdata["article1_template"]; ok {
-		tmpl, err = tmpl.Parse("{{ define \"_article1\" }}" + *val.(*string) + "{{end}}")
+	// Parse all internal articles as templates
+	article_rx := regexp.MustCompile(`_source.*body_template`)
+	for webTmpl, val := range webdata {
+		if article_rx.Match([]byte(webTmpl)) {
+			template.Must(tmpl.New(webTmpl).Parse(val.(WebArticle).Body))
+		}
 	}
 	tmpl, err = tmpl.ParseFiles("templates/" + tmplname + ".gohtml")
 	if err != nil {

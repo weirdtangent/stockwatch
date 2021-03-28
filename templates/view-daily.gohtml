@@ -25,15 +25,17 @@
               </div>
 
               <div class="mt-1 px-2 py-1 bg-warning text-dark">Related News and Stories</div>
-              {{range .articles}}
-              <div class="px-2 py-1 bg-dark text-light min-box" data-bs-toggle="modal" data-bs-target="#article1Modal">
-                {{.Title}} -
-                <span class="small text-info">
-                  {{FormatDatetimeStr .PublishedDatetime "Jan 2"}}
-                  by {{.Byline}}
-                </span>
+              <div class="px-2 py-1 bg-dark text-light min-box">
+                {{range .articles}}
+                <div class="text-white modal-link" data-bs-toggle="modal" data-bs-target="#source{{.SourceId}}-id{{.ExternalId}}-modal">
+                  {{.Title}} <i class="far fa-window fa-xs"></i>
+                  <span class="small text-info">
+                    {{FormatDatetimeStr .PublishedDatetime "Jan 2"}}
+                    by {{.AuthorByline}}
+                  </span>
+                </div>
+                {{end}}
               </div>
-              {{end}}
 
               <div class="mt-1 px-2 py-1 bg-warning text-dark">Business Summary</div>
               <div class="px-2 py-1 bg-dark text-light small min-box">
@@ -84,28 +86,11 @@
 
           </div><!-- row -->
 
-          {{range .articles}}
-          <div id="article1Modal" class="modal fade" aria-labelledby="article1Label" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-scrollable modal-lg">
-              <div class="modal-content h-75">
-                <div class="modal-header">
-                  <h5 class="modal-title" id="article1Label">{{.Title}}<span class="small"> - {{FormatDatetimeStr .PublishedDatetime "Jan 2 15:04"}} by {{.Byline}}</span></h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                  <iframe class="w-100 inline-article" srcdoc='<html><head><link rel="stylesheet" type="text/css" href="/static/css/morningstar.css"></head><body>{{template "_article1"}}</body></html>'></iframe>
-                  <p class="pt-2 text-info small">- {{.SourceName}}</p>
-                </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-              </div><!-- modal-content -->
-            </div><!-- modal-dialogue -->
-          </div><!-- modal -->
-          {{end}}
+          <div class="row g-0 mb-5"></div>
 
   {{ template "_footer" . }}
   {{ template "_bought" . }}
   {{ template "_sold" . }}
+  {{ template "_articles" . }}
   {{ template "_end" . }}
 {{- end }}

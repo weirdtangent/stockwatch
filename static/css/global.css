@@ -4,8 +4,9 @@ body {
   font-family: 'Noto Sans', sans-serif !important;
 }
 
-.a:hover {
-  color: #F5E239;
+a:hover {
+  cursor: pointer;
+  color: #F5E239 !important;
 }
 
 .logo {
@@ -65,6 +66,13 @@ div.paragraph {
 
 .doubleChart > div:first-of-type {
   margin-bottom: -60px;
+}
+
+.modal-link {
+  cursor: pointer;
+}
+.modal-link:hover {
+  color: #F5E239 !important;
 }
 
 .extraChart {
