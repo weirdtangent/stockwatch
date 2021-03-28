@@ -58,7 +58,7 @@ func getProfile(r *http.Request) (*Profile, error) {
 	var watcher Watcher
 	err = getWatcherById(ctx, &watcher, watcherId)
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to get profile from session")
+		logger.Error().Err(err).Int64("watcher_id", watcherId).Msg("Failed to get profile from session")
 		return &profile, err
 	}
 

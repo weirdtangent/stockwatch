@@ -106,7 +106,7 @@
                       <img src="{{.ImageURL}}" class="card-img-top" alt="Included image for article titled: {{.Title}}">
                       <div class="card-body mb-1 small">
                         <h6 class="card-title"><a href="{{.ArticleURL}}" target="_blank">{{.Title}}</a> <i class="ps-2 fas fa-external-link-alt fa-xs"></i></h6>
-                        {{if .Byline}}<p class="text-info small">by {{.Byline}}</p>{{end}}
+                        {{if .AuthorByline}}<p class="text-info small">by {{.AuthorByline}}</p>{{end}}
                         <p class="position-absolute bottom-0 start-0 ps-1 card-text small">{{FormatDatetimeStr .PublishedDatetime "Jan 2 15:04"}}</p>
                       </div>
                     </div>
@@ -118,7 +118,7 @@
                     {{FormatDatetimeStr .PublishedDatetime "Jan 2 15:04"}}
                     <a href="{{.ArticleURL}}" target="_blank"> {{.Title}}</a>
                     <i class="ps-2 fas fa-external-link-alt fa-xs"></i>
-                    {{if .Byline}} <span class="text-info small">by {{.Byline}}</span>{{end}}
+                    {{if .AuthorByline}} <span class="text-info small">by {{.AuthorByline}}</span>{{end}}
                   </div>
                   {{end}}
                 {{end}}
