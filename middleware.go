@@ -63,36 +63,36 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// get yahoofinance api access key and host
-	yf_api_access_key, err := myaws.AWSGetSecretKV(ac.awssess, "yahoofinance", "rapidapi-key")
+	yf_api_access_key, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch", "yahoofinance_rapidapi_key")
 	if err != nil {
 		log.Fatal().Err(err).
 			Msg("Failed to get Yahoo Finance API key")
 	}
-	yf_api_access_host, err := myaws.AWSGetSecretKV(ac.awssess, "yahoofinance", "rapidapi-host")
+	yf_api_access_host, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch", "yahoofinance_rapidapi_host")
 	if err != nil {
 		log.Fatal().Err(err).
 			Msg("Failed to get Yahoo Finance API key")
 	}
 
 	// get morningstar api access key and host
-	ms_api_access_key, err := myaws.AWSGetSecretKV(ac.awssess, "morningstar", "rapidapi-key")
+	ms_api_access_key, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch", "morningstar_rapidapi_key")
 	if err != nil {
 		log.Fatal().Err(err).
 			Msg("Failed to get Morningstar API key")
 	}
-	ms_api_access_host, err := myaws.AWSGetSecretKV(ac.awssess, "morningstar", "rapidapi-host")
+	ms_api_access_host, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch", "morningstar_rapidapi_host")
 	if err != nil {
 		log.Fatal().Err(err).
 			Msg("Failed to get Morningstar API key")
 	}
 
 	// get bloomberg api access key and host
-	bb_api_access_key, err := myaws.AWSGetSecretKV(ac.awssess, "bloomberg", "rapidapi-key")
+	bb_api_access_key, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch", "bloomberg_rapidapi_key")
 	if err != nil {
 		log.Fatal().Err(err).
 			Msg("Failed to get Bloomberg API key")
 	}
-	bb_api_access_host, err := myaws.AWSGetSecretKV(ac.awssess, "bloomberg", "rapidapi-host")
+	bb_api_access_host, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch", "bloomberg_rapidapi_host")
 	if err != nil {
 		log.Fatal().Err(err).
 			Msg("Failed to get Bloomberg API key")
@@ -101,17 +101,17 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	messages := make([]Message, 0)
 
 	// config Google OAuth
-	googleOAuthClientId, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch_google_oauth", "client_id")
+	googleOAuthClientId, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch", "google_oauth_client_id")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
-	googleOAuthSecret, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch_google_oauth", "client_secret")
+	googleOAuthSecret, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch", "google_oauth_client_secret")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
 
 	// github OAuth key
-	githubOAuthKey, err := myaws.AWSGetSecretKV(ac.awssess, "github_api", "oauth_key")
+	githubOAuthKey, err := myaws.AWSGetSecretKV(ac.awssess, "stockwatch", "github_oauth_key")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}

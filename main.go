@@ -46,14 +46,18 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to connect to AWS")
 	}
 
-	// connect to Aurora
+	// connect to MySQL
 	db, err := myaws.DBConnect(awssess, "stockwatch_rds", "stockwatch")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect to RDS")
+		log.Fatal().Err(err).Msg("Failed to connect to MySQL")
 	}
 	_, err = db.Exec("SET NAMES utf8mb4 COLLATE utf8mb4_general_ci")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to switch RDS to UTF8")
+	}
+	_, err = db.Exec("SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to turn off ONLY_FULL_GROU_BY")
 	}
 
 	// connect to Dynamo
@@ -63,11 +67,11 @@ func main() {
 	}
 
 	// Cookie setup for sessionID ------------------------------------------------
-	cookieAuthKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch_cookie", "auth_key")
+	cookieAuthKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "cookie_auth_key")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
-	cookieEncryptionKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch_cookie", "encryption_key")
+	cookieEncryptionKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "cookie_encryption_key")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
@@ -92,27 +96,27 @@ func main() {
 	}
 
 	// auth api setup ---------------------------------------------------------
-	googleOAuthClientId, err := myaws.AWSGetSecretKV(awssess, "stockwatch_google_oauth", "client_id")
+	googleOAuthClientId, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "google_oauth_client_id")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
-	googleOAuthSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch_google_oauth", "client_secret")
+	googleOAuthSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "google_oauth_client_secret")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
-	twitterApiKey, err := myaws.AWSGetSecretKV(awssess, "twitter_api", "api_key")
+	twitterApiKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "twitter_api_key")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
-	twitterApiSecret, err := myaws.AWSGetSecretKV(awssess, "twitter_api", "api_secret_key")
+	twitterApiSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "twitter_api_secret")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
-	githubApiKey, err := myaws.AWSGetSecretKV(awssess, "github_api", "api_key")
+	githubApiKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "github_api_key")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
-	githubApiSecret, err := myaws.AWSGetSecretKV(awssess, "github_api", "api_secret_key")
+	githubApiSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "github_api_secret")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}

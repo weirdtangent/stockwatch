@@ -216,7 +216,7 @@ func RandStringMask(n int) string {
 }
 
 func encryptURL(awssess *session.Session, text []byte) ([]byte, error) {
-	secret, err := myaws.AWSGetSecretKV(awssess, "stockwatch_misc", "stockwatch_next_url_key")
+	secret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "stockwatch_next_url_key")
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +238,7 @@ func encryptURL(awssess *session.Session, text []byte) ([]byte, error) {
 }
 
 func decryptURL(awssess *session.Session, cipherstring []byte) ([]byte, error) {
-	secret, err := myaws.AWSGetSecretKV(awssess, "stockwatch_misc", "stockwatch_next_url_key")
+	secret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "stockwatch_next_url_key")
 	if err != nil {
 		return nil, err
 	}
