@@ -66,18 +66,94 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to connect to DDB")
 	}
 
+	var secrets = make(map[string]string)
+
 	// Cookie setup for sessionID ------------------------------------------------
 	cookieAuthKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "cookie_auth_key")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
+	secrets["cookie_auth_key"] = *cookieAuthKey
+
 	cookieEncryptionKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "cookie_encryption_key")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
+	secrets["cookie_encryption_key"] = *cookieEncryptionKey
+
 	var hashKey = []byte(*cookieAuthKey)
 	var blockKey = []byte(*cookieEncryptionKey)
 	var secureCookie = securecookie.New(hashKey, blockKey)
+
+	// Cache all other secrets into global map -----------------------------------
+
+	// get yahoofinance api access key and host
+	yf_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "yahoofinance_rapidapi_key")
+	if err != nil {
+		log.Fatal().Err(err).
+			Msg("Failed to get Yahoo Finance API key")
+	}
+	secrets["yahoofinance_rapidapi_key"] = *yf_api_access_key
+	yf_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "yahoofinance_rapidapi_host")
+	if err != nil {
+		log.Fatal().Err(err).
+			Msg("Failed to get Yahoo Finance API key")
+	}
+	secrets["yahoofinance_rapidapi_host"] = *yf_api_access_host
+
+	// get morningstar api access key and host
+	ms_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "morningstar_rapidapi_key")
+	if err != nil {
+		log.Fatal().Err(err).
+			Msg("Failed to get Morningstar API key")
+	}
+	secrets["morningstar_rapidapi_key"] = *ms_api_access_key
+	ms_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "morningstar_rapidapi_host")
+	if err != nil {
+		log.Fatal().Err(err).
+			Msg("Failed to get Morningstar API key")
+	}
+	secrets["morningstar_rapidapi_host"] = *ms_api_access_host
+
+	// get bloomberg api access key and host
+	bb_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "bloomberg_rapidapi_key")
+	if err != nil {
+		log.Fatal().Err(err).
+			Msg("Failed to get Bloomberg API key")
+	}
+	secrets["bloomberg_rapidapi_key"] = *bb_api_access_key
+	bb_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "bloomberg_rapidapi_host")
+	if err != nil {
+		log.Fatal().Err(err).
+			Msg("Failed to get Bloomberg API key")
+	}
+	secrets["bloomberg_rapidapi_host"] = *bb_api_access_host
+
+	// config Google OAuth
+	googleOAuthClientId, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "google_oauth_client_id")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+	secrets["google_oauth_client_id"] = *googleOAuthClientId
+	googleOAuthSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "google_oauth_client_secret")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+	secrets["google_oauth_secret"] = *googleOAuthSecret
+
+	// github OAuth key
+	githubOAuthKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "github_oauth_key")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+	secrets["github_oauth_key"] = *githubOAuthKey
+
+	// google svc account
+	google_svc_acct, err := myaws.AWSGetSecretValue(awssess, "stockwatch_google_svc_acct")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+	secrets["stockwatch_google_svc_acct"] = *google_svc_acct
 
 	// Initialize session manager and configure the session lifetime -------------
 	store, err := dynastore.New(
@@ -96,30 +172,30 @@ func main() {
 	}
 
 	// auth api setup ---------------------------------------------------------
-	googleOAuthClientId, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "google_oauth_client_id")
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to retrieve secret")
-	}
-	googleOAuthSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "google_oauth_client_secret")
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to retrieve secret")
-	}
 	twitterApiKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "twitter_api_key")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
+	secrets["twitter_api_key"] = *twitterApiKey
+
 	twitterApiSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "twitter_api_secret")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
+	secrets["twitter_api_secret"] = *twitterApiSecret
+
 	githubApiKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "github_api_key")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
+	secrets["github_api_key"] = *githubApiKey
+
 	githubApiSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "github_api_secret")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
+	secrets["github_api_secret"] = *githubApiSecret
+
 	goth.UseProviders(
 		google.New(*googleOAuthClientId, *googleOAuthSecret, "https://stockwatch.graystorm.com/auth/google/callback", "openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"),
 		twitter.New(*twitterApiKey, *twitterApiSecret, "https://stockwatch.graystorm.com/auth/twitter/callback"),
@@ -161,7 +237,7 @@ func main() {
 	// middleware chain
 	chainedMux1 := withSession(store, router) // deepest level, last to run
 	chainedMux2 := withAddHeader(chainedMux1)
-	chainedMux3 := withAddContext(chainedMux2, awssess, db, secureCookie)
+	chainedMux3 := withAddContext(chainedMux2, awssess, db, secureCookie, secrets)
 	chainedMux4 := withLogging(chainedMux3) // outer level, first to run
 
 	// starup or die
