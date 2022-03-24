@@ -1,8 +1,6 @@
 package main
 
 import (
-	//"fmt"
-	//"encoding/gob"
 	"net/http"
 	"strconv"
 	"strings"
@@ -94,6 +92,7 @@ func main() {
 			Msg("Failed to get Yahoo Finance API key")
 	}
 	secrets["yahoofinance_rapidapi_key"] = *yf_api_access_key
+
 	yf_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "yahoofinance_rapidapi_host")
 	if err != nil {
 		log.Fatal().Err(err).
@@ -108,6 +107,7 @@ func main() {
 			Msg("Failed to get Morningstar API key")
 	}
 	secrets["morningstar_rapidapi_key"] = *ms_api_access_key
+
 	ms_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "morningstar_rapidapi_host")
 	if err != nil {
 		log.Fatal().Err(err).
@@ -122,6 +122,7 @@ func main() {
 			Msg("Failed to get Bloomberg API key")
 	}
 	secrets["bloomberg_rapidapi_key"] = *bb_api_access_key
+
 	bb_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "bloomberg_rapidapi_host")
 	if err != nil {
 		log.Fatal().Err(err).
@@ -135,6 +136,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
 	}
 	secrets["google_oauth_client_id"] = *googleOAuthClientId
+
 	googleOAuthSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "google_oauth_client_secret")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve secret")
