@@ -155,6 +155,13 @@ func main() {
 	}
 	secrets["stockwatch_google_svc_acct"] = *google_svc_acct
 
+	// stockwatch next url encryption key
+	next_url_key, err := myaws.AWSGetSecretValue(awssess, "stockwatch_next_url_key")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve secret")
+	}
+	secrets["next_url_key"] = *next_url_key
+
 	// Initialize session manager and configure the session lifetime -------------
 	store, err := dynastore.New(
 		dynastore.AWSConfig(awsConfig),

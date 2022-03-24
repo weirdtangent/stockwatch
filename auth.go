@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	crand "crypto/rand"
@@ -13,15 +14,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gorilla/securecookie"
 	"github.com/rs/zerolog/log"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	//"github.com/markbates/goth/providers/twitter"
-
-	"github.com/weirdtangent/myaws"
 )
 
 func authLoginHandler() http.HandlerFunc {
@@ -215,12 +213,9 @@ func RandStringMask(n int) string {
 	return string(b)
 }
 
-func encryptURL(awssess *session.Session, text []byte) ([]byte, error) {
-	secret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "stockwatch_next_url_key")
-	if err != nil {
-		return nil, err
-	}
-	key := []byte(*secret)
+func encryptURL(ctx context.Context, text []byte) ([]byte, error) {
+	secret := ctx.Value("next_url_key").(string)
+	key := []byte(secret)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -237,12 +232,9 @@ func encryptURL(awssess *session.Session, text []byte) ([]byte, error) {
 	return cipherstring, nil
 }
 
-func decryptURL(awssess *session.Session, cipherstring []byte) ([]byte, error) {
-	secret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "stockwatch_next_url_key")
-	if err != nil {
-		return nil, err
-	}
-	key := []byte(*secret)
+func decryptURL(ctx context.Context, cipherstring []byte) ([]byte, error) {
+	secret := ctx.Value("next_url_key").(string)
+	key := []byte(secret)
 	textstr, err := base64.URLEncoding.DecodeString(string(cipherstring))
 	if err != nil {
 		return nil, err

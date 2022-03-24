@@ -90,6 +90,7 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r = r.Clone(context.WithValue(r.Context(), "morningstar_apihost", ac.secrets["morningstar_rapidapi_host"]))
 	r = r.Clone(context.WithValue(r.Context(), "bloomberg_apikey", ac.secrets["bloomberg_rapidapi_key"]))
 	r = r.Clone(context.WithValue(r.Context(), "bloomberg_apihost", ac.secrets["bloomberg_rapidapi_host"]))
+	r = r.Clone(context.WithValue(r.Context(), "next_url_key", ac.secrets["next_url_key"]))
 	r = r.Clone(context.WithValue(r.Context(), "config", defaultConfig))
 	r = r.Clone(context.WithValue(r.Context(), "webdata", make(map[string]interface{})))
 	r = r.Clone(context.WithValue(r.Context(), "messages", &messages))
