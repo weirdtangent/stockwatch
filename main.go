@@ -57,7 +57,7 @@ func main() {
 	}
 	_, err = db.Exec("SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to turn off ONLY_FULL_GROU_BY")
+		log.Fatal().Err(err).Msg("Failed to turn off ONLY_FULL_GROUP_BY")
 	}
 
 	// connect to Dynamo
