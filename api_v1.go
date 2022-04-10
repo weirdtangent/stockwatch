@@ -21,7 +21,7 @@ func apiV1Handler() http.HandlerFunc {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
 
-		if ok := checkAuthState(w, r); ok == false {
+		if ok := checkAuthState(w, r); !ok {
 			http.NotFound(w, r)
 			return
 		}
@@ -93,7 +93,7 @@ func apiV1Handler() http.HandlerFunc {
 			}
 
 		default:
-			logger.Error().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", endpoint).Err(fmt.Errorf("Failure: call to unknown api endpoint")).Msg("")
+			logger.Error().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", endpoint).Err(fmt.Errorf("failure: call to unknown api endpoint")).Msg("")
 			jsonResponse.Success = false
 			jsonResponse.Message = "Failure: unknown endpoint"
 		}

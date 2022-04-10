@@ -7,11 +7,11 @@ import (
 func desktopHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		//	messages := ctx.Value("messages").(*[]Message)
-		webdata := ctx.Value("webdata").(map[string]interface{})
+		//	messages := ctx.Value(ContextKey("messages")).(*[]Message)
+		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 
-		if ok := checkAuthState(w, r); ok == false {
-			http.Redirect(w, r, "/", 307)
+		if ok := checkAuthState(w, r); !ok {
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
 

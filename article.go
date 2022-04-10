@@ -88,7 +88,7 @@ type WebArticle struct {
 }
 
 func (a *Article) getArticleById(ctx context.Context) error {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	err := db.QueryRowx("SELECT * FROM article WHERE article_id=?", a.ArticleId).StructScan(a)
 	return err
@@ -96,7 +96,7 @@ func (a *Article) getArticleById(ctx context.Context) error {
 
 func (a *Article) createArticle(ctx context.Context) error {
 	logger := log.Ctx(ctx)
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var insert = "INSERT INTO article SET source_id=?, external_id=?, published_datetime=?, pubupdated_datetime=?, title=?, body=?, article_url=?, image_url=?"
 
@@ -118,7 +118,7 @@ func (a *Article) createArticle(ctx context.Context) error {
 
 func getArticleByExternalId(ctx context.Context, sourceId int64, externalId string) (int64, error) {
 	logger := log.Ctx(ctx)
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var articleId int64
 	err := db.QueryRowx("SELECT article_id FROM article WHERE source_id=? && external_id=?", sourceId, externalId).Scan(&articleId)
@@ -138,12 +138,12 @@ func getSourceId(source string) (int64, error) {
 	} else if source == "Bloomberg" {
 		return 3, nil
 	}
-	return 0, fmt.Errorf("Sorry, unknown source string")
+	return 0, fmt.Errorf("unknown source string")
 }
 
 func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, error) {
 	logger := log.Ctx(ctx)
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var article WebArticle
 
@@ -243,7 +243,7 @@ func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, e
 // article authors ------------------------------------------------------------
 
 func (aa *ArticleAuthor) getArticleAuthorById(ctx context.Context) error {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	err := db.QueryRowx("SELECT * FROM article_author WHERE article_author_id=?", aa.ArticleAuthorId).StructScan(aa)
 	return err
@@ -251,7 +251,7 @@ func (aa *ArticleAuthor) getArticleAuthorById(ctx context.Context) error {
 
 func (aa *ArticleAuthor) createArticleAuthor(ctx context.Context) error {
 	logger := log.Ctx(ctx)
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var insert = "INSERT INTO article_author SET article_id=?, byline=?, job_title=?, short_bio=?, long_bio=?, image_url=?"
 
@@ -273,65 +273,65 @@ func (aa *ArticleAuthor) createArticleAuthor(ctx context.Context) error {
 
 // article tickers ------------------------------------------------------------
 
-func (at *ArticleTicker) getArticleTickerById(ctx context.Context) error {
-	db := ctx.Value("db").(*sqlx.DB)
+// func (at *ArticleTicker) getArticleTickerById(ctx context.Context) error {
+// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	err := db.QueryRowx("SELECT * FROM article_ticker WHERE article_ticker_id=?", at.ArticleTickerId).StructScan(at)
-	return err
-}
+// 	err := db.QueryRowx("SELECT * FROM article_ticker WHERE article_ticker_id=?", at.ArticleTickerId).StructScan(at)
+// 	return err
+// }
 
-func (at *ArticleTicker) createArticleTicker(ctx context.Context) error {
-	logger := log.Ctx(ctx)
-	db := ctx.Value("db").(*sqlx.DB)
+// func (at *ArticleTicker) createArticleTicker(ctx context.Context) error {
+// 	logger := log.Ctx(ctx)
+// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	var insert = "INSERT INTO article_ticker SET article_id=?, ticker_symbol=?, ticker_id=?"
+// 	var insert = "INSERT INTO article_ticker SET article_id=?, ticker_symbol=?, ticker_id=?"
 
-	res, err := db.Exec(insert, at.ArticleId, at.TickerSymbol, at.TickerId)
-	if err != nil {
-		logger.Fatal().Err(err).
-			Str("table_name", "article_ticker").
-			Msg("Failed on INSERT")
-	}
-	articleTickerId, err := res.LastInsertId()
-	if err != nil || articleTickerId == 0 {
-		logger.Fatal().Err(err).
-			Str("table_name", "article_ticker").
-			Msg("Failed on LAST_INSERT_ID")
-	}
-	at.ArticleTickerId = articleTickerId
-	return at.getArticleTickerById(ctx)
-}
+// 	res, err := db.Exec(insert, at.ArticleId, at.TickerSymbol, at.TickerId)
+// 	if err != nil {
+// 		logger.Fatal().Err(err).
+// 			Str("table_name", "article_ticker").
+// 			Msg("Failed on INSERT")
+// 	}
+// 	articleTickerId, err := res.LastInsertId()
+// 	if err != nil || articleTickerId == 0 {
+// 		logger.Fatal().Err(err).
+// 			Str("table_name", "article_ticker").
+// 			Msg("Failed on LAST_INSERT_ID")
+// 	}
+// 	at.ArticleTickerId = articleTickerId
+// 	return at.getArticleTickerById(ctx)
+// }
 
-// article keywords -----------------------------------------------------------
+// // article keywords -----------------------------------------------------------
 
-func (ak *ArticleKeyword) createArticleKeyword(ctx context.Context) error {
-	logger := log.Ctx(ctx)
-	db := ctx.Value("db").(*sqlx.DB)
+// func (ak *ArticleKeyword) createArticleKeyword(ctx context.Context) error {
+// 	logger := log.Ctx(ctx)
+// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	var insert = "INSERT INTO article_keyword SET article_id=?, keyword=?"
+// 	var insert = "INSERT INTO article_keyword SET article_id=?, keyword=?"
 
-	_, err := db.Exec(insert, ak.ArticleId, ak.Keyword)
-	if err != nil {
-		logger.Fatal().Err(err).
-			Str("table_name", "article_keyword").
-			Msg("Failed on INSERT")
-	}
-	return err
-}
+// 	_, err := db.Exec(insert, ak.ArticleId, ak.Keyword)
+// 	if err != nil {
+// 		logger.Fatal().Err(err).
+// 			Str("table_name", "article_keyword").
+// 			Msg("Failed on INSERT")
+// 	}
+// 	return err
+// }
 
-// article tags -----------------------------------------------------------0000
+// // article tags -----------------------------------------------------------0000
 
-func (at *ArticleTag) createArticleTag(ctx context.Context) error {
-	logger := log.Ctx(ctx)
-	db := ctx.Value("db").(*sqlx.DB)
+// func (at *ArticleTag) createArticleTag(ctx context.Context) error {
+// 	logger := log.Ctx(ctx)
+// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	var insert = "INSERT INTO article_tag SET article_id=?, tag=?"
+// 	var insert = "INSERT INTO article_tag SET article_id=?, tag=?"
 
-	_, err := db.Exec(insert, at.ArticleId, at.Tag)
-	if err != nil {
-		logger.Fatal().Err(err).
-			Str("table_name", "article_tag").
-			Msg("Failed on INSERT")
-	}
-	return err
-}
+// 	_, err := db.Exec(insert, at.ArticleId, at.Tag)
+// 	if err != nil {
+// 		logger.Fatal().Err(err).
+// 			Str("table_name", "article_tag").
+// 			Msg("Failed on INSERT")
+// 	}
+// 	return err
+// }

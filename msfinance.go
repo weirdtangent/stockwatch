@@ -16,12 +16,12 @@ import (
 func loadMovers(ctx context.Context) error {
 	logger := log.Ctx(ctx)
 
-	apiKey := ctx.Value("morningstar_apikey").(string)
-	apiHost := ctx.Value("morningstar_apihost").(string)
+	apiKey := ctx.Value(ContextKey("morningstar_apikey")).(string)
+	apiHost := ctx.Value(ContextKey("morningstar_apihost")).(string)
 
 	sourceId, err := getSourceId("Morningstar")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to find sourceId for API source")
+		log.Error().Err(err).Msg("failed to find sourceId for API source")
 		return err
 	}
 
@@ -33,7 +33,7 @@ func loadMovers(ctx context.Context) error {
 	response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "movers", moversParams)
 	if err != nil {
 		logger.Warn().Err(err).
-			Msg("Failed to retrieve movers")
+			Msg("failed to retrieve movers")
 		return err
 	}
 
@@ -48,7 +48,7 @@ func loadMovers(ctx context.Context) error {
 			time.Sleep(5 * time.Second) // wait 5 seconds between slamming yahoofinance with new ticker requests
 			ticker, err = loadTicker(ctx, gainer.Symbol)
 			if err != nil {
-				logger.Error().Err(err).Str("ticker", gainer.Symbol).Msg("Failed to find or load gainer ticker")
+				logger.Error().Err(err).Str("ticker", gainer.Symbol).Msg("failed to find or load gainer ticker")
 			}
 		}
 		if err == nil {
@@ -63,7 +63,7 @@ func loadMovers(ctx context.Context) error {
 			time.Sleep(5 * time.Second) // wait 5 seconds between slamming yahoofinance with new ticker requests
 			ticker, err = loadTicker(ctx, loser.Symbol)
 			if err != nil {
-				logger.Error().Err(err).Str("ticker", loser.Symbol).Msg("Failed to find or load loser ticker")
+				logger.Error().Err(err).Str("ticker", loser.Symbol).Msg("failed to find or load loser ticker")
 			}
 		}
 		if err == nil {
@@ -78,7 +78,7 @@ func loadMovers(ctx context.Context) error {
 			time.Sleep(5 * time.Second) // wait 5 seconds between slamming yahoofinance with new ticker requests
 			ticker, err = loadTicker(ctx, active.Symbol)
 			if err != nil {
-				logger.Error().Err(err).Str("ticker", active.Symbol).Msg("Failed to find or load active ticker")
+				logger.Error().Err(err).Str("ticker", active.Symbol).Msg("failed to find or load active ticker")
 			}
 		}
 		if err == nil {
@@ -90,134 +90,134 @@ func loadMovers(ctx context.Context) error {
 }
 
 // load article
-func loadMSNewsArticles(ctx context.Context, query string) error {
-	logger := log.Ctx(ctx)
+// func loadMSNewsArticles(ctx context.Context, query string) error {
+// 	logger := log.Ctx(ctx)
 
-	apiKey := ctx.Value("morningstar_apikey").(string)
-	apiHost := ctx.Value("morningstar_apihost").(string)
+// 	apiKey := ctx.Value(ContextKey("morningstar_apikey")).(string)
+// 	apiHost := ctx.Value(ContextKey("morningstar_apihost")).(string)
 
-	performanceIds := make(map[string]bool)
+// 	performanceIds := make(map[string]bool)
 
-	sourceId, err := getSourceId("Morningstar")
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to find sourceId for API source")
-		return err
-	}
+// 	sourceId, err := getSourceId("Morningstar")
+// 	if err != nil {
+// 		log.Error().Err(err).Msg("failed to find sourceId for API source")
+// 		return err
+// 	}
 
-	autoCompleteParams := map[string]string{}
-	autoCompleteParams["q"] = query
-	response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "autocomplete", autoCompleteParams)
-	if err != nil {
-		logger.Warn().Err(err).
-			Msg("Failed to retrieve autocomplete")
-		return err
-	}
+// 	autoCompleteParams := map[string]string{}
+// 	autoCompleteParams["q"] = query
+// 	response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "autocomplete", autoCompleteParams)
+// 	if err != nil {
+// 		logger.Warn().Err(err).
+// 			Msg("failed to retrieve autocomplete")
+// 		return err
+// 	}
 
-	var autoCompleteResponse morningstar.MSAutoCompleteResponse
-	json.NewDecoder(strings.NewReader(response)).Decode(&autoCompleteResponse)
+// 	var autoCompleteResponse morningstar.MSAutoCompleteResponse
+// 	json.NewDecoder(strings.NewReader(response)).Decode(&autoCompleteResponse)
 
-	for _, result := range autoCompleteResponse.Results {
-		performanceId := result.PerformanceId
-		if _, ok := performanceIds[performanceId]; ok == false {
-			performanceIds[performanceId] = true
+// 	for _, result := range autoCompleteResponse.Results {
+// 		performanceId := result.PerformanceId
+// 		if _, ok := performanceIds[performanceId]; !ok {
+// 			performanceIds[performanceId] = true
 
-			articleListParams := map[string]string{}
-			articleListParams["performanceId"] = performanceId
-			logger.Info().Str("performance_id", performanceId).Msg("Checking for news articles for performance_id")
-			response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "articlelist", articleListParams)
-			if err != nil {
-				logger.Warn().Err(err).Str("performanceId", performanceId).
-					Msg("Failed to retrieve articleList")
-			} else {
+// 			articleListParams := map[string]string{}
+// 			articleListParams["performanceId"] = performanceId
+// 			logger.Info().Str("performance_id", performanceId).Msg("Checking for news articles for performance_id")
+// 			response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "articlelist", articleListParams)
+// 			if err != nil {
+// 				logger.Warn().Err(err).Str("performanceId", performanceId).
+// 					Msg("failed to retrieve articleList")
+// 			} else {
 
-				var articlesListResponse []morningstar.MSArticlesListResponse
-				json.NewDecoder(strings.NewReader(response)).Decode(&articlesListResponse)
+// 				var articlesListResponse []morningstar.MSArticlesListResponse
+// 				json.NewDecoder(strings.NewReader(response)).Decode(&articlesListResponse)
 
-				for _, story := range articlesListResponse {
-					internalId := fmt.Sprintf("%d", story.InternalId)
-					if story.Status != "Live" {
-						log.Info().Str("status", story.Status).Msg("Skipped article because of status")
-					} else {
-						if existingId, err := getArticleByExternalId(ctx, sourceId, internalId); err != nil || existingId != 0 {
-							log.Info().Err(err).Str("existing_id", internalId).Msg("Skipped article because of err or we already have")
-						} else {
-							var publishedDate string
-							var updatedAtDate string
-							if published, err := strconv.ParseInt(story.Published[0:10], 10, 64); err == nil && published > 0 {
-								publishedDate = FormatUnixTime(published, "2006-01-02 15:04:05")
-							} else {
-								log.Fatal().Err(err).Str("published", story.Published).Msg("Failed to convert date")
-							}
-							if updatedat, err := strconv.ParseInt(story.UpdatedAt[0:10], 10, 64); err == nil && updatedat > 0 {
-								updatedAtDate = FormatUnixTime(updatedat, "2006-01-02 15:04:05")
-							} else {
-								log.Fatal().Err(err).Str("updatedat", story.UpdatedAt).Msg("Failed to convert date")
-							}
+// 				for _, story := range articlesListResponse {
+// 					internalId := fmt.Sprintf("%d", story.InternalId)
+// 					if story.Status != "Live" {
+// 						log.Info().Str("status", story.Status).Msg("skipped article because of status")
+// 					} else {
+// 						if existingId, err := getArticleByExternalId(ctx, sourceId, internalId); err != nil || existingId != 0 {
+// 							log.Info().Err(err).Str("existing_id", internalId).Msg("skipped article because of err or we already have")
+// 						} else {
+// 							var publishedDate string
+// 							var updatedAtDate string
+// 							if published, err := strconv.ParseInt(story.Published[0:10], 10, 64); err == nil && published > 0 {
+// 								publishedDate = FormatUnixTime(published, "2006-01-02 15:04:05")
+// 							} else {
+// 								log.Fatal().Err(err).Str("published", story.Published).Msg("failed to convert date")
+// 							}
+// 							if updatedat, err := strconv.ParseInt(story.UpdatedAt[0:10], 10, 64); err == nil && updatedat > 0 {
+// 								updatedAtDate = FormatUnixTime(updatedat, "2006-01-02 15:04:05")
+// 							} else {
+// 								log.Fatal().Err(err).Str("updatedat", story.UpdatedAt).Msg("failed to convert date")
+// 							}
 
-							article := Article{0, sourceId, internalId, publishedDate, updatedAtDate, story.Title, story.Content.Body, story.Content.VideoFileURL, "", "", ""}
+// 							article := Article{0, sourceId, internalId, publishedDate, updatedAtDate, story.Title, story.Content.Body, story.Content.VideoFileURL, "", "", ""}
 
-							err := article.createArticle(ctx)
-							if err != nil {
-								logger.Warn().Err(err).Str("id", query).Msg("Failed to write new news article")
-							}
-							if article.ArticleId > 0 {
-								for _, author := range story.Authors {
-									if author.IsPrimary {
-										for _, profile := range author.Profiles {
-											if profile.IsPrimary {
-												articleAuthor := ArticleAuthor{0, article.ArticleId, profile.ByLine, profile.JobTitle, profile.ShortBio, profile.LongBio, author.ImageURL, "", ""}
-												err := articleAuthor.createArticleAuthor(ctx)
-												if err != nil {
-													logger.Warn().Err(err).Str("id", query).Msg("Failed to write author(s) for new article")
-												}
-											}
-										}
-									}
-								}
+// 							err := article.createArticle(ctx)
+// 							if err != nil {
+// 								logger.Warn().Err(err).Str("id", query).Msg("failed to write new news article")
+// 							}
+// 							if article.ArticleId > 0 {
+// 								for _, author := range story.Authors {
+// 									if author.IsPrimary {
+// 										for _, profile := range author.Profiles {
+// 											if profile.IsPrimary {
+// 												articleAuthor := ArticleAuthor{0, article.ArticleId, profile.ByLine, profile.JobTitle, profile.ShortBio, profile.LongBio, author.ImageURL, "", ""}
+// 												err := articleAuthor.createArticleAuthor(ctx)
+// 												if err != nil {
+// 													logger.Warn().Err(err).Str("id", query).Msg("failed to write author(s) for new article")
+// 												}
+// 											}
+// 										}
+// 									}
+// 								}
 
-								for _, security := range story.Securities {
-									ticker, err := getTickerBySymbol(ctx, security.Symbol)
-									if err == nil {
-										articleTicker := ArticleTicker{0, article.ArticleId, ticker.TickerSymbol, ticker.TickerId, "", ""}
-										err := articleTicker.createArticleTicker(ctx)
-										if err != nil {
-											logger.Warn().Err(err).Str("id", query).Msg("Failed to write ticker(s) for new article")
-										}
-									}
-								}
+// 								for _, security := range story.Securities {
+// 									ticker, err := getTickerBySymbol(ctx, security.Symbol)
+// 									if err == nil {
+// 										articleTicker := ArticleTicker{0, article.ArticleId, ticker.TickerSymbol, ticker.TickerId, "", ""}
+// 										err := articleTicker.createArticleTicker(ctx)
+// 										if err != nil {
+// 											logger.Warn().Err(err).Str("id", query).Msg("failed to write ticker(s) for new article")
+// 										}
+// 									}
+// 								}
 
-								for _, keyword := range story.Keywords {
-									articleKeyword := ArticleKeyword{0, article.ArticleId, keyword.Name, "", ""}
-									err := articleKeyword.createArticleKeyword(ctx)
-									if err != nil {
-										logger.Warn().Err(err).Str("id", query).Msg("Failed to write keyword(s) for new article")
-									}
-								}
+// 								for _, keyword := range story.Keywords {
+// 									articleKeyword := ArticleKeyword{0, article.ArticleId, keyword.Name, "", ""}
+// 									err := articleKeyword.createArticleKeyword(ctx)
+// 									if err != nil {
+// 										logger.Warn().Err(err).Str("id", query).Msg("failed to write keyword(s) for new article")
+// 									}
+// 								}
 
-								for _, tag := range story.Tags {
-									articleTag := ArticleTag{0, article.ArticleId, tag.Name, "", ""}
-									err := articleTag.createArticleTag(ctx)
-									if err != nil {
-										logger.Warn().Err(err).Str("id", query).Msg("Failed to write tag(s) for new article")
-									}
-								}
+// 								for _, tag := range story.Tags {
+// 									articleTag := ArticleTag{0, article.ArticleId, tag.Name, "", ""}
+// 									err := articleTag.createArticleTag(ctx)
+// 									if err != nil {
+// 										logger.Warn().Err(err).Str("id", query).Msg("failed to write tag(s) for new article")
+// 									}
+// 								}
 
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	return nil
-}
+// 							}
+// 						}
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return nil
+// }
 
 // load news
 func loadMSNews(ctx context.Context, query string) error {
 	logger := log.Ctx(ctx)
 
-	apiKey := ctx.Value("morningstar_apikey").(string)
-	apiHost := ctx.Value("morningstar_apihost").(string)
+	apiKey := ctx.Value(ContextKey("morningstar_apikey")).(string)
+	apiHost := ctx.Value(ContextKey("morningstar_apihost")).(string)
 
 	performanceIds := make(map[string]bool)
 
@@ -226,7 +226,7 @@ func loadMSNews(ctx context.Context, query string) error {
 	response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "autocomplete", autoCompleteParams)
 	if err != nil {
 		logger.Warn().Err(err).
-			Msg("Failed to retrieve autocomplete")
+			Msg("failed to retrieve autocomplete")
 		return err
 	}
 
@@ -235,7 +235,7 @@ func loadMSNews(ctx context.Context, query string) error {
 
 	for _, result := range autoCompleteResponse.Results {
 		performanceId := result.PerformanceId
-		if _, ok := performanceIds[performanceId]; ok == false {
+		if _, ok := performanceIds[performanceId]; !ok {
 			performanceIds[performanceId] = true
 
 			newsListParams := map[string]string{}
@@ -244,7 +244,7 @@ func loadMSNews(ctx context.Context, query string) error {
 			response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "newslist", newsListParams)
 			if err != nil {
 				logger.Warn().Err(err).Str("performanceId", performanceId).
-					Msg("Failed to retrieve newsList")
+					Msg("failed to retrieve newsList")
 			} else {
 
 				var newsListResponse []morningstar.MSNewsListResponse
@@ -254,26 +254,29 @@ func loadMSNews(ctx context.Context, query string) error {
 					internalId := fmt.Sprintf("%d", story.InternalId)
 					sourceId, err := getSourceId(story.SourceName)
 					if err != nil {
-						log.Error().Err(err).Msg("Failed to find sourceId for API source")
+						log.Error().Err(err).Msg("failed to find sourceId for API source")
 						return err
 					}
 
 					if existingId, err := getArticleByExternalId(ctx, sourceId, internalId); err != nil || existingId != 0 {
-						log.Info().Err(err).Str("existing_id", internalId).Msg("Skipped article because of err or we already have")
+						log.Info().Err(err).Str("existing_id", internalId).Msg("skipped article because of err or we already have")
 					} else {
 						content, err := getNewsItemContent(ctx, story.SourceName, internalId)
+						if err != nil {
+							log.Info().Err(err).Msg("no news item content found")
+						}
 						var publishedDate string
 						if published, err := strconv.ParseInt(story.Published[0:10], 10, 64); err == nil && published > 0 {
 							publishedDate = FormatUnixTime(published, "2006-01-02 15:04:05")
 						} else {
-							log.Fatal().Err(err).Str("published", story.Published).Msg("Failed to convert date")
+							log.Fatal().Err(err).Str("published", story.Published).Msg("failed to convert date")
 						}
 
 						article := Article{0, sourceId, internalId, publishedDate, publishedDate, story.Title, content, "", "", "", ""}
 
 						err = article.createArticle(ctx)
 						if err != nil {
-							logger.Warn().Err(err).Str("id", query).Msg("Failed to write new news article")
+							logger.Warn().Err(err).Str("id", query).Msg("failed to write new news article")
 						}
 					}
 				}
@@ -287,8 +290,8 @@ func loadMSNews(ctx context.Context, query string) error {
 func getNewsItemContent(ctx context.Context, sourceId string, internalId string) (string, error) {
 	logger := log.Ctx(ctx)
 
-	apiKey := ctx.Value("morningstar_apikey").(string)
-	apiHost := ctx.Value("morningstar_apihost").(string)
+	apiKey := ctx.Value(ContextKey("morningstar_apikey")).(string)
+	apiHost := ctx.Value(ContextKey("morningstar_apihost")).(string)
 
 	var newsContent string
 
@@ -298,7 +301,7 @@ func getNewsItemContent(ctx context.Context, sourceId string, internalId string)
 	response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "newsdetails", newsDetailsParams)
 	if err != nil {
 		logger.Warn().Err(err).
-			Msg("Failed to retrieve newsdetails")
+			Msg("failed to retrieve newsdetails")
 		return "", err
 	}
 

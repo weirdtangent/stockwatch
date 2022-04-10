@@ -11,9 +11,9 @@ import (
 
 func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname string) {
 	ctx := r.Context()
-	config := ctx.Value("config").(map[string]interface{})
-	webdata := ctx.Value("webdata").(map[string]interface{})
-	messages := ctx.Value("messages").(*[]Message)
+	config := ctx.Value(ContextKey("config")).(map[string]interface{})
+	webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
+	messages := ctx.Value(ContextKey("messages")).(*[]Message)
 	logger := log.Ctx(ctx)
 
 	config["template_name"] = tmplname
@@ -42,6 +42,9 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 	// Parse variable "about" page into template
 	if val, ok := webdata["about-contents_template"]; ok {
 		tmpl, err = tmpl.Parse("{{ define \"about-contents\" }}" + *val.(*string) + "{{end}}")
+		if err != nil {
+			logger.Error().Err(err).Msg("Failed to parse 'about' page into template")
+		}
 	}
 	// Parse all internal articles as templates
 	article_rx := regexp.MustCompile(`_source.*body_template`)

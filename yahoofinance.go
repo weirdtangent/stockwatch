@@ -15,15 +15,15 @@ import (
 // load new ticker (and possibly new exchange)
 func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 	logger := log.Ctx(ctx)
-	redisPool := ctx.Value("redisPool").(*redis.Pool)
+	redisPool := ctx.Value(ContextKey("redisPool")).(*redis.Pool)
 
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
 
 	var ticker *Ticker
 
-	apiKey := ctx.Value("yahoofinance_apikey").(string)
-	apiHost := ctx.Value("yahoofinance_apihost").(string)
+	apiKey := ctx.Value(ContextKey("yahoofinance_apikey")).(string)
+	apiHost := ctx.Value(ContextKey("yahoofinance_apihost")).(string)
 
 	// pull recent response from redis (1 day expire), or go get from YF
 	redisKey := "yahoofinance/summary/" + symbol
@@ -125,13 +125,13 @@ func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 // load ticker up-to-date quote
 func loadTickerQuote(ctx context.Context, symbol string) (yahoofinance.YFQuote, error) {
 	logger := log.Ctx(ctx)
-	redisPool := ctx.Value("redisPool").(*redis.Pool)
+	redisPool := ctx.Value(ContextKey("redisPool")).(*redis.Pool)
 
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
 
-	apiKey := ctx.Value("yahoofinance_apikey").(string)
-	apiHost := ctx.Value("yahoofinance_apihost").(string)
+	apiKey := ctx.Value(ContextKey("yahoofinance_apikey")).(string)
+	apiHost := ctx.Value(ContextKey("yahoofinance_apihost")).(string)
 
 	var quote yahoofinance.YFQuote
 
@@ -169,8 +169,8 @@ func loadTickerQuote(ctx context.Context, symbol string) (yahoofinance.YFQuote, 
 
 // load ticker historical prices
 func loadTickerEODs(ctx context.Context, ticker *Ticker) error {
-	apiKey := ctx.Value("yahoofinance_apikey").(string)
-	apiHost := ctx.Value("yahoofinance_apihost").(string)
+	apiKey := ctx.Value(ContextKey("yahoofinance_apikey")).(string)
+	apiHost := ctx.Value(ContextKey("yahoofinance_apihost")).(string)
 	logger := log.Ctx(ctx)
 
 	EasternTZ, _ := time.LoadLocation("America/New_York")
@@ -237,7 +237,7 @@ func jumpSearch(ctx context.Context, searchString string) (SearchResultTicker, e
 		return searchResult, err
 	}
 	if len(searchResults) == 0 {
-		return searchResult, fmt.Errorf("Sorry, the search returned zero results")
+		return searchResult, fmt.Errorf("sorry, the search returned zero results")
 	}
 
 	var highestScore float64 = 0
@@ -253,8 +253,8 @@ func jumpSearch(ctx context.Context, searchString string) (SearchResultTicker, e
 
 // search for ticker or news
 func listSearch(ctx context.Context, searchString string, resultTypes string) ([]SearchResult, error) {
-	apiKey := ctx.Value("yahoofinance_apikey").(string)
-	apiHost := ctx.Value("yahoofinance_apihost").(string)
+	apiKey := ctx.Value(ContextKey("yahoofinance_apikey")).(string)
+	apiHost := ctx.Value(ContextKey("yahoofinance_apihost")).(string)
 
 	searchResults := make([]SearchResult, 0)
 
@@ -268,7 +268,7 @@ func listSearch(ctx context.Context, searchString string, resultTypes string) ([
 	json.NewDecoder(strings.NewReader(response)).Decode(&searchResponse)
 
 	if len(searchResponse.Quotes) == 0 && len(searchResponse.News) == 0 {
-		return searchResults, fmt.Errorf("Sorry, the search returned zero results")
+		return searchResults, fmt.Errorf("sorry, the search returned zero results")
 	}
 
 	if resultTypes == "news" || resultTypes == "both" {

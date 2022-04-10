@@ -42,14 +42,14 @@ type TickersEODTask struct {
 }
 
 func (t *Ticker) getBySymbol(ctx context.Context) error {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_symbol=?", t.TickerSymbol).StructScan(t)
 	return err
 }
 
 func (t *Ticker) checkBySymbol(ctx context.Context) int64 {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var tickerId int64
 	db.QueryRowx("SELECT ticker_id FROM ticker WHERE ticker_symbol=?", t.TickerSymbol).Scan(&tickerId)
@@ -57,11 +57,11 @@ func (t *Ticker) checkBySymbol(ctx context.Context) int64 {
 }
 
 func (t *Ticker) create(ctx context.Context) error {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	logger := log.Ctx(ctx)
 
 	if t.TickerSymbol == "" {
-		logger.Warn().Msg("Refusing to add ticker with blank symbol")
+		logger.Warn().Msg("refusing to add ticker with blank symbol")
 		return nil
 	}
 
@@ -74,7 +74,7 @@ func (t *Ticker) create(ctx context.Context) error {
 		logger.Fatal().Err(err).
 			Str("table_name", "ticker").
 			Str("ticker", t.TickerSymbol).
-			Msg("Failed on INSERT")
+			Msg("failed on INSERT")
 		return err
 	}
 	t.TickerId, err = res.LastInsertId()
@@ -82,26 +82,26 @@ func (t *Ticker) create(ctx context.Context) error {
 		logger.Fatal().Err(err).
 			Str("table_name", "ticker").
 			Str("symbol", t.TickerSymbol).
-			Msg("Failed on LAST_INSERTID")
+			Msg("failed on LAST_INSERTID")
 		return err
 	}
 	return nil
 }
 
-func (t *Ticker) getOrCreate(ctx context.Context) error {
-	err := t.getBySymbol(ctx)
-	if err != nil && t.TickerId == 0 {
-		return t.create(ctx)
-	}
-	return err
-}
+// func (t *Ticker) getOrCreate(ctx context.Context) error {
+// 	err := t.getBySymbol(ctx)
+// 	if err != nil && t.TickerId == 0 {
+// 		return t.create(ctx)
+// 	}
+// 	return err
+// }
 
 func (t *Ticker) createOrUpdate(ctx context.Context) error {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	logger := log.Ctx(ctx)
 
 	if t.TickerSymbol == "" {
-		logger.Warn().Msg("Refusing to add ticker with blank symbol")
+		logger.Warn().Msg("refusing to add ticker with blank symbol")
 		return nil
 	}
 
@@ -120,13 +120,13 @@ func (t *Ticker) createOrUpdate(ctx context.Context) error {
 		logger.Warn().Err(err).
 			Str("table_name", "ticker").
 			Str("ticker", t.TickerSymbol).
-			Msg("Failed on UPDATE")
+			Msg("failed on UPDATE")
 	}
 	return t.getBySymbol(ctx)
 }
 
 func (t *Ticker) createOrUpdateAttribute(ctx context.Context, attributeName string, attributeValue string) error {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var attribute = TickerAttribute{0, t.TickerId, attributeName, attributeValue, "", ""}
 	err := attribute.getByUniqueKey(ctx)
@@ -152,7 +152,7 @@ func (t *Ticker) needEODs(ctx context.Context) bool {
 	todayEOD := t.haveEODForDate(ctx, currentDateStr)
 
 	// if it's a workday and the market closed for the day and we don't have today's EOD, then YES
-	if currentWeekday != time.Saturday && currentWeekday != time.Sunday && currentTimeStr >= "1600" && todayEOD == false {
+	if currentWeekday != time.Saturday && currentWeekday != time.Sunday && currentTimeStr >= "1600" && !todayEOD {
 		log.Info().Msgf("needEOD: Today is %s, it is %s, and we don't have that EOD, so YES", currentWeekday, currentTimeStr)
 		return true
 	}
@@ -162,7 +162,7 @@ func (t *Ticker) needEODs(ctx context.Context) bool {
 
 	priorEOD := t.haveEODForDate(ctx, priorWorkDateStr)
 
-	if priorEOD == false {
+	if !priorEOD {
 		log.Info().Msgf("needEOD: PriorWorkDay is %s, and we don't have that EOD, so YES", priorWorkDateStr)
 		return true
 	}
@@ -175,7 +175,7 @@ func (t *Ticker) needEODs(ctx context.Context) bool {
 // on a weekend, or a weekday before open, we need the last work day, and the day before
 // on a weekday during market hours, or after close, we need the live quote and the prior work day
 func (t *Ticker) getLastAndPriorClose(ctx context.Context) (*TickerDaily, *TickerDaily) {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	EasternTZ, _ := time.LoadLocation("America/New_York")
 	currentDate := time.Now().In(EasternTZ)
@@ -205,7 +205,7 @@ func (t *Ticker) getLastAndPriorClose(ctx context.Context) (*TickerDaily, *Ticke
 }
 
 func (t Ticker) haveEODForDate(ctx context.Context, dateStr string) bool {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	// for past days, a time of exactly 9:30:00 is considered a locked-in value
 	// but if it is anything else, it needs to be after 16:00:00
@@ -226,6 +226,9 @@ func (t Ticker) EarliestEOD(db *sqlx.DB) (string, float64, error) {
 
 func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) bool {
 	earliest, _, err := t.EarliestEOD(db)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to find earliest EOD")
+	}
 
 	if len(earliest) > 0 {
 		if days, err := mytime.DaysAgo(earliest); err != nil || days > 900 {
@@ -242,7 +245,7 @@ func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) bool {
 	if err != nil {
 		log.Error().Err(err).
 			Int64("ticker_id", t.TickerId).
-			Msg("Failed to create task JSON for EOD update for ticker")
+			Msg("failed to create task JSON for EOD update for ticker")
 		return false
 	}
 
@@ -250,7 +253,7 @@ func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) bool {
 	if err == nil {
 		log.Info().
 			Int64("ticker_id", t.TickerId).
-			Msg("Sent task notification for EOD update for ticker")
+			Msg("sent task notification for EOD update for ticker")
 	}
 
 	// submit task for 1000 more EODs
@@ -260,7 +263,7 @@ func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) bool {
 	if err != nil {
 		log.Error().Err(err).
 			Int64("ticker_id", t.TickerId).
-			Msg("Failed to create task JSON for EOD update for ticker")
+			Msg("failed to create task JSON for EOD update for ticker")
 		return true
 	}
 
@@ -268,13 +271,13 @@ func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) bool {
 	if err == nil {
 		log.Info().
 			Int64("ticker_id", t.TickerId).
-			Msg("Sent task notification for EOD update for ticker")
+			Msg("sent task notification for EOD update for ticker")
 	}
 	return true
 }
 
 func (t Ticker) getTickerEODs(ctx context.Context, days int) ([]TickerDaily, error) {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	logger := log.Ctx(ctx)
 
 	var ticker_daily TickerDaily
@@ -298,7 +301,7 @@ func (t Ticker) getTickerEODs(ctx context.Context, days int) ([]TickerDaily, err
 		if err != nil {
 			logger.Warn().Err(err).
 				Str("table_name", "ticker_daily").
-				Msg("Error reading result rows")
+				Msg("error reading result rows")
 		} else {
 			dailies = append(dailies, ticker_daily)
 		}
@@ -312,7 +315,7 @@ func (t Ticker) getTickerEODs(ctx context.Context, days int) ([]TickerDaily, err
 
 func (t Ticker) getUpDowns(ctx context.Context, daysAgo int) ([]TickerUpDown, error) {
 	logger := log.Ctx(ctx)
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var tickerUpDown TickerUpDown
 	upDowns := make([]TickerUpDown, 0)
@@ -330,7 +333,7 @@ func (t Ticker) getUpDowns(ctx context.Context, daysAgo int) ([]TickerUpDown, er
 		if err != nil {
 			logger.Warn().Err(err).
 				Str("table_name", "ticker_updown").
-				Msg("Error reading result rows")
+				Msg("error reading result rows")
 		} else {
 			upDowns = append(upDowns, tickerUpDown)
 		}
@@ -342,16 +345,16 @@ func (t Ticker) getUpDowns(ctx context.Context, daysAgo int) ([]TickerUpDown, er
 	return upDowns, nil
 }
 
-func (t *Ticker) getLastDaily(ctx context.Context) (*TickerDaily, error) {
-	db := ctx.Value("db").(*sqlx.DB)
+// func (t *Ticker) getLastDaily(ctx context.Context) (*TickerDaily, error) {
+// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	var tickerdaily TickerDaily
-	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? ORDER BY price_date DESC LIMIT 1`, t.TickerId).StructScan(&tickerdaily)
-	return &tickerdaily, err
-}
+// 	var tickerdaily TickerDaily
+// 	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? ORDER BY price_date DESC LIMIT 1`, t.TickerId).StructScan(&tickerdaily)
+// 	return &tickerdaily, err
+// }
 
 func (t Ticker) getAttributes(ctx context.Context) ([]TickerAttribute, error) {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	logger := log.Ctx(ctx)
 
 	var tickerAttribute TickerAttribute
@@ -369,7 +372,7 @@ func (t Ticker) getAttributes(ctx context.Context) ([]TickerAttribute, error) {
 		if err != nil {
 			logger.Warn().Err(err).
 				Str("table_name", "ticker_attribute").
-				Msg("Error reading result rows")
+				Msg("error reading result rows")
 		} else {
 			underscore_rx := regexp.MustCompile(`_`)
 			tickerAttribute.AttributeName = string(underscore_rx.ReplaceAll([]byte(tickerAttribute.AttributeName), []byte(" ")))
@@ -385,7 +388,7 @@ func (t Ticker) getAttributes(ctx context.Context) ([]TickerAttribute, error) {
 }
 
 func (t Ticker) getSplits(ctx context.Context) ([]TickerSplit, error) {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	logger := log.Ctx(ctx)
 
 	var tickerSplit TickerSplit
@@ -403,7 +406,7 @@ func (t Ticker) getSplits(ctx context.Context) ([]TickerSplit, error) {
 		if err != nil {
 			logger.Warn().Err(err).
 				Str("table_name", "ticker_attribute").
-				Msg("Error reading result rows")
+				Msg("error reading result rows")
 		} else {
 			tickerSplits = append(tickerSplits, tickerSplit)
 		}
@@ -419,7 +422,7 @@ func (t Ticker) getSplits(ctx context.Context) ([]TickerSplit, error) {
 // misc -----------------------------------------------------------------------
 
 func getTickerBySymbol(ctx context.Context, symbol string) (*Ticker, error) {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var ticker Ticker
 	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_symbol=?", symbol).StructScan(&ticker)
@@ -427,7 +430,7 @@ func getTickerBySymbol(ctx context.Context, symbol string) (*Ticker, error) {
 }
 
 func getTickerById(ctx context.Context, ticker_id int64) (*Ticker, error) {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var ticker Ticker
 	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_id=?", ticker_id).StructScan(&ticker)

@@ -23,12 +23,12 @@ type Profile struct {
 func profileHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		messages := ctx.Value("messages").(*[]Message)
-		webdata := ctx.Value("webdata").(map[string]interface{})
+		messages := ctx.Value(ContextKey("messages")).(*[]Message)
+		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 		logger := log.Ctx(ctx)
 
-		if ok := checkAuthState(w, r); ok == false {
-			http.Redirect(w, r, "/", 307)
+		if ok := checkAuthState(w, r); !ok {
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -44,7 +44,7 @@ func profileHandler() http.HandlerFunc {
 
 func getProfile(r *http.Request) (*Profile, error) {
 	ctx := r.Context()
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	logger := log.Ctx(ctx)
 	session := getSession(r)
 

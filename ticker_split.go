@@ -17,14 +17,14 @@ type TickerSplit struct {
 }
 
 func (ts *TickerSplit) getByDate(ctx context.Context) error {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	err := db.QueryRowx(`SELECT * FROM ticker_split WHERE ticker_id=? AND split_date=?`, ts.TickerId, ts.SplitDate).StructScan(ts)
 	return err
 }
 
 func (ts *TickerSplit) createIfNew(ctx context.Context) error {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	logger := log.Ctx(ctx)
 
 	if ts.SplitRatio == "" {

@@ -18,7 +18,6 @@ import (
 
 func pingHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		return
 	})
 }
 
@@ -26,7 +25,7 @@ func JSONReportHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
-		awssess := ctx.Value("awssess").(*session.Session)
+		awssess := ctx.Value(ContextKey("awssess")).(*session.Session)
 
 		s3svc := s3.New(awssess)
 
@@ -54,6 +53,5 @@ func JSONReportHandler() http.HandlerFunc {
 				Str("key", logKey).
 				Msg("Failed to upload to S3 bucket")
 		}
-		return
 	})
 }

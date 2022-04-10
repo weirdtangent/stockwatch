@@ -41,7 +41,7 @@ func getGithubCommits(ctx context.Context) (*string, *[]Commit, error) {
 	var readmeResponse Contents
 	var readme string
 
-	github_oauth_key := ctx.Value("github_oauth_key").(string)
+	github_oauth_key := ctx.Value(ContextKey("github_oauth_key")).(string)
 
 	url := "https://api.github.com/repos/weirdtangent/stockwatch/contents/README.md"
 	req, _ := http.NewRequest("GET", url, nil)
@@ -50,7 +50,7 @@ func getGithubCommits(ctx context.Context) (*string, *[]Commit, error) {
 
 	res, _ := http.DefaultClient.Do(req)
 	if res.StatusCode != http.StatusOK {
-		err := fmt.Sprintf("Failed to receive 200 success code from HTTP request")
+		err := "failed to receive 200 success code from HTTP request"
 		logger.Error().
 			Str("url", url).
 			Int("status_code", res.StatusCode).
@@ -81,7 +81,7 @@ func getGithubCommits(ctx context.Context) (*string, *[]Commit, error) {
 
 	res, _ = http.DefaultClient.Do(req)
 	if res.StatusCode != http.StatusOK {
-		err := fmt.Sprintf("Failed to receive 200 success code from HTTP request")
+		err := "failed to receive 200 success code from HTTP request"
 		logger.Error().
 			Str("url", url).
 			Int("status_code", res.StatusCode).

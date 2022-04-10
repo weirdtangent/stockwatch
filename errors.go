@@ -3,7 +3,7 @@ package main
 import "errors"
 
 var (
-	errFailedLoadSession             = errors.New("Failed to load session from DDB")
-	errFailedSaveSession             = errors.New("Failed to save session to DDB")
-	errFailedToGetSessionFromContext = errors.New("Failed to get session from Context")
+	// errFailedLoadSession             = errors.New("failed to load session from DDB")
+	// errFailedSaveSession             = errors.New("failed to save session to DDB")
+	errFailedToGetSessionFromContext = errors.New("failed to get session from Context")
 )

@@ -10,13 +10,8 @@ import (
 	"github.com/go-echarts/go-echarts/v2/types"
 )
 
-type klineData struct {
-	date string
-	data [4]float64
-}
-
 func chartHandlerTickerDailyKLine(ctx context.Context, ticker *Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
-	nonce := ctx.Value("nonce").(string)
+	nonce := ctx.Value(ContextKey("nonce")).(string)
 
 	// build data needed
 	days := len(dailies)

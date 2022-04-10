@@ -35,11 +35,11 @@ func searchHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
-		webdata := ctx.Value("webdata").(map[string]interface{})
-		messages := ctx.Value("messages").(*[]Message)
+		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
+		messages := ctx.Value(ContextKey("messages")).(*[]Message)
 
-		if ok := checkAuthState(w, r); ok == false {
-			http.Redirect(w, r, "/", 307)
+		if ok := checkAuthState(w, r); !ok {
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -51,7 +51,7 @@ func searchHandler() http.HandlerFunc {
 			searchString := r.FormValue("searchString")
 			searchType := r.FormValue("submit")
 			if searchString == "" || searchType == "" {
-				*messages = append(*messages, Message{fmt.Sprintf("Search text not entered or invalid search function"), "warning"})
+				*messages = append(*messages, Message{"search text not entered or invalid search function", "warning"})
 				break
 			}
 			webdata["searchString"] = searchString
@@ -65,11 +65,11 @@ func searchHandler() http.HandlerFunc {
 			if searchType == "jump" {
 				searchResultTicker, err := jumpSearch(ctx, searchString)
 				if err != nil {
-					*messages = append(*messages, Message{fmt.Sprintf("Sorry, error returned for that search"), "danger"})
+					*messages = append(*messages, Message{"sorry, error returned for that search", "danger"})
 					break
 				}
 				if searchResultTicker.TickerSymbol == "" {
-					*messages = append(*messages, Message{fmt.Sprintf("Sorry, nothing found for '%s'", searchString), "warning"})
+					*messages = append(*messages, Message{fmt.Sprintf("sorry, nothing found for '%s'", searchString), "warning"})
 					break
 				}
 				log.Info().
@@ -83,11 +83,11 @@ func searchHandler() http.HandlerFunc {
 			} else if searchType == "search" {
 				searchResults, err := listSearch(ctx, searchString, "both")
 				if err != nil {
-					*messages = append(*messages, Message{fmt.Sprintf("Sorry, error returned for that search"), "danger"})
+					*messages = append(*messages, Message{"sorry, error returned for that search", "danger"})
 					break
 				}
 				if len(searchResults) == 0 {
-					*messages = append(*messages, Message{fmt.Sprintf("Sorry, nothing found for '%s'", searchString), "warning"})
+					*messages = append(*messages, Message{fmt.Sprintf("sorry, nothing found for '%s'", searchString), "warning"})
 					break
 				}
 				log.Info().
@@ -99,7 +99,7 @@ func searchHandler() http.HandlerFunc {
 				webdata["results"] = searchResults
 				break
 			} else {
-				*messages = append(*messages, Message{fmt.Sprintf("Sorry, search type is unknown"), "warning"})
+				*messages = append(*messages, Message{"sorry, search type is unknown", "warning"})
 				break
 			}
 
@@ -107,7 +107,7 @@ func searchHandler() http.HandlerFunc {
 			logger.Warn().
 				Str("search_type", searchType).
 				Msg("Unknown search_type")
-			*messages = append(*messages, Message{fmt.Sprintf("Sorry, invalid search request"), "danger"})
+			*messages = append(*messages, Message{"sorry, invalid search request", "danger"})
 		}
 
 		renderTemplateDefault(w, r, "searchresults")

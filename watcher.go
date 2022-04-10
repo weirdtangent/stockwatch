@@ -32,7 +32,7 @@ type WatcherEmail struct {
 
 func (w *Watcher) update(ctx context.Context, email string) error {
 	logger := log.Ctx(ctx)
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var update = "UPDATE watcher SET watcher_name=?, watcher_pic_url=?, session_id=? WHERE watcher_id=?"
 	_, err := db.Exec(update, w.WatcherName, w.WatcherPicURL, w.SessionId, w.WatcherId)
@@ -57,7 +57,7 @@ func (w *Watcher) update(ctx context.Context, email string) error {
 
 func (w *Watcher) create(ctx context.Context, email string) error {
 	logger := log.Ctx(ctx)
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -131,7 +131,7 @@ func (w Watcher) IsRoot() bool {
 
 // misc -----------------------------------------------------------------------
 func getWatcherById(ctx context.Context, w *Watcher, watcherId int64) error {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	err := db.QueryRowx("SELECT * FROM watcher WHERE watcher_id=?", watcherId).StructScan(w)
 	return err
@@ -139,7 +139,7 @@ func getWatcherById(ctx context.Context, w *Watcher, watcherId int64) error {
 
 func getWatcherIdBySession(ctx context.Context, session string) (int64, error) {
 	logger := log.Ctx(ctx)
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var watcherId int64
 	err := db.QueryRowx("SELECT watcher_id FROM watcher WHERE session_id=?", session).Scan(&watcherId)
@@ -155,7 +155,7 @@ func getWatcherIdBySession(ctx context.Context, session string) (int64, error) {
 
 func getWatcherIdByEmail(ctx context.Context, email string) (int64, error) {
 	logger := log.Ctx(ctx)
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var watcherId int64
 	err := db.QueryRowx("SELECT watcher_id FROM watcher_email WHERE email_address=?", email).Scan(&watcherId)

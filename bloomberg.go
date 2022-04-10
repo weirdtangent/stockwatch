@@ -13,8 +13,8 @@ import (
 func loadBBNewsArticles(ctx context.Context, query string) error {
 	logger := log.Ctx(ctx)
 
-	apiKey := ctx.Value("bloomberg_apikey").(string)
-	apiHost := ctx.Value("bloomberg_apihost").(string)
+	apiKey := ctx.Value(ContextKey("bloomberg_apikey")).(string)
+	apiHost := ctx.Value(ContextKey("bloomberg_apihost")).(string)
 
 	sourceId, err := getSourceId("Bloomberg")
 	if err != nil {

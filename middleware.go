@@ -25,6 +25,8 @@ type AddContext struct {
 	secrets map[string]string
 }
 
+type ContextKey string
+
 func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -42,7 +44,7 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if len(rid) == 0 {
 		rid = reqHeader.Get("X-Request-ID")
 	}
-	ctx = context.WithValue(ctx, "request_id", rid)
+	ctx = context.WithValue(ctx, ContextKey("request_id"), rid)
 	resHeader.Set("X-Request-ID", rid)
 
 	ridCookie = &http.Cookie{
@@ -76,25 +78,25 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defaultConfig["is_market_open"] = isMarketOpen()
 	defaultConfig["quote_refresh"] = 20
 
-	r = r.Clone(context.WithValue(r.Context(), "awssess", ac.awssess))
-	r = r.Clone(context.WithValue(r.Context(), "db", ac.db))
-	r = r.Clone(context.WithValue(r.Context(), "sc", ac.sc))
-	r = r.Clone(context.WithValue(r.Context(), "redisPool", redisPool))
-	r = r.Clone(context.WithValue(r.Context(), "google_oauth_client_id", ac.secrets["google_oauth_client_id"]))
-	r = r.Clone(context.WithValue(r.Context(), "google_oauth_client_secret", ac.secrets["google_oauth_secret"]))
-	r = r.Clone(context.WithValue(r.Context(), "github_oauth_key", ac.secrets["github_oauth_key"]))
-	r = r.Clone(context.WithValue(r.Context(), "google_svc_acct", ac.secrets["stockwatch_google_svc_acct"]))
-	r = r.Clone(context.WithValue(r.Context(), "yahoofinance_apikey", ac.secrets["yahoofinance_rapidapi_key"]))
-	r = r.Clone(context.WithValue(r.Context(), "yahoofinance_apihost", ac.secrets["yahoofinance_rapidapi_host"]))
-	r = r.Clone(context.WithValue(r.Context(), "morningstar_apikey", ac.secrets["morningstar_rapidapi_key"]))
-	r = r.Clone(context.WithValue(r.Context(), "morningstar_apihost", ac.secrets["morningstar_rapidapi_host"]))
-	r = r.Clone(context.WithValue(r.Context(), "bloomberg_apikey", ac.secrets["bloomberg_rapidapi_key"]))
-	r = r.Clone(context.WithValue(r.Context(), "bloomberg_apihost", ac.secrets["bloomberg_rapidapi_host"]))
-	r = r.Clone(context.WithValue(r.Context(), "next_url_key", ac.secrets["next_url_key"]))
-	r = r.Clone(context.WithValue(r.Context(), "config", defaultConfig))
-	r = r.Clone(context.WithValue(r.Context(), "webdata", make(map[string]interface{})))
-	r = r.Clone(context.WithValue(r.Context(), "messages", &messages))
-	r = r.Clone(context.WithValue(r.Context(), "nonce", RandStringMask(32)))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("awssess"), ac.awssess))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("db"), ac.db))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("sc"), ac.sc))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("redisPool"), redisPool))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("google_oauth_client_id"), ac.secrets["google_oauth_client_id"]))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("google_oauth_client_secret"), ac.secrets["google_oauth_secret"]))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("github_oauth_key"), ac.secrets["github_oauth_key"]))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("google_svc_acct"), ac.secrets["stockwatch_google_svc_acct"]))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("yahoofinance_apikey"), ac.secrets["yahoofinance_rapidapi_key"]))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("yahoofinance_apihost"), ac.secrets["yahoofinance_rapidapi_host"]))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("morningstar_apikey"), ac.secrets["morningstar_rapidapi_key"]))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("morningstar_apihost"), ac.secrets["morningstar_rapidapi_host"]))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("bloomberg_apikey"), ac.secrets["bloomberg_rapidapi_key"]))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("bloomberg_apihost"), ac.secrets["bloomberg_rapidapi_host"]))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("next_url_key"), ac.secrets["next_url_key"]))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("config"), defaultConfig))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("webdata"), make(map[string]interface{})))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("messages"), &messages))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("nonce"), RandStringMask(32)))
 
 	ac.handler.ServeHTTP(w, r)
 }
@@ -111,7 +113,7 @@ type AddHeader struct {
 
 func (ah *AddHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	nonce := ctx.Value("nonce").(string)
+	nonce := ctx.Value(ContextKey("nonce")).(string)
 
 	resHeader := w.Header()
 	csp := []string{
@@ -191,7 +193,7 @@ func (s *Session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			logger.Fatal().Err(err).Msg("Failed to save session")
 		}
 	}
-	r = r.Clone(context.WithValue(r.Context(), "ddbs", session))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("ddbs"), session))
 
 	defer session.Save(r, w)
 
@@ -203,7 +205,7 @@ func withSession(store *dynastore.Store, h http.Handler) *Session {
 
 func getSession(r *http.Request) *sessions.Session {
 	logger := log.Ctx(r.Context())
-	session := r.Context().Value("ddbs").(*sessions.Session)
+	session := r.Context().Value(ContextKey("ddbs")).(*sessions.Session)
 	if session == nil {
 		logger.Fatal().Err(errFailedToGetSessionFromContext).Msg("")
 	}

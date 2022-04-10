@@ -21,14 +21,14 @@ type TickerUpDown struct {
 }
 
 func (tud *TickerUpDown) getByUniqueKey(ctx context.Context) error {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	err := db.QueryRowx(`SELECT * FROM ticker_updown WHERE ticker_id=? AND updown_date=? AND updown_firm=?`, tud.TickerId, tud.UpDownDate, tud.UpDownFirm).StructScan(tud)
 	return err
 }
 
 func (tud *TickerUpDown) createIfNew(ctx context.Context) error {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	logger := log.Ctx(ctx)
 
 	if tud.UpDownToGrade == "" {

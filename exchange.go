@@ -25,23 +25,23 @@ type Exchange struct {
 // misc -----------------------------------------------------------------------
 
 func getExchangeById(ctx context.Context, exchange_id int64) (*Exchange, error) {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var exchange Exchange
 	err := db.QueryRowx("SELECT * FROM exchange WHERE exchange_id=?", exchange_id).StructScan(&exchange)
 	return &exchange, err
 }
 
-func getExchangeByMic(ctx context.Context, exchangeMic string) (int64, error) {
-	db := ctx.Value("db").(*sqlx.DB)
+// func getExchangeByMic(ctx context.Context, exchangeMic string) (int64, error) {
+// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	var exchangeId int64
-	err := db.QueryRowx("SELECT exchange_id FROM exchange WHERE exchange_mic=?", exchangeMic).Scan(&exchangeId)
-	return exchangeId, err
-}
+// 	var exchangeId int64
+// 	err := db.QueryRowx("SELECT exchange_id FROM exchange WHERE exchange_mic=?", exchangeMic).Scan(&exchangeId)
+// 	return exchangeId, err
+// }
 
 func getExchangeByCode(ctx context.Context, exchangeCode string) (int64, error) {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var exchangeId int64
 	err := db.QueryRowx("SELECT exchange_id FROM exchange WHERE exchange_code=?", exchangeCode).Scan(&exchangeId)

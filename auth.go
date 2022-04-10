@@ -1,14 +1,7 @@
 package main
 
 import (
-	"context"
-	"crypto/aes"
-	"crypto/cipher"
-	crand "crypto/rand"
-	"encoding/base64"
-	"errors"
 	"fmt"
-	"io"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -50,7 +43,7 @@ func signinUser(w http.ResponseWriter, r *http.Request, gothUser goth.User) {
 	ctx := r.Context()
 	logger := log.Ctx(ctx)
 	session := getSession(r)
-	sc := ctx.Value("sc").(*securecookie.SecureCookie)
+	sc := ctx.Value(ContextKey("sc")).(*securecookie.SecureCookie)
 
 	// get (or create) watcher account based on oauth properties
 	// specifically, based on the sub value, because email addresses can change
@@ -90,7 +83,7 @@ func signinUser(w http.ResponseWriter, r *http.Request, gothUser goth.User) {
 	}
 
 	session.Values["provider"] = gothUser.Provider
-	http.Redirect(w, r, "/desktop", 302)
+	http.Redirect(w, r, "/desktop", http.StatusFound)
 }
 
 // logout from google one-tap here
@@ -98,14 +91,14 @@ func signoutHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		deleteWIDCookie(w, r)
 		gothic.Logout(w, r)
-		http.Redirect(w, r, "/", 302)
+		http.Redirect(w, r, "/", http.StatusFound)
 	})
 }
 
 func deleteWIDCookie(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := log.Ctx(ctx)
-	sc := ctx.Value("sc").(*securecookie.SecureCookie)
+	sc := ctx.Value(ContextKey("sc")).(*securecookie.SecureCookie)
 
 	if encoded, err := sc.Encode("WID", "invalid"); err == nil {
 		cookie := &http.Cookie{
@@ -127,9 +120,9 @@ func deleteWIDCookie(w http.ResponseWriter, r *http.Request) {
 func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 	ctx := r.Context()
 	logger := log.Ctx(ctx)
-	sc := ctx.Value("sc").(*securecookie.SecureCookie)
-	webdata := ctx.Value("webdata").(map[string]interface{})
-	nonce := ctx.Value("nonce").(string)
+	sc := ctx.Value(ContextKey("sc")).(*securecookie.SecureCookie)
+	webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
+	nonce := ctx.Value(ContextKey("nonce")).(string)
 
 	session := getSession(r)
 	recents, _ := getRecents(session, r)
@@ -185,7 +178,7 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 
 	stateStr := session.Values["state"].(string)
 	webdata["stateStr"] = stateStr
-	webdata["clientId"] = ctx.Value("google_oauth_client_id").(string)
+	webdata["clientId"] = ctx.Value(ContextKey("google_oauth_client_id")).(string)
 	webdata["scope"] = "openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
 	webdata["redirectTo"] = "https://stockwatch.graystorm.com/callback"
 	webdata["nonce"] = RandStringMask(32)
@@ -213,47 +206,47 @@ func RandStringMask(n int) string {
 	return string(b)
 }
 
-func encryptURL(ctx context.Context, text []byte) ([]byte, error) {
-	secret := ctx.Value("next_url_key").(string)
-	key := []byte(secret)
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	b := base64.StdEncoding.EncodeToString(text)
-	ciphertext := make([]byte, aes.BlockSize+len(b))
-	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(crand.Reader, iv); err != nil {
-		return nil, err
-	}
-	cfb := cipher.NewCFBEncrypter(block, iv)
-	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
-	cipherstring := ([]byte(base64.URLEncoding.EncodeToString(ciphertext)))
-	return cipherstring, nil
-}
+// func encryptURL(ctx context.Context, text []byte) ([]byte, error) {
+// 	secret := ctx.Value(ContextKey("next_url_key")).(string)
+// 	key := []byte(secret)
+// 	block, err := aes.NewCipher(key)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	b := base64.StdEncoding.EncodeToString(text)
+// 	ciphertext := make([]byte, aes.BlockSize+len(b))
+// 	iv := ciphertext[:aes.BlockSize]
+// 	if _, err := io.ReadFull(crand.Reader, iv); err != nil {
+// 		return nil, err
+// 	}
+// 	cfb := cipher.NewCFBEncrypter(block, iv)
+// 	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
+// 	cipherstring := ([]byte(base64.URLEncoding.EncodeToString(ciphertext)))
+// 	return cipherstring, nil
+// }
 
-func decryptURL(ctx context.Context, cipherstring []byte) ([]byte, error) {
-	secret := ctx.Value("next_url_key").(string)
-	key := []byte(secret)
-	textstr, err := base64.URLEncoding.DecodeString(string(cipherstring))
-	if err != nil {
-		return nil, err
-	}
-	text := ([]byte(textstr))
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	if len(text) < aes.BlockSize {
-		return nil, errors.New("ciphertext too short")
-	}
-	iv := text[:aes.BlockSize]
-	text = text[aes.BlockSize:]
-	cfb := cipher.NewCFBDecrypter(block, iv)
-	cfb.XORKeyStream(text, text)
-	data, err := base64.StdEncoding.DecodeString(string(text))
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
-}
+// func decryptURL(ctx context.Context, cipherstring []byte) ([]byte, error) {
+// 	secret := ctx.Value(ContextKey("next_url_key")).(string)
+// 	key := []byte(secret)
+// 	textstr, err := base64.URLEncoding.DecodeString(string(cipherstring))
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	text := ([]byte(textstr))
+// 	block, err := aes.NewCipher(key)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	if len(text) < aes.BlockSize {
+// 		return nil, errors.New("ciphertext too short")
+// 	}
+// 	iv := text[:aes.BlockSize]
+// 	text = text[aes.BlockSize:]
+// 	cfb := cipher.NewCFBDecrypter(block, iv)
+// 	cfb.XORKeyStream(text, text)
+// 	data, err := base64.StdEncoding.DecodeString(string(text))
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return data, nil
+// }

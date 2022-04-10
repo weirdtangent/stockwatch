@@ -10,9 +10,9 @@ import (
 
 func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 	logger := log.Ctx(ctx)
-	db := ctx.Value("db").(*sqlx.DB)
-	messages := ctx.Value("messages").(*[]Message)
-	webdata := ctx.Value("webdata").(map[string]interface{})
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+	messages := ctx.Value(ContextKey("messages")).(*[]Message)
+	webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 
 	// if we have this ticker and today is a weekend or we have today's closing price
 	// then we don't need to call APIs and load a bunch of data we already have!

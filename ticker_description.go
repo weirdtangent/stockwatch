@@ -16,14 +16,14 @@ type TickerDescription struct {
 }
 
 func (td *TickerDescription) getByUniqueKey(ctx context.Context) error {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	err := db.QueryRowx(`SELECT * FROM ticker_description WHERE ticker_id=?`, td.TickerId).StructScan(td)
 	return err
 }
 
 func (td *TickerDescription) createIfNew(ctx context.Context) error {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	logger := log.Ctx(ctx)
 
 	if td.BusinessSummary == "" {
@@ -48,7 +48,7 @@ func (td *TickerDescription) createIfNew(ctx context.Context) error {
 // misc -----------------------------------------------------------------------
 
 func getTickerDescriptionByTickerId(ctx context.Context, ticker_id int64) (*TickerDescription, error) {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var tickerDescription TickerDescription
 	err := db.QueryRowx(`SELECT * FROM ticker_description WHERE ticker_id=?`, ticker_id).StructScan(&tickerDescription)

@@ -74,7 +74,7 @@ func (m Movers) SortActives() *[]WebMover {
 }
 
 func (m *Mover) getByUniqueKey(ctx context.Context) error {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	err := db.QueryRowx(`SELECT * FROM mover WHERE source_id=? AND ticker_id=? AND mover_date=? AND mover_type=?`,
 		m.SourceId, m.TickerId, m.MoverDate, m.MoverType).StructScan(m)
@@ -82,7 +82,7 @@ func (m *Mover) getByUniqueKey(ctx context.Context) error {
 }
 
 func (m *Mover) createIfNew(ctx context.Context) error {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	logger := log.Ctx(ctx)
 
 	if m.MoverType == "" {
@@ -106,7 +106,7 @@ func (m *Mover) createIfNew(ctx context.Context) error {
 }
 
 func getMovers(ctx context.Context) (*Movers, error) {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	logger := log.Ctx(ctx)
 
 	var movers Movers
@@ -158,7 +158,7 @@ func getMovers(ctx context.Context) (*Movers, error) {
 }
 
 func getLatestMoversDate(ctx context.Context) (string, error) {
-	db := ctx.Value("db").(*sqlx.DB)
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	var dateStr string
 
 	err := db.QueryRowx(`SELECT mover_date FROM mover ORDER BY mover_date DESC LIMIT 1`).Scan(&dateStr)

@@ -3,23 +3,20 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 	//"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
-
-	"github.com/weirdtangent/mytime"
 )
 
 func updateHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
-		messages := ctx.Value("messages").(*[]Message)
+		messages := ctx.Value(ContextKey("messages")).(*[]Message)
 
-		if ok := checkAuthState(w, r); ok == false {
-			http.Redirect(w, r, "/", 307)
+		if ok := checkAuthState(w, r); !ok {
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -30,37 +27,37 @@ func updateHandler() http.HandlerFunc {
 		case "movers":
 			err := loadMovers(ctx)
 			if err != nil {
-				*messages = append(*messages, Message{fmt.Sprintf("Pulling latest Morningstar Movers failed: %s", err.Error()), "danger"})
+				*messages = append(*messages, Message{fmt.Sprintf("pulling latest Morningstar Movers failed: %s", err.Error()), "danger"})
 			} else {
-				*messages = append(*messages, Message{fmt.Sprintf("Pulled latest Morningstar Movers"), "success"})
+				*messages = append(*messages, Message{"pulled latest Morningstar Movers", "success"})
 			}
 		case "msnews":
 			query := r.FormValue("q")
 			if len(query) < 1 {
-				*messages = append(*messages, Message{fmt.Sprintf("No query string found"), "danger"})
+				*messages = append(*messages, Message{"no query string found", "danger"})
 			} else {
 				err := loadMSNews(ctx, query)
 				if err != nil {
-					*messages = append(*messages, Message{fmt.Sprintf("Pulling Morningstar News for %s failed: %s", query, err.Error()), "danger"})
+					*messages = append(*messages, Message{fmt.Sprintf("pulling Morningstar News for %s failed: %s", query, err.Error()), "danger"})
 				} else {
-					*messages = append(*messages, Message{fmt.Sprintf("Pulled Morningstar News for %s", query), "success"})
+					*messages = append(*messages, Message{fmt.Sprintf("pulled Morningstar News for %s", query), "success"})
 				}
 			}
 		case "bbnews":
 			query := r.FormValue("q")
 			if len(query) < 1 {
-				*messages = append(*messages, Message{fmt.Sprintf("No query string found"), "danger"})
+				*messages = append(*messages, Message{"no query string found", "danger"})
 			} else {
 				err := loadBBNewsArticles(ctx, query)
 				if err != nil {
-					*messages = append(*messages, Message{fmt.Sprintf("Pulling latest Bloomberg Market News failed: %s", err.Error()), "danger"})
+					*messages = append(*messages, Message{fmt.Sprintf("pulling latest Bloomberg Market News failed: %s", err.Error()), "danger"})
 				} else {
-					*messages = append(*messages, Message{fmt.Sprintf("Pulled latest Bloomberg Market News"), "success"})
+					*messages = append(*messages, Message{"pulled latest Bloomberg Market News", "success"})
 				}
 			}
 		default:
 			logger.Error().Str("action", action).Msg("Unknown update action")
-			*messages = append(*messages, Message{fmt.Sprintf("Unknown update action: %s", action), "danger"})
+			*messages = append(*messages, Message{fmt.Sprintf("unknown update action: %s", action), "danger"})
 		}
 
 		logger.Info().Msgf("Update operation ended normally")
@@ -68,24 +65,24 @@ func updateHandler() http.HandlerFunc {
 	})
 }
 
-func mostRecentPricesAvailable() string {
-	EasternTZ, err := time.LoadLocation("America/New_York")
-	if err != nil {
-		log.Error().Err(err).
-			Msg("Failed to get timezone")
-		return "1970-01-01"
-	}
-	currentDateTime := time.Now().In(EasternTZ)
-	currentTime := currentDateTime.Format("15:04:05")
-	currentDate := currentDateTime.Format("2006-01-02")
-	IsWorkDay := mytime.IsWorkday(currentDateTime)
+// func mostRecentPricesAvailable() string {
+// 	EasternTZ, err := time.LoadLocation("America/New_York")
+// 	if err != nil {
+// 		log.Error().Err(err).
+// 			Msg("Failed to get timezone")
+// 		return "1970-01-01"
+// 	}
+// 	currentDateTime := time.Now().In(EasternTZ)
+// 	currentTime := currentDateTime.Format("15:04:05")
+// 	currentDate := currentDateTime.Format("2006-01-02")
+// 	IsWorkDay := mytime.IsWorkday(currentDateTime)
 
-	if IsWorkDay && currentTime > "16:00:00" {
-		return currentDate
-	}
+// 	if IsWorkDay && currentTime > "16:00:00" {
+// 		return currentDate
+// 	}
 
-	prevWorkDate := mytime.PriorWorkDate(currentDateTime)
-	prevWorkDay := prevWorkDate.Format("2006-01-02")
+// 	prevWorkDate := mytime.PriorWorkDate(currentDateTime)
+// 	prevWorkDay := prevWorkDate.Format("2006-01-02")
 
-	return prevWorkDay
-}
+// 	return prevWorkDay
+// }

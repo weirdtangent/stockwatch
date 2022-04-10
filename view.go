@@ -15,13 +15,13 @@ func viewTickerDailyHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
-		messages := ctx.Value("messages").(*[]Message)
-		webdata := ctx.Value("webdata").(map[string]interface{})
+		messages := ctx.Value(ContextKey("messages")).(*[]Message)
+		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 
 		session := getSession(r)
 
-		if ok := checkAuthState(w, r); ok == false {
-			http.Redirect(w, r, "/", 307)
+		if ok := checkAuthState(w, r); !ok {
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -48,6 +48,9 @@ func viewTickerDailyHandler() http.HandlerFunc {
 
 		// Add this ticker to recents list
 		recents, err := addTickerToRecents(session, r, symbol)
+		if err != nil {
+			logger.Error().Err(err).Msg("failed to add ticker to recents list")
+		}
 		webdata["recents"] = *recents
 
 		renderTemplateDefault(w, r, "view-daily")

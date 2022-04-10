@@ -27,8 +27,8 @@ func transactionHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
-		webdata := ctx.Value("webdata").(map[string]interface{})
-		messages := ctx.Value("messages").(*[]Message)
+		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
+		messages := ctx.Value(ContextKey("messages")).(*[]Message)
 
 		watcher := webdata["watcher"].(*Watcher)
 
