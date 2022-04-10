@@ -20,7 +20,7 @@ require (
 	github.com/rs/zerolog v1.26.1
 	github.com/savaki/dynastore v0.0.0-20171109173440-28d8558bb429
 	github.com/weirdtangent/bloomberg v0.0.0-20210324175403-ebb8bc746955
-	github.com/weirdtangent/morningstar v0.0.0-20220410163547-18f0e27da11b
+	github.com/weirdtangent/morningstar v0.0.0-20220410204834-3da280bfe3c7
 	github.com/weirdtangent/myaws v0.1.0
 	github.com/weirdtangent/mymath v0.1.0
 	github.com/weirdtangent/mytime v0.1.1

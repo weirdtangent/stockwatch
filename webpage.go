@@ -74,7 +74,7 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 	webwatches, _ := loadWebWatches(db, ticker.TickerId)
 
 	// load any recent news
-	articles, _ := getArticlesByKeyword(ctx, ticker.TickerSymbol)
+	articles, _ := getArticlesByTicker(ctx, ticker.TickerId)
 	if len(*articles) > 0 {
 		webdata["articles"] = articles
 		for _, article := range *articles {

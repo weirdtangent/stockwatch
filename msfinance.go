@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
+	"regexp"
 	"strings"
 	"time"
 
@@ -213,7 +213,7 @@ func loadMovers(ctx context.Context) error {
 // }
 
 // load news
-func loadMSNews(ctx context.Context, query string) error {
+func loadMSNews(ctx context.Context, query string, ticker_id int64) error {
 	logger := log.Ctx(ctx)
 
 	apiKey := ctx.Value(ContextKey("morningstar_apikey")).(string)
@@ -246,37 +246,43 @@ func loadMSNews(ctx context.Context, query string) error {
 				logger.Warn().Err(err).Str("performanceId", performanceId).
 					Msg("failed to retrieve newsList")
 			} else {
-
 				var newsListResponse []morningstar.MSNewsListResponse
 				json.NewDecoder(strings.NewReader(response)).Decode(&newsListResponse)
 
 				for _, story := range newsListResponse {
-					internalId := fmt.Sprintf("%d", story.InternalId)
-					sourceId, err := getSourceId(story.SourceName)
+					sourceId, err := getSourceId(story.SourceId)
 					if err != nil {
-						log.Error().Err(err).Msg("failed to find sourceId for API source")
-						return err
+						log.Error().Err(err).Msg("failed story")
+						continue
 					}
 
-					if existingId, err := getArticleByExternalId(ctx, sourceId, internalId); err != nil || existingId != 0 {
-						log.Info().Err(err).Str("existing_id", internalId).Msg("skipped article because of err or we already have")
+					if existingId, err := getArticleByExternalId(ctx, sourceId, story.InternalId); err != nil || existingId != 0 {
+						log.Info().Err(err).Str("existing_id", story.InternalId).Msg("skipped article because of err or we already have")
 					} else {
-						content, err := getNewsItemContent(ctx, story.SourceName, internalId)
-						if err != nil {
-							log.Info().Err(err).Msg("no news item content found")
-						}
-						var publishedDate string
-						if published, err := strconv.ParseInt(story.Published[0:10], 10, 64); err == nil && published > 0 {
-							publishedDate = FormatUnixTime(published, "2006-01-02 15:04:05")
-						} else {
-							log.Fatal().Err(err).Str("published", story.Published).Msg("failed to convert date")
+						content, err := getNewsItemContent(ctx, story.SourceId, story.InternalId)
+						if err != nil || len(content) == 0 {
+							log.Error().Err(err).Msg("no news item content found")
+							continue
 						}
 
-						article := Article{0, sourceId, internalId, publishedDate, publishedDate, story.Title, content, "", "", "", ""}
+						publishedDateTime, err := time.Parse("2006-01-02T15:04:05-07:00", story.Published)
+						if err != nil {
+							log.Error().Err(err).Msg("could not parse Published")
+							continue
+						}
+						publishedDate := publishedDateTime.Format("2006-01-02 15:04:05")
+
+						article := Article{0, sourceId, story.InternalId, publishedDate, publishedDate, story.Title, content, "", "", "", ""}
 
 						err = article.createArticle(ctx)
 						if err != nil {
 							logger.Warn().Err(err).Str("id", query).Msg("failed to write new news article")
+						}
+
+						articleTicker := ArticleTicker{0, article.ArticleId, query, ticker_id, "", ""}
+						err = articleTicker.createArticleTicker(ctx)
+						if err != nil {
+							logger.Warn().Err(err).Str("id", query).Msg("failed to write ticker(s) for new article")
 						}
 					}
 				}
@@ -293,32 +299,50 @@ func getNewsItemContent(ctx context.Context, sourceId string, internalId string)
 	apiKey := ctx.Value(ContextKey("morningstar_apikey")).(string)
 	apiHost := ctx.Value(ContextKey("morningstar_apihost")).(string)
 
-	var newsContent string
-
 	newsDetailsParams := map[string]string{}
 	newsDetailsParams["id"] = internalId
 	newsDetailsParams["sourceId"] = sourceId
 	response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "newsdetails", newsDetailsParams)
 	if err != nil {
 		logger.Warn().Err(err).
-			Msg("failed to retrieve newsdetails")
+			Msg(fmt.Sprintf("failed to retrieve newsdetails for id/source %s/%s", internalId, sourceId))
 		return "", err
 	}
 
 	var newsDetailsResponse morningstar.MSNewsDetailsResponse
 	json.NewDecoder(strings.NewReader(response)).Decode(&newsDetailsResponse)
 
-	for _, result := range newsDetailsResponse.Body {
-		if result.Type != "p" {
-			continue
-		}
-
-		newsContent += "<p>"
-		for _, content := range result.Content {
-			newsContent += content.Content + "\n"
-
-		}
-		newsContent += "</p>"
-	}
+	newsContent := followContent(newsDetailsResponse.ContentObj)
+	logger.Info().Msg(fmt.Sprintf("found content of %d bytes for article", len(newsContent)))
 	return newsContent, nil
+}
+
+func followContent(contentObj []morningstar.MSNewsContentObj) string {
+	noSpaces := regexp.MustCompile(`^\S+$`)
+
+	var content string
+	for _, contentPiece := range contentObj {
+		var deeperContent string
+		if len(contentPiece.ContentObj) > 0 {
+			deeperContent = followContent(contentPiece.ContentObj)
+		} else {
+			deeperContent = contentPiece.Content
+		}
+		switch contentPiece.Type {
+		case "text":
+			content += deeperContent
+		case "img":
+			content += `<img src="` + contentPiece.Src + `">`
+		case "a":
+			if noSpaces.MatchString(deeperContent) {
+				content += `<a href="` + deeperContent + `">` + deeperContent + `</a>`
+			} else {
+				content += deeperContent
+			}
+		default:
+			content += `<` + contentPiece.Type + `>` + deeperContent + `</` + contentPiece.Type + `>`
+		}
+	}
+
+	return content
 }

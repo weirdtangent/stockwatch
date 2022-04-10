@@ -1,3 +1,7 @@
 .min-box {
   min-height: 100px;
 }
+
+.news-detail {
+  font-family: "Gill Sans", sans-serif !important;
+}

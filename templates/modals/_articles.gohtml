@@ -1,10 +1,18 @@
 {{ define "_articles" }}
           {{range .articles}}
           <div id="source{{.SourceId}}-id{{.ExternalId}}-modal" class="modal fade" aria-labelledby="source{{.SourceId}}-id{{.ExternalId}}-label" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-scrollable modal-lg">
-              <div class="modal-content h-75">
+            <div class="modal-dialog modal-dialog-scrollable modal-xl news-detail">
+              <div class="modal-content h-100">
                 <div class="modal-header">
-                  <h5 class="modal-title" id="source{{.SourceId}}-id{{.ExternalId}}-label">{{.Title}}<div class="small text-info">{{FormatDatetimeStr .PublishedDatetime "Jan 2 15:04"}} by {{.AuthorByline}}</div></h5>
+                  <h5 class="modal-title" id="source{{.SourceId}}-id{{.ExternalId}}-label">{{.Title}}
+                    <div class="small text-info">{{FormatDatetimeStr .PublishedDatetime "Jan 2 15:04"}}
+                    by
+                    {{if .AuthorByline.Valid}}
+                      by {{.AuthorByline.String}}
+                      {{else}}
+                      by {{.SourceName.String}}
+                    {{end}}
+                  </h5>
                   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -18,19 +26,19 @@
                       </head>
                       <body>
                         {{.Body}}
-                        <div class="small text-info">Keywords: <span class="text-light italics">{{.Keywords}}</span></div>
-                        <div class="small text-info">Tags: <span class="text-light italics">{{.Tags}}</span></div>
-                        <div class="small text-info">Symbols: <span class="text-light italics">{{.Symbols}}</span></div>
-                        {{if .AuthorLongBio}}
+                        <div class="small text-info">Keywords: <span class="text-light italics">{{.Keywords.String}}</span></div>
+                        <div class="small text-info">Tags: <span class="text-light italics">{{.Tags.String}}</span></div>
+                        <div class="small text-info">Symbols: <span class="text-light italics">{{.Symbols.String}}</span></div>
+                        {{if .AuthorLongBio.Valid}}
                         <div id="about-author">
-                          <img class="float-start" src="{{.AuthorImageURL}}">
-                          <p>{{.AuthorLongBio}}</p>
+                          <img class="float-start" src="{{.AuthorImageURL.String}}">
+                          <p>{{.AuthorLongBio.String}}</p>
                         </div>
                         {{end}}
                       </body>
                     </html>
                   '></iframe>
-                  <p class="pt-2 text-info small">- {{.SourceName}}</p>
+                  <p class="pt-2 text-info small">- {{.SourceName.String}}</p>
                 </div>
                 <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

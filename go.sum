@@ -314,8 +314,8 @@ github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5Cc
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/weirdtangent/bloomberg v0.0.0-20210324175403-ebb8bc746955 h1:O/e/MVWmsruEiEI+7+vmqpp+4mnq0SCTJGtsWVtx8S0=
 github.com/weirdtangent/bloomberg v0.0.0-20210324175403-ebb8bc746955/go.mod h1:RvZukzjXu3timmmikuFppIz7IUWy2hNBYhIRQLrW0fc=
-github.com/weirdtangent/morningstar v0.0.0-20220410163547-18f0e27da11b h1:trvjTxkKNQIHfAKjxgxoPIGwdvL0v+hIXVHknxg+YrQ=
-github.com/weirdtangent/morningstar v0.0.0-20220410163547-18f0e27da11b/go.mod h1:F0DFnnLvM3re19ETMRzeO0nGO81vHP6XfsVLK0IBgs0=
+github.com/weirdtangent/morningstar v0.0.0-20220410204834-3da280bfe3c7 h1:BmpccAFSEZGI/JhK7urFjq+qMCX8ZZjx2uRAIKyNP6w=
+github.com/weirdtangent/morningstar v0.0.0-20220410204834-3da280bfe3c7/go.mod h1:F0DFnnLvM3re19ETMRzeO0nGO81vHP6XfsVLK0IBgs0=
 github.com/weirdtangent/myaws v0.1.0 h1:nQ6vIcJ+mCKQDFgAGQA4Vedy1lasWPPG+hT6UHG1HlY=
 github.com/weirdtangent/myaws v0.1.0/go.mod h1:I5SCso9BTs+3OajodyYkwGOMbYH20Wn2MTgNi2qgdPI=
 github.com/weirdtangent/mymath v0.1.0 h1:oFYr1tzTbEbueqx/AWVFziDhueRbqZbmTR5v7HxY5xc=

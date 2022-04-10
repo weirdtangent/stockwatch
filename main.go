@@ -56,10 +56,10 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to switch RDS to UTF8")
 	}
-	_, err = db.Exec("SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'")
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to turn off ONLY_FULL_GROUP_BY")
-	}
+	// _, err = db.Exec("SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))")
+	// if err != nil {
+	// 	log.Fatal().Err(err).Msg("failed to turn off ONLY_FULL_GROUP_BY")
+	// }
 
 	// connect to Dynamo
 	ddb, err := myaws.DDBConnect(awssess)

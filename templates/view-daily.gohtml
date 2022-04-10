@@ -31,7 +31,11 @@
                   {{.Title}} <i class="far fa-window fa-xs"></i>
                   <span class="small text-info">
                     {{FormatDatetimeStr .PublishedDatetime "Jan 2"}}
-                    by {{.AuthorByline}}
+                    {{if .AuthorByline.Valid}}
+                      by {{.AuthorByline.String}}
+                      {{else}}
+                      by {{.SourceName.String}}
+                    {{end}}
                   </span>
                 </div>
                 {{end}}

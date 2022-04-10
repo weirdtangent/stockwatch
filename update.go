@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	//"github.com/jmoiron/sqlx"
@@ -23,9 +25,11 @@ func updateHandler() http.HandlerFunc {
 		params := mux.Vars(r)
 		action := params["action"]
 
+		var err error
+
 		switch action {
 		case "movers":
-			err := loadMovers(ctx)
+			err = loadMovers(ctx)
 			if err != nil {
 				*messages = append(*messages, Message{fmt.Sprintf("pulling latest Morningstar Movers failed: %s", err.Error()), "danger"})
 			} else {
@@ -33,10 +37,13 @@ func updateHandler() http.HandlerFunc {
 			}
 		case "msnews":
 			query := r.FormValue("q")
+			tickerId, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
 			if len(query) < 1 {
 				*messages = append(*messages, Message{"no query string found", "danger"})
+			} else if err != nil {
+				*messages = append(*messages, Message{"ticker_id not provided or invalid", "danger"})
 			} else {
-				err := loadMSNews(ctx, query)
+				err = loadMSNews(ctx, query, tickerId)
 				if err != nil {
 					*messages = append(*messages, Message{fmt.Sprintf("pulling Morningstar News for %s failed: %s", query, err.Error()), "danger"})
 				} else {
@@ -48,7 +55,7 @@ func updateHandler() http.HandlerFunc {
 			if len(query) < 1 {
 				*messages = append(*messages, Message{"no query string found", "danger"})
 			} else {
-				err := loadBBNewsArticles(ctx, query)
+				err = loadBBNewsArticles(ctx, query)
 				if err != nil {
 					*messages = append(*messages, Message{fmt.Sprintf("pulling latest Bloomberg Market News failed: %s", err.Error()), "danger"})
 				} else {
@@ -56,11 +63,14 @@ func updateHandler() http.HandlerFunc {
 				}
 			}
 		default:
+			err = errors.New("unknown update action")
 			logger.Error().Str("action", action).Msg("Unknown update action")
 			*messages = append(*messages, Message{fmt.Sprintf("unknown update action: %s", action), "danger"})
 		}
 
-		logger.Info().Msgf("Update operation ended normally")
+		if err == nil {
+			logger.Info().Msgf("Update operation ended normally")
+		}
 		renderTemplateDefault(w, r, "update")
 	})
 }
