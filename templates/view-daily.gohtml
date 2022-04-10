@@ -25,9 +25,9 @@
               </div>
 
               <div class="mt-1 px-2 py-1 bg-warning text-dark">Related News and Stories</div>
-              <div class="px-2 py-1 bg-dark text-light min-box">
+              <div class="px-2 py-1 bg-dark small text-light min-box">
                 {{range .articles}}
-                <div class="text-white modal-link" data-bs-toggle="modal" data-bs-target="#source{{.SourceId}}-id{{.ExternalId}}-modal">
+                <div class="text-white modal-link news-title" data-bs-toggle="modal" data-bs-target="#source{{.SourceId}}-id{{.ExternalId}}-modal">
                   {{.Title}} <i class="far fa-window fa-xs"></i>
                   <span class="small text-info">
                     {{FormatDatetimeStr .PublishedDatetime "Jan 2"}}

@@ -5,3 +5,10 @@
 .news-detail {
   font-family: "Gill Sans", sans-serif !important;
 }
+
+div.news-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
