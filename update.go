@@ -39,7 +39,7 @@ func updateHandler() http.HandlerFunc {
 			if len(query) < 1 {
 				*messages = append(*messages, Message{fmt.Sprintf("No query string found"), "danger"})
 			} else {
-				err := loadMSNewsArticles(ctx, query)
+				err := loadMSNews(ctx, query)
 				if err != nil {
 					*messages = append(*messages, Message{fmt.Sprintf("Pulling Morningstar News for %s failed: %s", query, err.Error()), "danger"})
 				} else {

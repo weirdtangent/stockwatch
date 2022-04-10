@@ -89,7 +89,7 @@ func loadMovers(ctx context.Context) error {
 	return nil
 }
 
-// load news
+// load article
 func loadMSNewsArticles(ctx context.Context, query string) error {
 	logger := log.Ctx(ctx)
 
@@ -210,4 +210,112 @@ func loadMSNewsArticles(ctx context.Context, query string) error {
 		}
 	}
 	return nil
+}
+
+// load news
+func loadMSNews(ctx context.Context, query string) error {
+	logger := log.Ctx(ctx)
+
+	apiKey := ctx.Value("morningstar_apikey").(string)
+	apiHost := ctx.Value("morningstar_apihost").(string)
+
+	performanceIds := make(map[string]bool)
+
+	autoCompleteParams := map[string]string{}
+	autoCompleteParams["q"] = query
+	response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "autocomplete", autoCompleteParams)
+	if err != nil {
+		logger.Warn().Err(err).
+			Msg("Failed to retrieve autocomplete")
+		return err
+	}
+
+	var autoCompleteResponse morningstar.MSAutoCompleteResponse
+	json.NewDecoder(strings.NewReader(response)).Decode(&autoCompleteResponse)
+
+	for _, result := range autoCompleteResponse.Results {
+		performanceId := result.PerformanceId
+		if _, ok := performanceIds[performanceId]; ok == false {
+			performanceIds[performanceId] = true
+
+			newsListParams := map[string]string{}
+			newsListParams["performanceId"] = performanceId
+			logger.Info().Str("performance_id", performanceId).Msg("Checking for news for performance_id")
+			response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "newslist", newsListParams)
+			if err != nil {
+				logger.Warn().Err(err).Str("performanceId", performanceId).
+					Msg("Failed to retrieve newsList")
+			} else {
+
+				var newsListResponse []morningstar.MSNewsListResponse
+				json.NewDecoder(strings.NewReader(response)).Decode(&newsListResponse)
+
+				for _, story := range newsListResponse {
+					internalId := fmt.Sprintf("%d", story.InternalId)
+					sourceId, err := getSourceId(story.SourceName)
+					if err != nil {
+						log.Error().Err(err).Msg("Failed to find sourceId for API source")
+						return err
+					}
+
+					if existingId, err := getArticleByExternalId(ctx, sourceId, internalId); err != nil || existingId != 0 {
+						log.Info().Err(err).Str("existing_id", internalId).Msg("Skipped article because of err or we already have")
+					} else {
+						content, err := getNewsItemContent(ctx, story.SourceName, internalId)
+						var publishedDate string
+						if published, err := strconv.ParseInt(story.Published[0:10], 10, 64); err == nil && published > 0 {
+							publishedDate = FormatUnixTime(published, "2006-01-02 15:04:05")
+						} else {
+							log.Fatal().Err(err).Str("published", story.Published).Msg("Failed to convert date")
+						}
+
+						article := Article{0, sourceId, internalId, publishedDate, publishedDate, story.Title, content, "", "", "", ""}
+
+						err = article.createArticle(ctx)
+						if err != nil {
+							logger.Warn().Err(err).Str("id", query).Msg("Failed to write new news article")
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// load news
+func getNewsItemContent(ctx context.Context, sourceId string, internalId string) (string, error) {
+	logger := log.Ctx(ctx)
+
+	apiKey := ctx.Value("morningstar_apikey").(string)
+	apiHost := ctx.Value("morningstar_apihost").(string)
+
+	var newsContent string
+
+	newsDetailsParams := map[string]string{}
+	newsDetailsParams["id"] = internalId
+	newsDetailsParams["sourceId"] = sourceId
+	response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "newsdetails", newsDetailsParams)
+	if err != nil {
+		logger.Warn().Err(err).
+			Msg("Failed to retrieve newsdetails")
+		return "", err
+	}
+
+	var newsDetailsResponse morningstar.MSNewsDetailsResponse
+	json.NewDecoder(strings.NewReader(response)).Decode(&newsDetailsResponse)
+
+	for _, result := range newsDetailsResponse.Body {
+		if result.Type != "p" {
+			continue
+		}
+
+		newsContent += "<p>"
+		for _, content := range result.Content {
+			newsContent += content.Content + "\n"
+
+		}
+		newsContent += "</p>"
+	}
+	return newsContent, nil
 }
