@@ -105,13 +105,16 @@ func chartHandlerTickerDailyLine(ctx context.Context, ticker *Ticker, exchange *
 		AddSeries(ticker.TickerSymbol, lineData)
 	prices.
 		AddSeries("MA20", calcMovingLineAvg(20, lineData),
-			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
+			charts.WithLineChartOpts(opts.LineChart{Smooth: true}),
+			charts.WithLineStyleOpts(opts.LineStyle{Width: 1}))
 	prices.
 		AddSeries("MA50", calcMovingLineAvg(50, lineData),
-			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
+			charts.WithLineChartOpts(opts.LineChart{Smooth: true}),
+			charts.WithLineStyleOpts(opts.LineStyle{Width: 1}))
 	prices.
 		AddSeries("MA200", calcMovingLineAvg(200, lineData),
-			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
+			charts.WithLineChartOpts(opts.LineChart{Smooth: true}),
+			charts.WithLineStyleOpts(opts.LineStyle{Width: 1}))
 
 	volume.SetXAxis(x_axis).
 		AddSeries("volume", volumeData, charts.WithLabelOpts(opts.Label{Show: false}))
