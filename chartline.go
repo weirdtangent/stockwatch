@@ -61,7 +61,7 @@ func chartHandlerTickerDailyLine(ctx context.Context, ticker *Ticker, exchange *
 			Show:     true,
 			Data:     []string{"Closeing Price", "5-Day MA", "10-Day MA", "20-Day MA"},
 			Orient:   "horizontal",
-			Selected: map[string]bool{ticker.TickerSymbol: true, "MA5": false, "MA10": false, "MA20": false},
+			Selected: map[string]bool{ticker.TickerSymbol: true, "MA20": true, "MA50": true, "MA200": true},
 			Left:     "right",
 			Top:      "top",
 		}),
@@ -104,13 +104,13 @@ func chartHandlerTickerDailyLine(ctx context.Context, ticker *Ticker, exchange *
 	prices.SetXAxis(hidden_axis).
 		AddSeries(ticker.TickerSymbol, lineData)
 	prices.
-		AddSeries("MA5", calcMovingLineAvg(5, lineData),
-			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
-	prices.
-		AddSeries("MA10", calcMovingLineAvg(10, lineData),
-			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
-	prices.
 		AddSeries("MA20", calcMovingLineAvg(20, lineData),
+			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
+	prices.
+		AddSeries("MA50", calcMovingLineAvg(50, lineData),
+			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
+	prices.
+		AddSeries("MA200", calcMovingLineAvg(200, lineData),
 			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
 
 	volume.SetXAxis(x_axis).
@@ -171,7 +171,7 @@ func chartHandlerTickerDailyLine(ctx context.Context, ticker *Ticker, exchange *
 // 			Show:     true,
 // 			Data:     []string{"Closeing Price", "5-Day MA", "10-Day MA", "20-Day MA"},
 // 			Orient:   "horizontal",
-// 			Selected: map[string]bool{ticker.TickerSymbol: true, "MA5": false, "MA10": false, "MA20": false},
+// 			Selected: map[string]bool{ticker.TickerSymbol: true, "MA20": false, "MA50": false, "MA200": false},
 // 			Left:     "right",
 // 			Top:      "top",
 // 		}),
@@ -212,13 +212,13 @@ func chartHandlerTickerDailyLine(ctx context.Context, ticker *Ticker, exchange *
 // 	prices.SetXAxis(hidden_axis).
 // 		AddSeries(ticker.TickerSymbol, lineData)
 // 	prices.
-// 		AddSeries("MA5", calcMovingLineAvg(5, lineData),
-// 			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
-// 	prices.
-// 		AddSeries("MA10", calcMovingLineAvg(10, lineData),
-// 			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
-// 	prices.
 // 		AddSeries("MA20", calcMovingLineAvg(20, lineData),
+// 			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
+// 	prices.
+// 		AddSeries("MA50", calcMovingLineAvg(50, lineData),
+// 			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
+// 	prices.
+// 		AddSeries("MA200", calcMovingLineAvg(200, lineData),
 // 			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
 
 // 	volume.SetXAxis(x_axis).
@@ -243,7 +243,7 @@ func calcMovingLineAvg(days float64, prices []opts.LineData) []opts.LineData {
 				val := reflect.ValueOf(prices[i-j])
 				sum += val.FieldByName("Value").Interface().(float64)
 			}
-			movingAvg = append(movingAvg, opts.LineData{Value: sum / days})
+			movingAvg = append(movingAvg, opts.LineData{Value: sum / days, Symbol: "none"})
 		}
 	}
 	return movingAvg
