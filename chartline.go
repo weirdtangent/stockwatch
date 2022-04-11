@@ -70,7 +70,9 @@ func chartHandlerTickerDailyLine(ctx context.Context, ticker *Ticker, exchange *
 				Show: false,
 			},
 		}),
-		charts.WithYAxisOpts(opts.YAxis{}),
+		charts.WithYAxisOpts(opts.YAxis{
+			Scale: true,
+		}),
 	)
 
 	volume := charts.NewBar()

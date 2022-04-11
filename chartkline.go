@@ -56,6 +56,7 @@ func chartHandlerTickerDailyKLine(ctx context.Context, ticker *Ticker, exchange 
 			AxisLabel: &opts.AxisLabel{
 				Show: true,
 			},
+			Scale: true,
 		}),
 	)
 
