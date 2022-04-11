@@ -164,7 +164,6 @@ func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, e
 
 	if len(keyword) > 0 {
 		fromDate = time.Now().AddDate(0, 0, -120).Format("2006-01-02 15:04:05")
-		log.Info().Str("from_date", fromDate).Str("keyword", keyword).Int("limit", 6).Msg("Pulling recent articles by keyword")
 		query = `SELECT article.article_id, article.source_id, article.external_id, article.published_datetime, article.pubupdated_datetime,
 		            article.title, article.body, article.article_url, article.image_url,
                     ANY_VALUE(article_author.byline) AS author_byline,
@@ -188,7 +187,6 @@ func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, e
 		rows, err = db.Queryx(query, fromDate, keyword, keyword, keyword)
 	} else {
 		fromDate := time.Now().AddDate(0, 0, -5).Format("2006-01-02 15:04:05")
-		log.Info().Str("from_date", fromDate).Msg("Pulling all articles by date")
 		query = `SELECT article.article_id, article.source_id, article.external_id, article.published_datetime, article.pubupdated_datetime,
 		            article.title, article.body, article.article_url, article.image_url,
                 	ANY_VALUE(article_author.byline) AS author_byline,
@@ -234,11 +232,9 @@ func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, e
 					article.Body = string(http_rx.ReplaceAll([]byte(article.Body), []byte("https:")))
 					article.AuthorImageURL.String = string(http_rx.ReplaceAll([]byte(article.AuthorImageURL.String), []byte("https:")))
 
-					log.Info().Str("body", sha).Msg("Selected article to show")
 					articles = append(articles, article)
 				}
 			} else {
-				log.Info().Str("body", "-empty-").Msg("Selected article to show")
 				articles = append(articles, article)
 			}
 		}
@@ -266,7 +262,6 @@ func getArticlesByTicker(ctx context.Context, ticker_id int64) (*[]WebArticle, e
 	// go back as far as 180 days
 	fromDate = time.Now().AddDate(0, 0, -180).Format("2006-01-02 15:04:05")
 
-	log.Info().Str("from_date", fromDate).Int64("ticker_id", ticker_id).Int("limit", 6).Msg("Pulling recent articles by ticker_id")
 	query = `SELECT article.article_id, article.source_id, article.external_id, article.published_datetime, article.pubupdated_datetime,
 		            article.title, article.body, article.article_url, article.image_url,
                     ANY_VALUE(article_author.byline) AS author_byline,
@@ -318,11 +313,9 @@ func getArticlesByTicker(ctx context.Context, ticker_id int64) (*[]WebArticle, e
 					article.Body = string(http_rx.ReplaceAll([]byte(article.Body), []byte("https:")))
 					article.AuthorImageURL.String = string(http_rx.ReplaceAll([]byte(article.AuthorImageURL.String), []byte("https:")))
 
-					log.Info().Str("body", sha).Msg("Selected article to show")
 					articles = append(articles, article)
 				}
 			} else {
-				log.Info().Str("body", "-empty-").Msg("Selected article to show")
 				articles = append(articles, article)
 			}
 		}
