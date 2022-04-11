@@ -28,7 +28,7 @@ func viewTickerDailyHandler() http.HandlerFunc {
 		params := mux.Vars(r)
 		symbol := params["symbol"]
 
-		timespan := 90
+		timespan := 180
 		if tsParam := r.FormValue("ts"); tsParam != "" {
 			if tsValue, err := strconv.ParseInt(tsParam, 10, 32); err == nil {
 				timespan = int(mymath.MinMax(tsValue, 15, 1825))
