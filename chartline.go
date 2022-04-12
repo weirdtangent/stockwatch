@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
@@ -13,14 +14,11 @@ import (
 	//"github.com/rs/zerolog/log"
 )
 
-const (
-	mainX  = "580px"
-	mainY  = "280px"
-	smallX = "580px"
-	smallY = "180px"
-)
-
 func chartHandlerTickerDailyLine(ctx context.Context, ticker *Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
+	mainX := "580px"
+	mainY := "280px"
+	smallX := "580px"
+	smallY := "200px"
 	nonce := ctx.Value(ContextKey("nonce")).(string)
 
 	// build data needed
@@ -29,12 +27,18 @@ func chartHandlerTickerDailyLine(ctx context.Context, ticker *Ticker, exchange *
 		html, _ := renderTemplateToString("_emptychart", nil)
 		return html
 	}
+	if days >= 120 { // min 120 workdays in 6 months
+		mainX = "780px"
+		smallX = "780px"
+	}
+
 	x_axis := make([]string, 0, days)
 	hidden_axis := make([]string, 0, days)
 	lineData := make([]opts.LineData, 0, days)
 	volumeData := make([]opts.BarData, 0, days)
 	for x := range dailies {
-		displayDate := dailies[x].PriceDate
+		tickerDate, _ := time.Parse("2006-01-02", dailies[x].PriceDate)
+		displayDate := tickerDate.Format("Jan 02")
 		closePrice := dailies[x].ClosePrice
 
 		x_axis = append(x_axis, displayDate)
@@ -59,7 +63,7 @@ func chartHandlerTickerDailyLine(ctx context.Context, ticker *Ticker, exchange *
 		}),
 		charts.WithLegendOpts(opts.Legend{
 			Show:     true,
-			Data:     []string{"Closeing Price", "5-Day MA", "10-Day MA", "20-Day MA"},
+			Data:     []string{"Closeing Price", "20-Day MA", "50-Day MA", "200-Day MA"},
 			Orient:   "horizontal",
 			Selected: map[string]bool{ticker.TickerSymbol: true, "MA20": true, "MA50": true, "MA200": true},
 			Left:     "right",
@@ -102,7 +106,8 @@ func chartHandlerTickerDailyLine(ctx context.Context, ticker *Ticker, exchange *
 
 	// Put data into instance
 	prices.SetXAxis(hidden_axis).
-		AddSeries(ticker.TickerSymbol, lineData)
+		AddSeries(ticker.TickerSymbol, lineData,
+			charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
 	prices.
 		AddSeries("MA20", calcMovingLineAvg(20, lineData),
 			charts.WithLineChartOpts(opts.LineChart{Smooth: true}),

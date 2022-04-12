@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"time"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
@@ -11,6 +12,10 @@ import (
 )
 
 func chartHandlerTickerDailyKLine(ctx context.Context, ticker *Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
+	mainX := "580px"
+	mainY := "280px"
+	smallX := "580px"
+	smallY := "200px"
 	nonce := ctx.Value(ContextKey("nonce")).(string)
 
 	// build data needed
@@ -19,12 +24,18 @@ func chartHandlerTickerDailyKLine(ctx context.Context, ticker *Ticker, exchange 
 		html, _ := renderTemplateToString("_emptychart", nil)
 		return html
 	}
+	if days >= 120 { // min 120 workdays in 6 months
+		mainX = "780px"
+		smallX = "780px"
+	}
+
 	x_axis := make([]string, 0, days)
 	hidden_axis := make([]string, 0, days)
 	candleData := make([]opts.KlineData, 0, days)
 	volumeData := make([]opts.BarData, 0, days)
 	for x := range dailies {
-		displayDate := dailies[x].PriceDate
+		tickerDate, _ := time.Parse("2006-01-02", dailies[x].PriceDate)
+		displayDate := tickerDate.Format("Jan 02")
 		x_axis = append(x_axis, displayDate)
 		hidden_axis = append(hidden_axis, "")
 
