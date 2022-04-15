@@ -181,7 +181,6 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 	webdata["clientId"] = ctx.Value(ContextKey("google_oauth_client_id")).(string)
 	webdata["scope"] = "openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
 	webdata["redirectTo"] = "https://stockwatch.graystorm.com/callback"
-	webdata["nonce"] = RandStringMask(32)
 
 	return false
 }
