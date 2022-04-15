@@ -48,18 +48,12 @@ func main() {
 	}
 
 	// connect to MySQL
-	db, err := myaws.DBConnect(awssess, "stockwatch_rds", "stockwatch")
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to connect to MySQL")
-	}
+	db := myaws.DBMustConnect(awssess, "stockwatch", "stockwatch")
+
 	_, err = db.Exec("SET NAMES utf8mb4 COLLATE utf8mb4_general_ci")
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to switch RDS to UTF8")
 	}
-	// _, err = db.Exec("SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))")
-	// if err != nil {
-	// 	log.Fatal().Err(err).Msg("failed to turn off ONLY_FULL_GROUP_BY")
-	// }
 
 	// connect to Dynamo
 	ddb, err := myaws.DDBConnect(awssess)
