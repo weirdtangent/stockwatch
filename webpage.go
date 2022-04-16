@@ -83,6 +83,12 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 		}
 	}
 
+	// schedule to update ticker news
+	err = ticker.queueUpdateNews(ctx)
+	if err != nil {
+		logger.Error().Err(err).Str("ticker", symbol).Int64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
+	}
+
 	// Build charts
 	var lineChartHTML = chartHandlerTickerDailyLine(ctx, ticker, exchange, ticker_dailies, webwatches)
 	var klineChartHTML = chartHandlerTickerDailyKLine(ctx, ticker, exchange, ticker_dailies, webwatches)

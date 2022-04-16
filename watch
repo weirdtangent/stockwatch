@@ -1,0 +1,4 @@
+#!/bin/bash
+
+cd /www/stockwatch
+go build && ./restart && tail -f /www/stockwatch/logs/stockwatch.log

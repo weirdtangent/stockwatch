@@ -145,6 +145,8 @@ func getSourceId(source string) (int64, error) {
 		return 6, nil
 	} else if source == "globe-newswire" {
 		return 7, nil
+	} else if source == "dow-jones" {
+		return 8, nil
 	}
 	return 0, fmt.Errorf("unknown source string: %s", source)
 }
@@ -281,7 +283,7 @@ func getArticlesByTicker(ctx context.Context, ticker_id int64) (*[]WebArticle, e
 					AND ticker_id=?
   				GROUP BY article_id
 				ORDER BY published_datetime DESC
-    			LIMIT 10`
+    			LIMIT 20`
 	rows, err = db.Queryx(query, fromDate, ticker_id)
 
 	if err != nil {

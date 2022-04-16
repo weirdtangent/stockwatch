@@ -7,7 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 	"github.com/weirdtangent/mytime"
@@ -417,6 +419,42 @@ func (t Ticker) getSplits(ctx context.Context) ([]TickerSplit, error) {
 	}
 
 	return tickerSplits, nil
+}
+
+func (t Ticker) queueUpdateNews(ctx context.Context) error {
+	awssess := ctx.Value(ContextKey("awssess")).(*session.Session)
+	awssvc := sqs.New(awssess)
+	queueName := "stockwatch-tickers-news"
+
+	urlResult, err := awssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
+		QueueName: &queueName,
+	})
+	if err != nil {
+		return err
+	}
+
+	type TaskTickerNewsBody struct {
+		TickerId     int64  `json:"ticker_id"`
+		TickerSymbol string `json:"ticker_symbol"`
+		ExchangeId   int64  `json:"exchange_id"`
+	}
+
+	// get next message from queue, if any
+	queueURL := urlResult.QueueUrl
+	messageBytes, _ := json.Marshal(TaskTickerNewsBody{TickerSymbol: t.TickerSymbol})
+	messageBody := string(messageBytes)
+	messageAttributes := map[string]*sqs.MessageAttributeValue{
+		"action": {
+			DataType:    aws.String("String"),
+			StringValue: aws.String("news"),
+		}}
+	// deduplicationId := queueName + ":" + t.TickerSymbol
+	_, err = awssvc.SendMessage(&sqs.SendMessageInput{
+		MessageBody:       aws.String(messageBody),
+		MessageAttributes: messageAttributes,
+		QueueUrl:          queueURL,
+	})
+	return err
 }
 
 // misc -----------------------------------------------------------------------
