@@ -72,7 +72,7 @@ func (td *TickerDaily) create(ctx context.Context) error {
 	logger := log.Ctx(ctx)
 
 	if td.Volume == 0 {
-		logger.Warn().Msg("Refusing to add ticker daily with 0 volume")
+		// logger.Warn().Msg("Refusing to add ticker daily with 0 volume")
 		return nil
 	}
 
@@ -91,7 +91,7 @@ func (td *TickerDaily) createOrUpdate(ctx context.Context) error {
 	logger := log.Ctx(ctx)
 
 	if td.Volume == 0 {
-		logger.Warn().Msg("Refusing to add ticker daily with 0 volume")
+		// logger.Warn().Msg("Refusing to add ticker daily with 0 volume")
 		return nil
 	}
 

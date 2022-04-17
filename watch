@@ -1,4 +1,4 @@
 #!/bin/bash
 
 cd /www/stockwatch
-go build && ./restart && tail -f /www/stockwatch/logs/stockwatch.log
+go build && ./restart && tail -f /www/stockwatch/logs/stockwatch.log 2>&1 | ~/bin/jslog.pl

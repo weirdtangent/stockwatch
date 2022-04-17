@@ -28,7 +28,7 @@ func (ts *TickerSplit) createIfNew(ctx context.Context) error {
 	logger := log.Ctx(ctx)
 
 	if ts.SplitRatio == "" {
-		logger.Warn().Msg("Refusing to add ticker split with blank ratio")
+		// logger.Warn().Msg("Refusing to add ticker split with blank ratio")
 		return nil
 	}
 

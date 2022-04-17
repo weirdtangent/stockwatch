@@ -66,7 +66,7 @@ func (t *Ticker) create(ctx context.Context) error {
 	logger := log.Ctx(ctx)
 
 	if t.TickerSymbol == "" {
-		logger.Warn().Msg("refusing to add ticker with blank symbol")
+		// logger.Warn().Msg("refusing to add ticker with blank symbol")
 		return nil
 	}
 
@@ -106,7 +106,7 @@ func (t *Ticker) createOrUpdate(ctx context.Context) error {
 	logger := log.Ctx(ctx)
 
 	if t.TickerSymbol == "" {
-		logger.Warn().Msg("refusing to add ticker with blank symbol")
+		// logger.Warn().Msg("refusing to add ticker with blank symbol")
 		return nil
 	}
 

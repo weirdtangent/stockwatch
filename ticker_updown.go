@@ -32,7 +32,7 @@ func (tud *TickerUpDown) createIfNew(ctx context.Context) error {
 	logger := log.Ctx(ctx)
 
 	if tud.UpDownToGrade == "" {
-		logger.Warn().Msg("Refusing to add ticker up/down with blank to_grade")
+		// logger.Warn().Msg("Refusing to add ticker up/down with blank to_grade")
 		return nil
 	}
 
