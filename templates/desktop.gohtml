@@ -103,7 +103,9 @@
                   {{range $num, $a := .articles}}
                     {{if lt $num 5}}
                     <div class="card bg-secondary col-12 col-lg-5 col-xl-3 col-xxl-2 mx-lg-4 mx-xl-3 mx-xxl-2 mb-2 shadow rounded">
+                      {{ if .ImageURL }}
                       <img src="{{.ImageURL}}" class="card-img-top" alt="Included image for article titled: {{.Title}}">
+                      {{ end }}
                       <div class="card-body mb-1 small">
                         <h6 class="card-title"><a href="{{.ArticleURL}}" target="_blank">{{.Title}}</a> <i class="ps-2 fas fa-external-link-alt fa-xs"></i></h6>
                         {{if .AuthorByline.Valid}}<p class="text-info small">by {{.AuthorByline.String}}</p>{{end}}

@@ -187,7 +187,7 @@ func (s *Session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		state := RandStringMask(32)
 		session.Values["state"] = state
 		session.Values["recents"] = []string{}
-		session.Values["theme"] = "light"
+		session.Values["theme"] = "dark"
 		err := session.Save(r, w)
 		if err != nil {
 			logger.Fatal().Err(err).Msg("Failed to save session")
