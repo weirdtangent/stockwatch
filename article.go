@@ -132,23 +132,12 @@ func getArticleByExternalId(ctx context.Context, sourceId int64, externalId stri
 	return articleId, err
 }
 
-func getSourceId(source string) (int64, error) {
-	if source == "Morningstar" {
-		return 2, nil
-	} else if source == "Bloomberg" {
-		return 3, nil
-	} else if source == "business-wire" {
-		return 4, nil
-	} else if source == "marketwatch" {
-		return 5, nil
-	} else if source == "pr-newswire" {
-		return 6, nil
-	} else if source == "globe-newswire" {
-		return 7, nil
-	} else if source == "dow-jones" {
-		return 8, nil
-	}
-	return 0, fmt.Errorf("unknown source string: %s", source)
+func getSourceId(ctx context.Context, source string) (int64, error) {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+
+	var sourceId int64
+	err := db.QueryRowx("SELECT * FROM source WHERE source_string=?", source).StructScan(&sourceId)
+	return sourceId, err
 }
 
 func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, error) {

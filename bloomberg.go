@@ -16,9 +16,9 @@ func loadBBNewsArticles(ctx context.Context, query string) error {
 	apiKey := ctx.Value(ContextKey("bloomberg_apikey")).(string)
 	apiHost := ctx.Value(ContextKey("bloomberg_apihost")).(string)
 
-	sourceId, err := getSourceId("Bloomberg")
+	sourceId, err := getSourceId(ctx, "bloomberg")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to find sourceId for API source")
+		logger.Error().Err(err).Msg("unknown source, skipping news article")
 		return err
 	}
 

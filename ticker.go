@@ -13,6 +13,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 	"github.com/weirdtangent/mytime"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type Ticker struct {
@@ -378,7 +381,7 @@ func (t Ticker) getAttributes(ctx context.Context) ([]TickerAttribute, error) {
 		} else {
 			underscore_rx := regexp.MustCompile(`_`)
 			tickerAttribute.AttributeName = string(underscore_rx.ReplaceAll([]byte(tickerAttribute.AttributeName), []byte(" ")))
-			tickerAttribute.AttributeName = strings.Title(strings.ToLower(tickerAttribute.AttributeName))
+			tickerAttribute.AttributeName = cases.Title(language.English).String(strings.ToLower(tickerAttribute.AttributeName))
 			tickerAttributes = append(tickerAttributes, tickerAttribute)
 		}
 	}

@@ -98,19 +98,19 @@ func main() {
 	secrets["yahoofinance_rapidapi_host"] = *yf_api_access_host
 
 	// get morningstar api access key and host
-	ms_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "morningstar_rapidapi_key")
+	ms_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "msfinance_rapidapi_key")
 	if err != nil {
 		log.Fatal().Err(err).
 			Msg("failed to get Morningstar API key")
 	}
-	secrets["morningstar_rapidapi_key"] = *ms_api_access_key
+	secrets["msfinance_rapidapi_key"] = *ms_api_access_key
 
-	ms_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "morningstar_rapidapi_host")
+	ms_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "msfinance_rapidapi_host")
 	if err != nil {
 		log.Fatal().Err(err).
 			Msg("failed to get Morningstar API key")
 	}
-	secrets["morningstar_rapidapi_host"] = *ms_api_access_host
+	secrets["msfinance_rapidapi_host"] = *ms_api_access_host
 
 	// get bloomberg api access key and host
 	bb_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "bloomberg_rapidapi_key")

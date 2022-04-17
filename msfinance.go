@@ -2,26 +2,24 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/weirdtangent/morningstar"
+	"github.com/weirdtangent/msfinance"
 )
 
 // load movers (gainers, losers, and actives)
 func loadMovers(ctx context.Context) error {
 	logger := log.Ctx(ctx)
 
-	apiKey := ctx.Value(ContextKey("morningstar_apikey")).(string)
-	apiHost := ctx.Value(ContextKey("morningstar_apihost")).(string)
+	apiKey := ctx.Value(ContextKey("msfinance_apikey")).(string)
+	apiHost := ctx.Value(ContextKey("msfinance_apihost")).(string)
 
-	sourceId, err := getSourceId("Morningstar")
+	sourceId, err := getSourceId(ctx, "morningstar")
 	if err != nil {
-		log.Error().Err(err).Msg("failed to find sourceId for API source")
+		logger.Error().Err(err).Msg("unknown source, skipping news article")
 		return err
 	}
 
@@ -29,17 +27,10 @@ func loadMovers(ctx context.Context) error {
 	currentDate := time.Now().In(EasternTZ)
 	currentDateStr := currentDate.Format("2006-01-02")
 
-	moversParams := map[string]string{}
-	response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "movers", moversParams)
+	moversResponse, err := msfinance.MSGetMovers(apiKey, apiHost)
 	if err != nil {
-		logger.Warn().Err(err).
-			Msg("failed to retrieve movers")
-		return err
+		return nil
 	}
-
-	var moversResponse morningstar.MSMoversResponse
-	json.NewDecoder(strings.NewReader(response)).Decode(&moversResponse)
-
 	for _, gainer := range moversResponse.Gainers {
 		var err error
 
@@ -93,27 +84,27 @@ func loadMovers(ctx context.Context) error {
 // func loadMSNewsArticles(ctx context.Context, query string) error {
 // 	logger := log.Ctx(ctx)
 
-// 	apiKey := ctx.Value(ContextKey("morningstar_apikey")).(string)
-// 	apiHost := ctx.Value(ContextKey("morningstar_apihost")).(string)
+// 	apiKey := ctx.Value(ContextKey("msfinance_apikey")).(string)
+// 	apiHost := ctx.Value(ContextKey("msfinance_apihost")).(string)
 
 // 	performanceIds := make(map[string]bool)
 
-// 	sourceId, err := getSourceId("Morningstar")
-// 	if err != nil {
-// 		log.Error().Err(err).Msg("failed to find sourceId for API source")
-// 		return err
-// 	}
+//  sourceId, err := getSourceId(ctx, "bloomberg")
+//  if err != nil {
+//   	logger.Error().Err(err).Msg("unknown source, skipping news article")
+// 	    return err
+//  }
 
 // 	autoCompleteParams := map[string]string{}
 // 	autoCompleteParams["q"] = query
-// 	response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "autocomplete", autoCompleteParams)
+// 	response, err := msfinance.GetFromMSFinance(&apiKey, &apiHost, "autocomplete", autoCompleteParams)
 // 	if err != nil {
 // 		logger.Warn().Err(err).
 // 			Msg("failed to retrieve autocomplete")
 // 		return err
 // 	}
 
-// 	var autoCompleteResponse morningstar.MSAutoCompleteResponse
+// 	var autoCompleteResponse msfinance.MSAutoCompleteResponse
 // 	json.NewDecoder(strings.NewReader(response)).Decode(&autoCompleteResponse)
 
 // 	for _, result := range autoCompleteResponse.Results {
@@ -124,13 +115,13 @@ func loadMovers(ctx context.Context) error {
 // 			articleListParams := map[string]string{}
 // 			articleListParams["performanceId"] = performanceId
 // 			logger.Info().Str("performance_id", performanceId).Msg("Checking for news articles for performance_id")
-// 			response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "articlelist", articleListParams)
+// 			response, err := msfinance.GetFromMSFinance(&apiKey, &apiHost, "articlelist", articleListParams)
 // 			if err != nil {
 // 				logger.Warn().Err(err).Str("performanceId", performanceId).
 // 					Msg("failed to retrieve articleList")
 // 			} else {
 
-// 				var articlesListResponse []morningstar.MSArticlesListResponse
+// 				var articlesListResponse []msfinance.MSArticlesListResponse
 // 				json.NewDecoder(strings.NewReader(response)).Decode(&articlesListResponse)
 
 // 				for _, story := range articlesListResponse {
@@ -216,74 +207,59 @@ func loadMovers(ctx context.Context) error {
 func loadMSNews(ctx context.Context, query string, ticker_id int64) error {
 	logger := log.Ctx(ctx)
 
-	apiKey := ctx.Value(ContextKey("morningstar_apikey")).(string)
-	apiHost := ctx.Value(ContextKey("morningstar_apihost")).(string)
+	apiKey := ctx.Value(ContextKey("msfinance_apikey")).(string)
+	apiHost := ctx.Value(ContextKey("msfinance_apihost")).(string)
 
-	performanceIds := make(map[string]bool)
-
-	autoCompleteParams := map[string]string{}
-	autoCompleteParams["q"] = query
-	response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "autocomplete", autoCompleteParams)
+	autoCompleteResponse, err := msfinance.MSAutoComplete(apiKey, apiHost, query)
 	if err != nil {
-		logger.Warn().Err(err).
-			Msg("failed to retrieve autocomplete")
 		return err
 	}
 
-	var autoCompleteResponse morningstar.MSAutoCompleteResponse
-	json.NewDecoder(strings.NewReader(response)).Decode(&autoCompleteResponse)
-
+	performanceIds := make(map[string]bool)
 	for _, result := range autoCompleteResponse.Results {
 		performanceId := result.PerformanceId
 		if _, ok := performanceIds[performanceId]; !ok {
 			performanceIds[performanceId] = true
 
-			newsListParams := map[string]string{}
-			newsListParams["performanceId"] = performanceId
-			logger.Info().Str("performance_id", performanceId).Msg("Checking for news for performance_id")
-			response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "newslist", newsListParams)
+			newsListResponse, err := msfinance.MSGetNewsList(apiKey, apiHost, performanceId)
 			if err != nil {
-				logger.Warn().Err(err).Str("performanceId", performanceId).
-					Msg("failed to retrieve newsList")
-			} else {
-				var newsListResponse []morningstar.MSNewsListResponse
-				json.NewDecoder(strings.NewReader(response)).Decode(&newsListResponse)
+				return err
+			}
 
-				for _, story := range newsListResponse {
-					sourceId, err := getSourceId(story.SourceId)
-					if err != nil {
-						log.Error().Err(err).Msg("failed story")
+			for _, story := range newsListResponse {
+				sourceId, err := getSourceId(ctx, story.SourceId)
+				if err != nil {
+					log.Error().Err(err).Msg("unknown source, skipping news article")
+					continue
+				}
+
+				if existingId, err := getArticleByExternalId(ctx, sourceId, story.InternalId); err != nil || existingId != 0 {
+					log.Info().Err(err).Str("existing_id", story.InternalId).Msg("skipped article because of err or we already have")
+				} else {
+					content, err := getNewsItemContent(ctx, story.SourceId, story.InternalId)
+					if err != nil || len(content) == 0 {
+						log.Error().Err(err).Msg("no news item content found")
 						continue
 					}
 
-					if existingId, err := getArticleByExternalId(ctx, sourceId, story.InternalId); err != nil || existingId != 0 {
-						log.Info().Err(err).Str("existing_id", story.InternalId).Msg("skipped article because of err or we already have")
-					} else {
-						content, err := getNewsItemContent(ctx, story.SourceId, story.InternalId)
-						if err != nil || len(content) == 0 {
-							log.Error().Err(err).Msg("no news item content found")
-							continue
-						}
+					publishedDateTime, err := time.Parse("2006-01-02T15:04:05-07:00", story.Published)
+					if err != nil {
+						log.Error().Err(err).Msg("could not parse Published")
+						continue
+					}
+					publishedDate := publishedDateTime.Format("2006-01-02 15:04:05")
 
-						publishedDateTime, err := time.Parse("2006-01-02T15:04:05-07:00", story.Published)
-						if err != nil {
-							log.Error().Err(err).Msg("could not parse Published")
-							continue
-						}
-						publishedDate := publishedDateTime.Format("2006-01-02 15:04:05")
+					article := Article{0, sourceId, story.InternalId, publishedDate, publishedDate, story.Title, content, "", "", "", ""}
 
-						article := Article{0, sourceId, story.InternalId, publishedDate, publishedDate, story.Title, content, "", "", "", ""}
+					err = article.createArticle(ctx)
+					if err != nil {
+						logger.Warn().Err(err).Str("id", query).Msg("failed to write new news article")
+					}
 
-						err = article.createArticle(ctx)
-						if err != nil {
-							logger.Warn().Err(err).Str("id", query).Msg("failed to write new news article")
-						}
-
-						articleTicker := ArticleTicker{0, article.ArticleId, query, ticker_id, "", ""}
-						err = articleTicker.createArticleTicker(ctx)
-						if err != nil {
-							logger.Warn().Err(err).Str("id", query).Msg("failed to write ticker(s) for new article")
-						}
+					articleTicker := ArticleTicker{0, article.ArticleId, query, ticker_id, "", ""}
+					err = articleTicker.createArticleTicker(ctx)
+					if err != nil {
+						logger.Warn().Err(err).Str("id", query).Msg("failed to write ticker(s) for new article")
 					}
 				}
 			}
@@ -292,32 +268,23 @@ func loadMSNews(ctx context.Context, query string, ticker_id int64) error {
 	return nil
 }
 
-// load news
 func getNewsItemContent(ctx context.Context, sourceId string, internalId string) (string, error) {
 	logger := log.Ctx(ctx)
 
-	apiKey := ctx.Value(ContextKey("morningstar_apikey")).(string)
-	apiHost := ctx.Value(ContextKey("morningstar_apihost")).(string)
+	apiKey := ctx.Value(ContextKey("msfinance_apikey")).(string)
+	apiHost := ctx.Value(ContextKey("msfinance_apihost")).(string)
 
-	newsDetailsParams := map[string]string{}
-	newsDetailsParams["id"] = internalId
-	newsDetailsParams["sourceId"] = sourceId
-	response, err := morningstar.GetFromMorningstar(&apiKey, &apiHost, "newsdetails", newsDetailsParams)
+	newsDetailsResponse, err := msfinance.MSGetNewsDetails(apiKey, apiHost, internalId, sourceId)
 	if err != nil {
-		logger.Warn().Err(err).
-			Msg(fmt.Sprintf("failed to retrieve newsdetails for id/source %s/%s", internalId, sourceId))
 		return "", err
 	}
-
-	var newsDetailsResponse morningstar.MSNewsDetailsResponse
-	json.NewDecoder(strings.NewReader(response)).Decode(&newsDetailsResponse)
 
 	newsContent := followContent(newsDetailsResponse.ContentObj)
 	logger.Info().Msg(fmt.Sprintf("found content of %d bytes for article", len(newsContent)))
 	return newsContent, nil
 }
 
-func followContent(contentObj []morningstar.MSNewsContentObj) string {
+func followContent(contentObj []msfinance.MSNewsContentObj) string {
 	noSpaces := regexp.MustCompile(`^\S+$`)
 
 	var content string
