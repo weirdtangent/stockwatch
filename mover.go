@@ -86,7 +86,7 @@ func (m *Mover) createIfNew(ctx context.Context) error {
 	logger := log.Ctx(ctx)
 
 	if m.MoverType == "" {
-		logger.Warn().Msg("Refusing to add mover with blank mover type")
+		// logger.Warn().Msg("Refusing to add mover with blank mover type")
 		return nil
 	}
 
