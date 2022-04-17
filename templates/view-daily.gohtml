@@ -28,9 +28,11 @@
               <div class="px-2 py-1 bg-dark small text-light min-box">
                 {{range .articles}}
                 <div class="text-white modal-link news-title" data-bs-toggle="modal" data-bs-target="#source{{.SourceId}}-id{{.ExternalId}}-modal">
+                  <span class="small text-info">
+                    {{FormatDatetimeStr .PublishedDatetime "Jan 02"}}
+                  </span>
                   {{.Title}} <i class="far fa-window fa-xs"></i>
                   <span class="small text-info">
-                    {{FormatDatetimeStr .PublishedDatetime "Jan 2"}}
                     {{if .AuthorByline.Valid}}
                       by {{.AuthorByline.String}}
                       {{else}}
@@ -70,7 +72,7 @@
               <div class="list-group list-group-flush bg-dark min-box">
                 {{range .ticker_updowns}}
                 <div class="list-group-item text-info">
-                  <span class="text-light">{{FormatDatetimeStr .UpDownDate "Jan 2"}}</span> :
+                  <span class="text-light">{{FormatDatetimeStr .UpDownDate "Jan 02"}}</span> :
                   <span class="{{ GradeColor .UpDownToGrade}}">{{.UpDownToGrade}}</span>
                   <span class="text-light">by</span> {{.UpDownFirm}}{{if .UpDownFromGrade}}<span class="text-light">, previously</span> <span class="{{ GradeColor .UpDownFromGrade}}">{{.UpDownFromGrade}}</span>{{end}}
                   <span class="{{ SinceColor .UpDownSince}}">{{.UpDownSince}}</span>

@@ -136,7 +136,7 @@ func getSourceId(ctx context.Context, source string) (int64, error) {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var sourceId int64
-	err := db.QueryRowx("SELECT * FROM source WHERE source_string=?", source).StructScan(&sourceId)
+	err := db.QueryRowx("SELECT source_id FROM source WHERE source_string=?", source).Scan(&sourceId)
 	return sourceId, err
 }
 

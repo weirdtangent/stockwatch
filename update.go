@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 	//"github.com/jmoiron/sqlx"
@@ -34,21 +33,6 @@ func updateHandler() http.HandlerFunc {
 				*messages = append(*messages, Message{fmt.Sprintf("pulling latest Morningstar Movers failed: %s", err.Error()), "danger"})
 			} else {
 				*messages = append(*messages, Message{"pulled latest Morningstar Movers", "success"})
-			}
-		case "msnews":
-			query := r.FormValue("q")
-			tickerId, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
-			if len(query) < 1 {
-				*messages = append(*messages, Message{"no query string found", "danger"})
-			} else if err != nil {
-				*messages = append(*messages, Message{"ticker_id not provided or invalid", "danger"})
-			} else {
-				err = loadMSNews(ctx, query, tickerId)
-				if err != nil {
-					*messages = append(*messages, Message{fmt.Sprintf("pulling Morningstar News for %s failed: %s", query, err.Error()), "danger"})
-				} else {
-					*messages = append(*messages, Message{fmt.Sprintf("pulled Morningstar News for %s", query), "success"})
-				}
 			}
 		case "bbnews":
 			query := r.FormValue("q")
