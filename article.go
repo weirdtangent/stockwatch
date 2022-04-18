@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"database/sql"
-	"errors"
 	"fmt"
 	"html/template"
 	"regexp"
@@ -116,29 +115,29 @@ type WebArticle struct {
 // 	return a.getArticleById(ctx)
 // }
 
-func getArticleByExternalId(ctx context.Context, sourceId int64, externalId string) (int64, error) {
-	logger := log.Ctx(ctx)
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+// func getArticleByExternalId(ctx context.Context, sourceId int64, externalId string) (int64, error) {
+// 	logger := log.Ctx(ctx)
+// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	var articleId int64
-	err := db.QueryRowx("SELECT article_id FROM article WHERE source_id=? && external_id=?", sourceId, externalId).Scan(&articleId)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return 0, nil
-		} else {
-			logger.Warn().Err(err).Str("table_name", "article").Msg("Failed to check for existing record")
-		}
-	}
-	return articleId, err
-}
+// 	var articleId int64
+// 	err := db.QueryRowx("SELECT article_id FROM article WHERE source_id=? && external_id=?", sourceId, externalId).Scan(&articleId)
+// 	if err != nil {
+// 		if errors.Is(err, sql.ErrNoRows) {
+// 			return 0, nil
+// 		} else {
+// 			logger.Warn().Err(err).Str("table_name", "article").Msg("Failed to check for existing record")
+// 		}
+// 	}
+// 	return articleId, err
+// }
 
-func getSourceId(ctx context.Context, source string) (int64, error) {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+// func getSourceId(ctx context.Context, source string) (int64, error) {
+// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	var sourceId int64
-	err := db.QueryRowx("SELECT source_id FROM source WHERE source_string=?", source).Scan(&sourceId)
-	return sourceId, err
-}
+// 	var sourceId int64
+// 	err := db.QueryRowx("SELECT source_id FROM source WHERE source_string=?", source).Scan(&sourceId)
+// 	return sourceId, err
+// }
 
 func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, error) {
 	logger := log.Ctx(ctx)
@@ -320,31 +319,31 @@ func getArticlesByTicker(ctx context.Context, ticker_id int64) (*[]WebArticle, e
 
 // article authors ------------------------------------------------------------
 
-func (aa *ArticleAuthor) getArticleAuthorById(ctx context.Context) error {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+// func (aa *ArticleAuthor) getArticleAuthorById(ctx context.Context) error {
+// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	err := db.QueryRowx("SELECT * FROM article_author WHERE article_author_id=?", aa.ArticleAuthorId).StructScan(aa)
-	return err
-}
+// 	err := db.QueryRowx("SELECT * FROM article_author WHERE article_author_id=?", aa.ArticleAuthorId).StructScan(aa)
+// 	return err
+// }
 
-func (aa *ArticleAuthor) createArticleAuthor(ctx context.Context) error {
-	logger := log.Ctx(ctx)
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+// func (aa *ArticleAuthor) createArticleAuthor(ctx context.Context) error {
+// 	logger := log.Ctx(ctx)
+// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	var insert = "INSERT INTO article_author SET article_id=?, byline=?, job_title=?, short_bio=?, long_bio=?, image_url=?"
+// 	var insert = "INSERT INTO article_author SET article_id=?, byline=?, job_title=?, short_bio=?, long_bio=?, image_url=?"
 
-	res, err := db.Exec(insert, aa.ArticleId, aa.Byline, aa.JobTitle, aa.ShortBio, aa.LongBio, aa.ImageURL)
-	if err != nil {
-		logger.Fatal().Err(err).
-			Str("table_name", "article_author").
-			Msg("Failed on INSERT")
-	}
-	articleAuthorId, err := res.LastInsertId()
-	if err != nil || articleAuthorId == 0 {
-		logger.Fatal().Err(err).
-			Str("table_name", "article_author").
-			Msg("Failed on LAST_INSERT_ID")
-	}
-	aa.ArticleAuthorId = articleAuthorId
-	return aa.getArticleAuthorById(ctx)
-}
+// 	res, err := db.Exec(insert, aa.ArticleId, aa.Byline, aa.JobTitle, aa.ShortBio, aa.LongBio, aa.ImageURL)
+// 	if err != nil {
+// 		logger.Fatal().Err(err).
+// 			Str("table_name", "article_author").
+// 			Msg("Failed on INSERT")
+// 	}
+// 	articleAuthorId, err := res.LastInsertId()
+// 	if err != nil || articleAuthorId == 0 {
+// 		logger.Fatal().Err(err).
+// 			Str("table_name", "article_author").
+// 			Msg("Failed on LAST_INSERT_ID")
+// 	}
+// 	aa.ArticleAuthorId = articleAuthorId
+// 	return aa.getArticleAuthorById(ctx)
+// }

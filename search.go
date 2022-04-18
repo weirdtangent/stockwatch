@@ -57,7 +57,7 @@ func searchHandler() http.HandlerFunc {
 			webdata["searchString"] = searchString
 
 			logger.Info().
-				Str("search_provider", "yahoofinance").
+				Str("search_provider", "yhfinance").
 				Str("search_type", searchType).
 				Str("search_string", searchString).
 				Msg("Search performed")
@@ -73,7 +73,7 @@ func searchHandler() http.HandlerFunc {
 					break
 				}
 				log.Info().
-					Str("search_provider", "yahoofinance").
+					Str("search_provider", "yhfinance").
 					Str("search_type", searchType).
 					Str("search_string", searchString).
 					Str("symbol", searchResultTicker.TickerSymbol).
@@ -91,7 +91,7 @@ func searchHandler() http.HandlerFunc {
 					break
 				}
 				log.Info().
-					Str("search_provider", "yahoofinance").
+					Str("search_provider", "yhfinance").
 					Str("search_type", searchType).
 					Str("search_string", searchString).
 					Int("results_count", len(searchResults)).

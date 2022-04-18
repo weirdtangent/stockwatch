@@ -112,20 +112,20 @@ func main() {
 	}
 	secrets["msfinance_rapidapi_host"] = *ms_api_access_host
 
-	// get bloomberg api access key and host
-	bb_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "bloomberg_rapidapi_key")
+	// get bbfinance api access key and host
+	bb_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "bbfinance_rapidapi_key")
 	if err != nil {
 		log.Fatal().Err(err).
-			Msg("failed to get Bloomberg API key")
+			Msg("failed to get bbfinance API key")
 	}
-	secrets["bloomberg_rapidapi_key"] = *bb_api_access_key
+	secrets["bbfinance_rapidapi_key"] = *bb_api_access_key
 
-	bb_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "bloomberg_rapidapi_host")
+	bb_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "bbfinance_rapidapi_host")
 	if err != nil {
 		log.Fatal().Err(err).
-			Msg("failed to get Bloomberg API key")
+			Msg("failed to get bbfinance API key")
 	}
-	secrets["bloomberg_rapidapi_host"] = *bb_api_access_host
+	secrets["bbfinance_rapidapi_host"] = *bb_api_access_host
 
 	// config Google OAuth
 	googleOAuthClientId, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "google_oauth_client_id")
