@@ -9,7 +9,7 @@ import (
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/rs/zerolog/log"
-	"github.com/weirdtangent/yahoofinance"
+	"github.com/weirdtangent/yhfinance"
 )
 
 // load new ticker (and possibly new exchange)
@@ -22,18 +22,18 @@ func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 
 	var ticker *Ticker
 
-	apiKey := ctx.Value(ContextKey("yahoofinance_apikey")).(string)
-	apiHost := ctx.Value(ContextKey("yahoofinance_apihost")).(string)
+	apiKey := ctx.Value(ContextKey("yhfinance_apikey")).(string)
+	apiHost := ctx.Value(ContextKey("yhfinance_apihost")).(string)
 
 	// pull recent response from redis (1 day expire), or go get from YF
-	redisKey := "yahoofinance/summary/" + symbol
+	redisKey := "yhfinance/summary/" + symbol
 	response, err := redis.String(redisConn.Do("GET", redisKey))
 	if err == nil {
 		log.Info().Str("redis_key", redisKey).Msg("redis cache hit")
 	} else {
 		var err error
 		summaryParams := map[string]string{"symbol": symbol}
-		response, err = yahoofinance.GetFromYahooFinance(&apiKey, &apiHost, "summary", summaryParams)
+		response, err = yhfinance.GetFromYHFinance(&apiKey, &apiHost, "summary", summaryParams)
 		if err != nil {
 			logger.Warn().Err(err).
 				Str("ticker", symbol).
@@ -49,7 +49,7 @@ func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 		}
 	}
 
-	var summaryResponse yahoofinance.YFSummaryResponse
+	var summaryResponse yhfinance.YFSummaryResponse
 	json.NewDecoder(strings.NewReader(response)).Decode(&summaryResponse)
 
 	// can't create exchange - all we get is ExchangeCode and I can't find a
@@ -123,27 +123,27 @@ func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 }
 
 // load ticker up-to-date quote
-func loadTickerQuote(ctx context.Context, symbol string) (yahoofinance.YFQuote, error) {
+func loadTickerQuote(ctx context.Context, symbol string) (yhfinance.YFQuote, error) {
 	logger := log.Ctx(ctx)
 	redisPool := ctx.Value(ContextKey("redisPool")).(*redis.Pool)
 
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
 
-	apiKey := ctx.Value(ContextKey("yahoofinance_apikey")).(string)
-	apiHost := ctx.Value(ContextKey("yahoofinance_apihost")).(string)
+	apiKey := ctx.Value(ContextKey("yhfinance_apikey")).(string)
+	apiHost := ctx.Value(ContextKey("yhfinance_apihost")).(string)
 
-	var quote yahoofinance.YFQuote
+	var quote yhfinance.YFQuote
 
 	// pull recent response from redis (20 sec expire), or go get from YF
-	redisKey := "yahoofinance/quote/" + symbol
+	redisKey := "yhfinance/quote/" + symbol
 	response, err := redis.String(redisConn.Do("GET", redisKey))
 	if err == nil {
 		log.Info().Str("redis_key", redisKey).Msg("redis cache hit")
 	} else {
 		var err error
 		quoteParams := map[string]string{"symbols": symbol}
-		response, err = yahoofinance.GetFromYahooFinance(&apiKey, &apiHost, "quote", quoteParams)
+		response, err = yhfinance.GetFromYHFinance(&apiKey, &apiHost, "quote", quoteParams)
 		if err != nil {
 			logger.Warn().Err(err).
 				Str("ticker", symbol).
@@ -159,7 +159,7 @@ func loadTickerQuote(ctx context.Context, symbol string) (yahoofinance.YFQuote, 
 		}
 	}
 
-	var quoteResponse yahoofinance.YFGetQuotesResponse
+	var quoteResponse yhfinance.YFGetQuotesResponse
 	json.NewDecoder(strings.NewReader(response)).Decode(&quoteResponse)
 
 	quote = quoteResponse.QuoteResponse.Quotes[0]
@@ -169,8 +169,8 @@ func loadTickerQuote(ctx context.Context, symbol string) (yahoofinance.YFQuote, 
 
 // load ticker historical prices
 func loadTickerEODs(ctx context.Context, ticker *Ticker) error {
-	apiKey := ctx.Value(ContextKey("yahoofinance_apikey")).(string)
-	apiHost := ctx.Value(ContextKey("yahoofinance_apihost")).(string)
+	apiKey := ctx.Value(ContextKey("yhfinance_apikey")).(string)
+	apiHost := ctx.Value(ContextKey("yhfinance_apihost")).(string)
 	logger := log.Ctx(ctx)
 
 	EasternTZ, _ := time.LoadLocation("America/New_York")
@@ -179,7 +179,7 @@ func loadTickerEODs(ctx context.Context, ticker *Ticker) error {
 	currentTimeStr := currentDate.Format("15:04:05")
 
 	historicalParams := map[string]string{"symbol": ticker.TickerSymbol}
-	response, err := yahoofinance.GetFromYahooFinance(&apiKey, &apiHost, "historical", historicalParams)
+	response, err := yhfinance.GetFromYHFinance(&apiKey, &apiHost, "historical", historicalParams)
 	if err != nil {
 		logger.Warn().Err(err).
 			Str("ticker", ticker.TickerSymbol).
@@ -187,7 +187,7 @@ func loadTickerEODs(ctx context.Context, ticker *Ticker) error {
 		return err
 	}
 
-	var historicalResponse yahoofinance.YFHistoricalDataResponse
+	var historicalResponse yhfinance.YFHistoricalDataResponse
 	json.NewDecoder(strings.NewReader(response)).Decode(&historicalResponse)
 
 	var lastErr error
@@ -253,18 +253,18 @@ func jumpSearch(ctx context.Context, searchString string) (SearchResultTicker, e
 
 // search for ticker or news
 func listSearch(ctx context.Context, searchString string, resultTypes string) ([]SearchResult, error) {
-	apiKey := ctx.Value(ContextKey("yahoofinance_apikey")).(string)
-	apiHost := ctx.Value(ContextKey("yahoofinance_apihost")).(string)
+	apiKey := ctx.Value(ContextKey("yhfinance_apikey")).(string)
+	apiHost := ctx.Value(ContextKey("yhfinance_apihost")).(string)
 
 	searchResults := make([]SearchResult, 0)
 
 	searchParams := map[string]string{"q": searchString}
-	response, err := yahoofinance.GetFromYahooFinance(&apiKey, &apiHost, "autocomplete", searchParams)
+	response, err := yhfinance.GetFromYHFinance(&apiKey, &apiHost, "autocomplete", searchParams)
 	if err != nil {
 		return searchResults, err
 	}
 
-	var searchResponse yahoofinance.YFAutoCompleteResponse
+	var searchResponse yhfinance.YFAutoCompleteResponse
 	json.NewDecoder(strings.NewReader(response)).Decode(&searchResponse)
 
 	if len(searchResponse.Quotes) == 0 && len(searchResponse.News) == 0 {

@@ -18,12 +18,10 @@ require (
 	github.com/prometheus/common v0.33.0 // indirect
 	github.com/rs/zerolog v1.26.1
 	github.com/savaki/dynastore v0.0.0-20171109173440-28d8558bb429
-	github.com/weirdtangent/bloomberg v0.0.0-20210324175403-ebb8bc746955
-	github.com/weirdtangent/msfinance v0.0.0-20220417011538-c955273379fb
 	github.com/weirdtangent/myaws v1.0.1
 	github.com/weirdtangent/mymath v0.1.0
 	github.com/weirdtangent/mytime v0.1.1
-	github.com/weirdtangent/yahoofinance v0.1.11
+	github.com/weirdtangent/yhfinance v0.2.0
 	golang.org/x/net v0.0.0-20220412020605-290c469a71a5 // indirect
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
 	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect

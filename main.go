@@ -82,20 +82,20 @@ func main() {
 
 	// Cache all other secrets into global map -----------------------------------
 
-	// get yahoofinance api access key and host
-	yf_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "yahoofinance_rapidapi_key")
+	// get yhfinance api access key and host
+	yf_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "yhfinance_rapidapi_key")
 	if err != nil {
 		log.Fatal().Err(err).
-			Msg("failed to get Yahoo Finance API key")
+			Msg("failed to get YHFinance API key")
 	}
-	secrets["yahoofinance_rapidapi_key"] = *yf_api_access_key
+	secrets["yhfinance_rapidapi_key"] = *yf_api_access_key
 
-	yf_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "yahoofinance_rapidapi_host")
+	yf_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "yhfinance_rapidapi_host")
 	if err != nil {
 		log.Fatal().Err(err).
-			Msg("failed to get Yahoo Finance API key")
+			Msg("failed to get YHFinance API key")
 	}
-	secrets["yahoofinance_rapidapi_host"] = *yf_api_access_host
+	secrets["yhfinance_rapidapi_host"] = *yf_api_access_host
 
 	// get morningstar api access key and host
 	ms_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "msfinance_rapidapi_key")
@@ -233,7 +233,6 @@ func main() {
 	router.HandleFunc("/view/{symbol}", viewTickerDailyHandler()).Methods("GET")
 	router.HandleFunc("/{action:bought|sold}/{symbol}/{acronym}", transactionHandler()).Methods("POST")
 	router.HandleFunc("/search/{type}", searchHandler()).Methods("POST")
-	router.HandleFunc("/update/{action}", updateHandler()).Methods("GET")
 	router.HandleFunc("/about", homeHandler("about")).Methods("GET")
 	router.HandleFunc("/terms", homeHandler("terms")).Methods("GET")
 	router.HandleFunc("/privacy", homeHandler("privacy")).Methods("GET")

@@ -73,38 +73,6 @@ func (m Movers) SortActives() *[]WebMover {
 	return &m.Actives
 }
 
-func (m *Mover) getByUniqueKey(ctx context.Context) error {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-
-	err := db.QueryRowx(`SELECT * FROM mover WHERE source_id=? AND ticker_id=? AND mover_date=? AND mover_type=?`,
-		m.SourceId, m.TickerId, m.MoverDate, m.MoverType).StructScan(m)
-	return err
-}
-
-func (m *Mover) createIfNew(ctx context.Context) error {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-	logger := log.Ctx(ctx)
-
-	if m.MoverType == "" {
-		// logger.Warn().Msg("Refusing to add mover with blank mover type")
-		return nil
-	}
-
-	err := m.getByUniqueKey(ctx)
-	if err == nil {
-		return nil
-	}
-
-	var insert = "INSERT INTO mover SET source_id=?, ticker_id=?, mover_date=?, mover_type=?, last_price=?, price_change=?, price_change_pct=?, volume=?"
-	_, err = db.Exec(insert, m.SourceId, m.TickerId, m.MoverDate, m.MoverType, m.LastPrice, m.PriceChange, m.PriceChangePct, m.Volume)
-	if err != nil {
-		logger.Fatal().Err(err).
-			Str("table_name", "mover").
-			Msg("Failed on INSERT")
-	}
-	return err
-}
-
 func getMovers(ctx context.Context) (*Movers, error) {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	logger := log.Ctx(ctx)
