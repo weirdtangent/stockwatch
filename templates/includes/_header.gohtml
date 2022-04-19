@@ -56,18 +56,18 @@
                   <button class=" form-control-sm bg-light text-dark" type="submit" name="submit" value="search">Search</button>
                 </form>
               </div>
-            
+
               <div class="col-5 align-self-center">
                 {{- if not .hideRecents}}
                   {{- if .recents}}
                     <ul class="flex-grow-1 nav">
                       <li class="nav-item me-2 pt-2">Recent:</li>
-                      {{range .recents}}
+                      {{range .recents -}}
                         <li class="nav-item me-1 pt-2 recent"><a class="badge text-dark bg-warning text-decoration-none" href="/view/{{.}}"><i class="fas fa-dollar-sign"></i>{{.}}</a></li>
                       {{end}}
                     </ul>
-                  {{end}}
-                {{end}}
+                  {{- end}}
+                {{- end}}
               </div>
 
               <div id="is_market_open_color" class="col-2 flush-right {{if .config.is_market_open}}text-success{{else}}text-danger{{end}}">

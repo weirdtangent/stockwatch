@@ -11,10 +11,13 @@
           <div class="row g-0 main-content">
             <div class="col-12 px-2 pt-1">
               {{ template "_messageblock" . }}
-              <div class="mt-1 col-12 bg-dark opacity-6">
-                <div class="bg-warning text-dark px-2 py-1">Announcements/Notifications?</div>
-                <p class="px-2 py-1">Lorem ipsum dolor sit amet consectetuer In turpis ac netus Mauris. In laoreet orci quam scelerisque orci penatibus quis justo condimentum Curabitur. Ullamcorper mauris leo sed magna pede non tellus at Pellentesque augue. Libero odio urna Vestibulum velit turpis at porta risus Phasellus sit. Aenean feugiat non Vestibulum sed ut vitae sagittis adipiscing eu condimentum. Libero quam elit Nunc orci pretium libero In Nam laoreet arcu. At sapien gravida libero cursus nunc sem et aliquet amet aliquet. Congue justo auctor Phasellus justo nunc libero consequat nec lacus natoque. Turpis nec pellentesque at ridiculus tincidunt ipsum id mauris Nam a. Orci id nascetur Cum a nibh Pellentesque turpis volutpat orci et. Laoreet In nulla lorem Curabitur id Quisque ante convallis felis Nulla. Cursus felis odio elit turpis sit lorem mi nec fames turpis. Et molestie Morbi odio nibh dictumst sollicitudin turpis ac Pellentesque adipiscing. Auctor consequat vel Vestibulum montes Vestibulum eget Fusce hendrerit mauris at. </p>
-              </div>
+
+              {{- if .announcement }}
+                <div class="mt-1 col-12 bg-dark opacity-6">
+                  <div class="bg-warning text-dark px-2 py-1">Announcements/Notifications?</div>
+                  <p class="px-2 py-1">Lorem ipsum dolor sit amet consectetuer In turpis ac netus Mauris. In laoreet orci quam scelerisque orci penatibus quis justo condimentum Curabitur. Ullamcorper mauris leo sed magna pede non tellus at Pellentesque augue. Libero odio urna Vestibulum velit turpis at porta risus Phasellus sit. Aenean feugiat non Vestibulum sed ut vitae sagittis adipiscing eu condimentum. Libero quam elit Nunc orci pretium libero In Nam laoreet arcu. At sapien gravida libero cursus nunc sem et aliquet amet aliquet. Congue justo auctor Phasellus justo nunc libero consequat nec lacus natoque. Turpis nec pellentesque at ridiculus tincidunt ipsum id mauris Nam a. Orci id nascetur Cum a nibh Pellentesque turpis volutpat orci et. Laoreet In nulla lorem Curabitur id Quisque ante convallis felis Nulla. Cursus felis odio elit turpis sit lorem mi nec fames turpis. Et molestie Morbi odio nibh dictumst sollicitudin turpis ac Pellentesque adipiscing. Auctor consequat vel Vestibulum montes Vestibulum eget Fusce hendrerit mauris at. </p>
+                </div>
+              {{- end }}
 
               <div class="row g-0">
                 <div id="movers" class="mt-1 col-12 col-lg-6 bg-dark opacity-6">
@@ -30,19 +33,7 @@
                         <div class="bg-success rounded mx-2 my-2">
                           <h5 class="text-dark pt-2 ps-2">Gainers (by % gain)</h5>
                           <ul class="list-group small px-2 pb-5">
-                            {{range .movers.SortGainers}}
-                            <li class="list-group-item list-group-item-success text-dark dt-mover mv-gainer">
-                              <a href="/view/{{.Ticker.TickerSymbol}}" class="h6 ps-1 pe-2 text-dark text-decoration-none" title="{{.Ticker.TickerName}}">{{.Ticker.TickerSymbol}}
-                                <span class="small">
-                                  {{printf "$%.2f" .Mover.LastPrice}}
-                                  <i class="fas fa-arrow-up"></i>
-                                  {{printf "$%.2f" .Mover.PriceChange}}
-                                  ({{printf "%.2f%%" .Mover.PriceChangePct}})
-                                  {{printf "@ %.0f" .Mover.Volume}}
-                                </span>
-                              </a>
-                            </li>
-                            {{end}}
+                            {{range .movers.SortGainers}} {{- template "_mover" . }} {{end}}
                           </ul>
                         </div>
                       </div>
@@ -50,19 +41,7 @@
                         <div class="bg-danger rounded mx-2 my-2">
                           <h5 class="text-dark pt-2 ps-2">Losers (by % loss)</h5>
                           <ul class="list-group small px-2 pb-5">
-                            {{range .movers.SortLosers}}
-                            <li class="list-group-item small list-group-item-danger text-dark dt-mover mv-loser">
-                              <a href="/view/{{.Ticker.TickerSymbol}}" class="h6 ps-1 pe-2 text-dark text-decoration-none" title="{{.Ticker.TickerName}}">{{.Ticker.TickerSymbol}}
-                                <span class="small">
-                                  {{printf "$%.2f" .Mover.LastPrice}}
-                                  <i class="fas fa-arrow-down"></i>
-                                  {{printf "$%.2f" .Mover.PriceChange}}
-                                  ({{printf "%.2f%%" .Mover.PriceChangePct}})
-                                  {{printf "@ %.0f" .Mover.Volume}}
-                                </span>
-                              </a>
-                            </li>
-                            {{end}}
+                            {{range .movers.SortLosers}} {{- template "_mover" . }} {{end}}
                           </ul>
                         </div>
                       </div>
@@ -70,19 +49,7 @@
                         <div class="bg-primary rounded mx-2 my-2">
                           <h5 class="text-dark pt-2 ps-2">Actives (by volume)</h5>
                           <ul class="list-group small px-2 pb-5">
-                            {{range .movers.Actives}}
-                            <li class="list-group-item small list-group-item-primary text-dark dt-mover mv-active">
-                              <a href="/view/{{.Ticker.TickerSymbol}}" class="h6 ps-1 pe-2 text-dark text-decoration-none" title="{{.Ticker.TickerName}}">{{.Ticker.TickerSymbol}}
-                                <span class="small">
-                                  {{printf "$%.2f" .Mover.LastPrice}}
-                                  <i class="fal fa-bolt"></i>
-                                  {{printf "$%.2f" .Mover.PriceChange}}
-                                  ({{printf "%.2f%%" .Mover.PriceChangePct}})
-                                  {{printf "@ %.0f" .Mover.Volume}}
-                                </span>
-                              </a>
-                            </li>
-                            {{end}}
+                            {{range .movers.Actives}} {{- template "_mover" . }} {{end}}
                           </ul>
                         </div>
                       </div>
@@ -90,46 +57,55 @@
                   </div>
                 </div><!-- col-11 movers and shakers -->
 
-                <div class="mt-1 col-12 col-lg-5 offset-1 bg-dark opacity-6">
-                  <div class="bg-warning text-dark px-2 py-1">Something Goes Here, Index Info?</div>
-                </div><!-- spacer section -->
-              </div><!-- row -->
+                {{if .some_extra_text}}
+                  <div class="mt-1 col-12 col-lg-5 offset-1 bg-dark opacity-6">
+                    <div class="bg-warning text-dark px-2 py-1">Something Goes Here, Index Info?</div>
+                    <div class="text-light bg-dark">
+                      {{.some_extra_text}}
+                    </div>
+                  </div><!-- spacer section -->
+                {{end}}
+
+              </div>
 
               <div class="row g-0 pb-2 mb-5">
                 <div class="mt-1 col-12 bg-dark opacity-6">
                   <div class="bg-warning text-dark px-2 py-1">Recent Market/Financial News</div>
-                  <div class="d-flex flex-wrap justify-content-start mt-3 col-12 px-1 mb-2">
-
-                  {{range $num, $a := .articles}}
-                    {{if lt $num 5}}
-                    <div class="card bg-secondary col-12 col-lg-5 col-xl-3 col-xxl-2 mx-lg-4 mx-xl-3 mx-xxl-2 mb-2 shadow rounded">
-                      {{ if .ImageURL }}
-                      <img src="{{.ImageURL}}" class="card-img-top" alt="Included image for article titled: {{.Title}}">
-                      {{ end }}
-                      <div class="card-body mb-1 small">
-                        <h6 class="card-title"><a href="{{.ArticleURL}}" target="_blank">{{.Title}}</a> <i class="ps-2 fas fa-external-link-alt fa-xs"></i></h6>
-                        {{if .AuthorByline.Valid}}<p class="text-info small">by {{.AuthorByline.String}}</p>{{end}}
-                        <p class="position-absolute bottom-0 start-0 ps-1 card-text small">{{FormatDatetimeStr .PublishedDatetime "Jan 2 15:04"}}</p>
+                  <div class="">
+                    {{range .articles}}
+                      {{- if .ArticleURL}}
+                      <div class="text-light bg-dark row g-0 px-2 pb-1" style="white-space:nowrap;text-overflow:ellipsis;overflow:hidden">
+                        <div class="col-1 small text-info text-end pe-2">{{FormatDatetimeStr .PublishedDatetime "Jan 2 15:04"}}</div>
+                        <div class="col-11 small">
+                          <a href="{{.ArticleURL}}" style="text-decoration: none; color: white;" target="_blank"> {{.Title}}</a> <i class="ps-2 fas fa-external-link-alt fa-xs"></i>
+                          {{- if and .AuthorByline.Valid .AuthorByline.String }} <span class="small text-info">by {{.AuthorByline.String}}</span>{{end}}
+                        </div>
                       </div>
-                    </div>
-                  {{ if eq $num 4}}
-                  </div><!-- flex-wrap -->
-                  {{ end }}
-                  {{else}}
-                  <div class="flex-fill bg-dark col-12 px-3 pb-3 pb-xl-1">
-                    {{FormatDatetimeStr .PublishedDatetime "Jan 2 15:04"}}
-                    <a href="{{.ArticleURL}}" target="_blank"> {{.Title}}</a>
-                    <i class="ps-2 fas fa-external-link-alt fa-xs"></i>
-                    {{if .AuthorByline.Valid}} <span class="text-info small">by {{.AuthorByline.String}}</span>{{end}}
+                      {{- end}}
+                    {{- end}}
                   </div>
-                  {{end}}
-                {{end}}
                 </div><!-- news section -->
               </div><!-- row -->
-
             </div><!-- col-10 -->
           </div><!-- row -->
-
-{{ template "_footer" . }}
-{{ template "_end" . }}
+{{- template "_footer" . }}
+{{- template "_end" . }}
 {{- end }}
+
+{{ define "_mover" }}
+                            <li class="list-group-item list-group-item-success text-dark dt-mover mv-gainer">
+                              <a href="/view/{{.Ticker.TickerSymbol}}" class="h6 ps-1 pe-2 text-dark text-decoration-none" title="{{.Ticker.TickerName}}">{{.Ticker.TickerSymbol}}
+                                <span class="small">
+                                  {{- printf "$%.2f" .Mover.LastPrice -}}
+                                  {{- if eq .Mover.MoverType "gainer" -}}
+                                    <i class="fas fa-arrow-up"></i>
+                                  {{- else if eq .Mover.MoverType "loser" -}}
+                                    <i class="fas fa-arrow-down"></i>
+                                  {{- else -}}
+                                    <i class="fal fa-bol"></i>
+                                  {{- end -}}
+                                  {{- printf "$%.2f" .Mover.PriceChange}} ({{printf "%.2f%%" .Mover.PriceChangePct}}) {{printf "@ %.0f" .Mover.Volume -}}
+                                </span>
+                              </a>
+                            </li>
+{{ end }}
