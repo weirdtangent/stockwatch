@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
@@ -20,6 +21,41 @@ type MarketIndex struct {
 	CreateDatetime    string `db:"create_datetime"`
 	UpdateDatetime    string `db:"update_datetime"`
 }
+
+type MarketIndexDaily struct {
+	MarketIndexDailyId int64   `db:"marketindex_daily_id"`
+	MarketIndexId      int64   `db:"marketindex_id"`
+	PriceDate          string  `db:"price_date"`
+	OpenPrice          float64 `db:"open_price"`
+	HighPrice          float64 `db:"high_price"`
+	LowPrice           float64 `db:"low_price"`
+	ClosePrice         float64 `db:"close_price"`
+	Volume             float64 `db:"volume"`
+	CreateDatetime     string  `db:"create_datetime"`
+	UpdateDatetime     string  `db:"update_datetime"`
+}
+
+type MarketIndexDailies struct {
+	Days []MarketIndexDaily
+}
+
+type MarketIndexByPriceDate MarketIndexDailies
+
+type MarketIndexIntraday struct {
+	MarketIndexIntradayId int64   `db:"intraday_id"`
+	TickerId              int64   `db:"ticker_id"`
+	PriceDate             string  `db:"price_date"`
+	LastPrice             float64 `db:"last_price"`
+	Volume                float64 `db:"volume"`
+	CreateDatetime        string  `db:"create_datetime"`
+	UpdateDatetime        string  `db:"update_datetime"`
+}
+
+type MarketIndexIntradays struct {
+	Moments []MarketIndexIntraday
+}
+
+type ByMarketIndexPriceTime MarketIndexIntradays
 
 func (mi MarketIndex) LoadDailies(db *sqlx.DB, days int) ([]MarketIndexDaily, error) {
 	var daily MarketIndexDaily
@@ -107,4 +143,55 @@ func (mi MarketIndex) LoadMarketIndexIntraday(db *sqlx.DB, intradate string) ([]
 	}
 
 	return marketindex_intradays, nil
+}
+
+func (a MarketIndexByPriceDate) Len() int           { return len(a.Days) }
+func (a MarketIndexByPriceDate) Less(i, j int) bool { return a.Days[i].PriceDate < a.Days[j].PriceDate }
+func (a MarketIndexByPriceDate) Swap(i, j int)      { a.Days[i], a.Days[j] = a.Days[j], a.Days[i] }
+
+func (mi MarketIndexDailies) Sort() *MarketIndexDailies {
+	sort.Sort(MarketIndexByPriceDate(mi))
+	return &mi
+}
+
+func (mi MarketIndexDailies) Reverse() *MarketIndexDailies {
+	sort.Sort(sort.Reverse(MarketIndexByPriceDate(mi)))
+	return &mi
+}
+
+func (mi MarketIndexDailies) Count() int {
+	return len(mi.Days)
+}
+
+func getMarketIndexDaily(db *sqlx.DB, marketindex_id int64, daily_date string) (*MarketIndexDaily, error) {
+	var marketindexdaily MarketIndexDaily
+	if len(daily_date) > 10 {
+		daily_date = daily_date[0:10]
+	}
+	err := db.QueryRowx(
+		`SELECT * FROM marketindex_daily WHERE marketindex_id=? AND price_date=?`,
+		marketindex_id, daily_date).StructScan(&marketindexdaily)
+	return &marketindexdaily, err
+}
+
+func (a ByMarketIndexPriceTime) Len() int { return len(a.Moments) }
+func (a ByMarketIndexPriceTime) Less(i, j int) bool {
+	return a.Moments[i].PriceDate < a.Moments[j].PriceDate
+}
+func (a ByMarketIndexPriceTime) Swap(i, j int) {
+	a.Moments[i], a.Moments[j] = a.Moments[j], a.Moments[i]
+}
+
+func (i MarketIndexIntradays) Sort() *MarketIndexIntradays {
+	sort.Sort(ByMarketIndexPriceTime(i))
+	return &i
+}
+
+func (i MarketIndexIntradays) Reverse() *MarketIndexIntradays {
+	sort.Sort(sort.Reverse(ByMarketIndexPriceTime(i)))
+	return &i
+}
+
+func (i MarketIndexIntradays) Count() int {
+	return len(i.Moments)
 }

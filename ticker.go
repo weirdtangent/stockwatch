@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -44,6 +45,77 @@ type TickersEODTask struct {
 	TickerId   int64  `json:"ticker_id"`
 	DaysBack   int    `json:"days_back"`
 	Offset     int    `json:"offset"`
+}
+
+type TickerAttribute struct {
+	TickerAttributeId int64  `db:"attribute_id"`
+	TickerId          int64  `db:"ticker_id"`
+	AttributeName     string `db:"attribute_name"`
+	AttributeValue    string `db:"attribute_value"`
+	CreateDatetime    string `db:"create_datetime"`
+	UpdateDatetime    string `db:"update_datetime"`
+}
+
+type TickerDaily struct {
+	TickerDailyId  int64   `db:"ticker_daily_id"`
+	TickerId       int64   `db:"ticker_id"`
+	PriceDate      string  `db:"price_date"`
+	PriceTime      string  `db:"price_time"`
+	OpenPrice      float64 `db:"open_price"`
+	HighPrice      float64 `db:"high_price"`
+	LowPrice       float64 `db:"low_price"`
+	ClosePrice     float64 `db:"close_price"`
+	Volume         float64 `db:"volume"`
+	CreateDatetime string  `db:"create_datetime"`
+	UpdateDatetime string  `db:"update_datetime"`
+}
+
+type TickerDailies struct {
+	Days []TickerDaily
+}
+
+type TickerDescription struct {
+	TickerDescriptionId int64  `db:"description_id"`
+	TickerId            int64  `db:"ticker_id"`
+	BusinessSummary     string `db:"business_summary"`
+	CreateDatetime      string `db:"create_datetime"`
+	UpdateDatetime      string `db:"update_datetime"`
+}
+
+type TickerIntraday struct {
+	TickerIntradayId int64   `db:"intraday_id"`
+	TickerId         int64   `db:"ticker_id"`
+	PriceDate        string  `db:"price_date"`
+	LastPrice        float64 `db:"last_price"`
+	Volume           float64 `db:"volume"`
+	CreateDatetime   string  `db:"create_datetime"`
+	UpdateDatetime   string  `db:"update_datetime"`
+}
+
+type TickerIntradays struct {
+	Moments []TickerIntraday
+}
+
+type TickerUpDown struct {
+	TickerUpDownId  int64  `db:"updown_id"`
+	TickerId        int64  `db:"ticker_id"`
+	UpDownAction    string `db:"updown_action"`
+	UpDownFromGrade string `db:"updown_fromgrade"`
+	UpDownToGrade   string `db:"updown_tograde"`
+	UpDownDate      string `db:"updown_date"`
+	UpDownFirm      string `db:"updown_firm"`
+	UpDownSince     string `db:"updown_since"`
+	CreateDatetime  string `db:"create_datetime"`
+	UpdateDatetime  string `db:"update_datetime"`
+}
+
+type TickerSplit struct {
+	TickerSplitId  int64  `db:"ticker_split_id"`
+	TickerId       int64  `db:"ticker_id"`
+	SplitDate      string `db:"split_date"`
+	SplitRatio     string `db:"split_ratio"`
+	CreateDatetime string `db:"create_datetime"`
+	UpdateDatetime string `db:"update_datetime"`
 }
 
 func (t *Ticker) getBySymbol(ctx context.Context) error {
@@ -92,14 +164,6 @@ func (t *Ticker) create(ctx context.Context) error {
 	}
 	return nil
 }
-
-// func (t *Ticker) getOrCreate(ctx context.Context) error {
-// 	err := t.getBySymbol(ctx)
-// 	if err != nil && t.TickerId == 0 {
-// 		return t.create(ctx)
-// 	}
-// 	return err
-// }
 
 func (t *Ticker) createOrUpdate(ctx context.Context) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
@@ -468,4 +532,227 @@ func getTickerById(ctx context.Context, ticker_id int64) (*Ticker, error) {
 	var ticker Ticker
 	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_id=?", ticker_id).StructScan(&ticker)
 	return &ticker, err
+}
+
+func (ta *TickerAttribute) getByUniqueKey(ctx context.Context) error {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+
+	err := db.QueryRowx(`SELECT * FROM ticker_attribute WHERE ticker_id=? AND attribute_name=?`, ta.TickerId, ta.AttributeName).StructScan(ta)
+	return err
+}
+
+type ByTickerPriceDate TickerDailies
+
+func (a ByTickerPriceDate) Len() int { return len(a.Days) }
+func (a ByTickerPriceDate) Less(i, j int) bool {
+	return a.Days[i].PriceDate < a.Days[j].PriceDate
+}
+func (a ByTickerPriceDate) Swap(i, j int) { a.Days[i], a.Days[j] = a.Days[j], a.Days[i] }
+
+func (td TickerDailies) Sort() *TickerDailies {
+	sort.Sort(ByTickerPriceDate(td))
+	return &td
+}
+
+func (td TickerDailies) Reverse() *TickerDailies {
+	sort.Sort(sort.Reverse(ByTickerPriceDate(td)))
+	return &td
+}
+
+func (td TickerDailies) Count() int {
+	return len(td.Days)
+}
+
+func (td *TickerDaily) IsFinalPrice() bool {
+	return td.PriceTime == "09:30:00" || td.PriceTime >= "16:00:00"
+}
+
+func (td *TickerDaily) checkByDate(ctx context.Context) int64 {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+
+	var tickerDailyId int64
+	db.QueryRowx(`SELECT ticker_daily_id FROM ticker_daily WHERE ticker_id=? AND price_date=?`, td.TickerId, td.PriceDate).Scan(&tickerDailyId)
+	return tickerDailyId
+}
+
+func (td *TickerDaily) create(ctx context.Context) error {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+	logger := log.Ctx(ctx)
+
+	if td.Volume == 0 {
+		// logger.Warn().Msg("Refusing to add ticker daily with 0 volume")
+		return nil
+	}
+
+	var insert = "INSERT INTO ticker_daily SET ticker_id=?, price_date=?, price_time=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=?"
+	_, err := db.Exec(insert, td.TickerId, td.PriceDate, td.PriceTime, td.OpenPrice, td.HighPrice, td.LowPrice, td.ClosePrice, td.Volume)
+	if err != nil {
+		logger.Fatal().Err(err).
+			Str("table_name", "ticker_daily").
+			Msg("Failed on INSERT")
+	}
+	return err
+}
+
+func (td *TickerDaily) createOrUpdate(ctx context.Context) error {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+	logger := log.Ctx(ctx)
+
+	if td.Volume == 0 {
+		// logger.Warn().Msg("Refusing to add ticker daily with 0 volume")
+		return nil
+	}
+
+	td.TickerDailyId = td.checkByDate(ctx)
+	if td.TickerDailyId == 0 {
+		return td.create(ctx)
+	}
+
+	var update = "UPDATE ticker_daily SET price_time=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=? WHERE ticker_id=? AND price_date=?"
+	_, err := db.Exec(update, td.PriceTime, td.OpenPrice, td.HighPrice, td.LowPrice, td.ClosePrice, td.Volume, td.TickerId, td.PriceDate)
+	if err != nil {
+		logger.Warn().Err(err).
+			Str("table_name", "ticker_daily").
+			Msg("Failed on UPDATE")
+	}
+	return err
+}
+
+func getLastTickerDailyMove(db *sqlx.DB, ticker_id int64) (string, error) {
+	var lastTickerDailyMove string
+	row := db.QueryRowx(
+		`SELECT IF(ticker_daily.close_price >= prev.close_price,"up",IF(ticker_daily.close_price < prev.close_price,"down","unknown")) AS lastTickerDailyMove
+		 FROM ticker_daily
+		 LEFT JOIN (
+		   SELECT ticker_id, close_price FROM ticker_daily AS prev_ticker_daily
+			 WHERE ticker_id=? ORDER by price_date DESC LIMIT 1,1
+		 ) AS prev ON (ticker_daily.ticker_id = prev.ticker_id)
+		 WHERE ticker_daily.ticker_id=? ORDER BY price_date DESC LIMIT 1`,
+		ticker_id, ticker_id)
+	err := row.Scan(&lastTickerDailyMove)
+	return lastTickerDailyMove, err
+}
+
+func (td *TickerDescription) getByUniqueKey(ctx context.Context) error {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+
+	err := db.QueryRowx(`SELECT * FROM ticker_description WHERE ticker_id=?`, td.TickerId).StructScan(td)
+	return err
+}
+
+func (td *TickerDescription) createIfNew(ctx context.Context) error {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+	logger := log.Ctx(ctx)
+
+	if td.BusinessSummary == "" {
+		return nil
+	}
+
+	err := td.getByUniqueKey(ctx)
+	if err == nil {
+		return nil
+	}
+
+	var insert = "INSERT INTO ticker_description SET ticker_id=?, business_summary=?"
+	_, err = db.Exec(insert, td.TickerId, td.BusinessSummary)
+	if err != nil {
+		logger.Fatal().Err(err).
+			Str("table_name", "ticker_description").
+			Msg("Failed on INSERT")
+	}
+	return err
+}
+
+// misc -----------------------------------------------------------------------
+
+func getTickerDescriptionByTickerId(ctx context.Context, ticker_id int64) (*TickerDescription, error) {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+
+	var tickerDescription TickerDescription
+	err := db.QueryRowx(`SELECT * FROM ticker_description WHERE ticker_id=?`, ticker_id).StructScan(&tickerDescription)
+	return &tickerDescription, err
+}
+
+type ByTickerPriceTime TickerIntradays
+
+func (a ByTickerPriceTime) Len() int { return len(a.Moments) }
+func (a ByTickerPriceTime) Less(i, j int) bool {
+	return a.Moments[i].PriceDate < a.Moments[j].PriceDate
+}
+func (a ByTickerPriceTime) Swap(i, j int) { a.Moments[i], a.Moments[j] = a.Moments[j], a.Moments[i] }
+
+func (i TickerIntradays) Sort() *TickerIntradays {
+	sort.Sort(ByTickerPriceTime(i))
+	return &i
+}
+
+func (i TickerIntradays) Reverse() *TickerIntradays {
+	sort.Sort(sort.Reverse(ByTickerPriceTime(i)))
+	return &i
+}
+
+func (i TickerIntradays) Count() int {
+	return len(i.Moments)
+}
+
+func (tud *TickerUpDown) getByUniqueKey(ctx context.Context) error {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+
+	err := db.QueryRowx(`SELECT * FROM ticker_updown WHERE ticker_id=? AND updown_date=? AND updown_firm=?`, tud.TickerId, tud.UpDownDate, tud.UpDownFirm).StructScan(tud)
+	return err
+}
+
+func (tud *TickerUpDown) createIfNew(ctx context.Context) error {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+	logger := log.Ctx(ctx)
+
+	if tud.UpDownToGrade == "" {
+		return nil
+	}
+
+	// if already exists, just quietly return
+	err := tud.getByUniqueKey(ctx)
+	if err == nil {
+		return nil
+	}
+
+	var insert = "INSERT INTO ticker_updown SET ticker_id=?, updown_action=?, updown_fromgrade=?, updown_tograde=?, updown_date=?, updown_firm=?"
+	_, err = db.Exec(insert, tud.TickerId, tud.UpDownAction, tud.UpDownFromGrade, tud.UpDownToGrade, tud.UpDownDate, tud.UpDownFirm)
+	if err != nil {
+		logger.Fatal().Err(err).
+			Str("table_name", "ticker_updown").
+			Msg("Failed on INSERT")
+	}
+	return err
+}
+
+func (ts *TickerSplit) getByDate(ctx context.Context) error {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+
+	err := db.QueryRowx(`SELECT * FROM ticker_split WHERE ticker_id=? AND split_date=?`, ts.TickerId, ts.SplitDate).StructScan(ts)
+	return err
+}
+
+func (ts *TickerSplit) createIfNew(ctx context.Context) error {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+	logger := log.Ctx(ctx)
+
+	if ts.SplitRatio == "" {
+		// logger.Warn().Msg("Refusing to add ticker split with blank ratio")
+		return nil
+	}
+
+	err := ts.getByDate(ctx)
+	if err == nil {
+		return nil
+	}
+
+	var insert = "INSERT INTO ticker_split SET ticker_id=?, split_date=?, split_ratio=?"
+	_, err = db.Exec(insert, ts.TickerId, ts.SplitDate, ts.SplitRatio)
+	if err != nil {
+		logger.Fatal().Err(err).
+			Str("table_name", "ticker_split").
+			Msg("Failed on INSERT")
+	}
+	return err
 }
