@@ -25,17 +25,20 @@ func addTickerToRecents(session *sessions.Session, r *http.Request, symbol strin
 		recents = session.Values["recents"].([]string)
 	}
 
-	// if this symbol/exchange is already on their list just bomb out
-	for _, viewed := range recents {
+	// if this symbol/exchange is already on the list, remove it so we can add it to the front
+	for i, viewed := range recents {
 		if viewed == symbol {
-			return &recents, nil
+			recents = append(recents[:i], recents[i+1:]...)
+			break
 		}
 	}
 
+	// keep only the 4 most recent
 	if len(recents) >= 5 {
-		recents = recents[len(recents)-4:]
+		recents = recents[:4]
 	}
-	recents = append(recents, symbol)
+	// prepend latest symbol to front of recents slice
+	recents = append([]string{symbol}, recents...)
 
 	session.Values["recents"] = recents
 
