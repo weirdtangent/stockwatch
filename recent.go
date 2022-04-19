@@ -7,7 +7,6 @@ import (
 )
 
 func getRecents(session *sessions.Session, r *http.Request) (*[]string, error) {
-	//logger := log.Ctx(r.Context())
 	// get current list (if any) from session
 	var recents []string
 
@@ -19,7 +18,6 @@ func getRecents(session *sessions.Session, r *http.Request) (*[]string, error) {
 }
 
 func addTickerToRecents(session *sessions.Session, r *http.Request, symbol string) (*[]string, error) {
-	//logger := log.Ctx(r.Context())
 	// get current list (if any) from session
 	var recents []string
 
@@ -34,14 +32,11 @@ func addTickerToRecents(session *sessions.Session, r *http.Request, symbol strin
 		}
 	}
 
-	// if they have 5 (or more, somehow), slice it down to just the last 4
 	if len(recents) >= 5 {
 		recents = recents[len(recents)-4:]
 	}
-	// now append this new one to the end
 	recents = append(recents, symbol)
 
-	// write it to the session
 	session.Values["recents"] = recents
 
 	return &recents, nil

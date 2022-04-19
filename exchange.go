@@ -32,14 +32,6 @@ func getExchangeById(ctx context.Context, exchange_id int64) (*Exchange, error) 
 	return &exchange, err
 }
 
-// func getExchangeByMic(ctx context.Context, exchangeMic string) (int64, error) {
-// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-
-// 	var exchangeId int64
-// 	err := db.QueryRowx("SELECT exchange_id FROM exchange WHERE exchange_mic=?", exchangeMic).Scan(&exchangeId)
-// 	return exchangeId, err
-// }
-
 func getExchangeByCode(ctx context.Context, exchangeCode string) (int64, error) {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 

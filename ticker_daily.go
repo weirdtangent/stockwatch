@@ -52,13 +52,6 @@ func (td *TickerDaily) IsFinalPrice() bool {
 	return td.PriceTime == "09:30:00" || td.PriceTime >= "16:00:00"
 }
 
-// func (td *TickerDaily) getByDate(ctx context.Context) error {
-// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-
-// 	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? AND price_date=?`, td.TickerId, td.PriceDate).StructScan(td)
-// 	return err
-// }
-
 func (td *TickerDaily) checkByDate(ctx context.Context) int64 {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
@@ -109,29 +102,6 @@ func (td *TickerDaily) createOrUpdate(ctx context.Context) error {
 	}
 	return err
 }
-
-// func getTickerDaily(ctx context.Context, ticker_id int64, daily_date string) (*TickerDaily, error) {
-// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-
-// 	var tickerdaily TickerDaily
-// 	if len(daily_date) > 10 {
-// 		daily_date = daily_date[0:10]
-// 	}
-// 	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? AND price_date=?`, ticker_id, daily_date).StructScan(&tickerdaily)
-// 	return &tickerdaily, err
-// }
-
-// func getTickerDailyById(db *sqlx.DB, ticker_daily_id int64) (*TickerDaily, error) {
-// 	var tickerdaily TickerDaily
-// 	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_daily_id=?`, ticker_daily_id).StructScan(&tickerdaily)
-// 	return &tickerdaily, err
-// }
-
-// func getTickerDailyMostRecent(db *sqlx.DB, ticker_id int64) (*TickerDaily, error) {
-// 	var tickerdaily TickerDaily
-// 	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? ORDER BY price_date DESC LIMIT 1`, ticker_id).StructScan(&tickerdaily)
-// 	return &tickerdaily, err
-// }
 
 func getLastTickerDailyMove(db *sqlx.DB, ticker_id int64) (string, error) {
 	var lastTickerDailyMove string

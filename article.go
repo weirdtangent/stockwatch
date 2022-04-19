@@ -86,59 +86,6 @@ type WebArticle struct {
 	Symbols            sql.NullString `db:"symbols"`
 }
 
-// func (a *Article) getArticleById(ctx context.Context) error {
-// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-
-// 	err := db.QueryRowx("SELECT * FROM article WHERE article_id=?", a.ArticleId).StructScan(a)
-// 	return err
-// }
-
-// func (a *Article) createArticle(ctx context.Context) error {
-// 	logger := log.Ctx(ctx)
-// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-
-// 	var insert = "INSERT INTO article SET source_id=?, external_id=?, published_datetime=?, pubupdated_datetime=?, title=?, body=?, article_url=?, image_url=?"
-
-// 	res, err := db.Exec(insert, a.SourceId, a.ExternalId, a.PublishedDatetime, a.PubUpdatedDatetime, a.Title, a.Body, a.ArticleURL, a.ImageURL)
-// 	if err != nil {
-// 		logger.Fatal().Err(err).
-// 			Str("table_name", "article").
-// 			Msg("Failed on INSERT")
-// 	}
-// 	articleId, err := res.LastInsertId()
-// 	if err != nil || articleId == 0 {
-// 		logger.Fatal().Err(err).
-// 			Str("table_name", "article").
-// 			Msg("Failed on LAST_INSERT_ID")
-// 	}
-// 	a.ArticleId = articleId
-// 	return a.getArticleById(ctx)
-// }
-
-// func getArticleByExternalId(ctx context.Context, sourceId int64, externalId string) (int64, error) {
-// 	logger := log.Ctx(ctx)
-// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-
-// 	var articleId int64
-// 	err := db.QueryRowx("SELECT article_id FROM article WHERE source_id=? && external_id=?", sourceId, externalId).Scan(&articleId)
-// 	if err != nil {
-// 		if errors.Is(err, sql.ErrNoRows) {
-// 			return 0, nil
-// 		} else {
-// 			logger.Warn().Err(err).Str("table_name", "article").Msg("Failed to check for existing record")
-// 		}
-// 	}
-// 	return articleId, err
-// }
-
-// func getSourceId(ctx context.Context, source string) (int64, error) {
-// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-
-// 	var sourceId int64
-// 	err := db.QueryRowx("SELECT source_id FROM source WHERE source_string=?", source).Scan(&sourceId)
-// 	return sourceId, err
-// }
-
 func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, error) {
 	logger := log.Ctx(ctx)
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
@@ -316,34 +263,3 @@ func getArticlesByTicker(ctx context.Context, ticker_id int64) (*[]WebArticle, e
 
 	return &articles, nil
 }
-
-// article authors ------------------------------------------------------------
-
-// func (aa *ArticleAuthor) getArticleAuthorById(ctx context.Context) error {
-// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-
-// 	err := db.QueryRowx("SELECT * FROM article_author WHERE article_author_id=?", aa.ArticleAuthorId).StructScan(aa)
-// 	return err
-// }
-
-// func (aa *ArticleAuthor) createArticleAuthor(ctx context.Context) error {
-// 	logger := log.Ctx(ctx)
-// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-
-// 	var insert = "INSERT INTO article_author SET article_id=?, byline=?, job_title=?, short_bio=?, long_bio=?, image_url=?"
-
-// 	res, err := db.Exec(insert, aa.ArticleId, aa.Byline, aa.JobTitle, aa.ShortBio, aa.LongBio, aa.ImageURL)
-// 	if err != nil {
-// 		logger.Fatal().Err(err).
-// 			Str("table_name", "article_author").
-// 			Msg("Failed on INSERT")
-// 	}
-// 	articleAuthorId, err := res.LastInsertId()
-// 	if err != nil || articleAuthorId == 0 {
-// 		logger.Fatal().Err(err).
-// 			Str("table_name", "article_author").
-// 			Msg("Failed on LAST_INSERT_ID")
-// 	}
-// 	aa.ArticleAuthorId = articleAuthorId
-// 	return aa.getArticleAuthorById(ctx)
-// }

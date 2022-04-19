@@ -350,14 +350,6 @@ func (t Ticker) getUpDowns(ctx context.Context, daysAgo int) ([]TickerUpDown, er
 	return upDowns, nil
 }
 
-// func (t *Ticker) getLastDaily(ctx context.Context) (*TickerDaily, error) {
-// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-
-// 	var tickerdaily TickerDaily
-// 	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? ORDER BY price_date DESC LIMIT 1`, t.TickerId).StructScan(&tickerdaily)
-// 	return &tickerdaily, err
-// }
-
 func (t Ticker) getAttributes(ctx context.Context) ([]TickerAttribute, error) {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	logger := log.Ctx(ctx)
