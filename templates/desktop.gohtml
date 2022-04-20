@@ -96,7 +96,7 @@
                             <li class="list-group-item list-group-item-success text-dark dt-mover mv-gainer">
                               <a href="/view/{{.Ticker.TickerSymbol}}" class="h6 ps-1 pe-2 text-dark text-decoration-none" title="{{.Ticker.TickerName}}">{{.Ticker.TickerSymbol}}
                                 <span class="small">
-                                  {{- printf "$%.2f" .Mover.LastPrice -}}
+                                  {{- printf "$%.2f " .Mover.LastPrice -}}
                                   {{- if eq .Mover.MoverType "gainer" -}}
                                     <i class="fas fa-arrow-up"></i>
                                   {{- else if eq .Mover.MoverType "loser" -}}
@@ -104,7 +104,7 @@
                                   {{- else -}}
                                     <i class="fal fa-bol"></i>
                                   {{- end -}}
-                                  {{- printf "$%.2f" .Mover.PriceChange}} ({{printf "%.2f%%" .Mover.PriceChangePct}}) {{printf "@ %.0f" .Mover.Volume -}}
+                                  {{- printf " $%.2f" .Mover.PriceChange}} ({{printf "%.2f%%" .Mover.PriceChangePct}}) {{printf "@ %.0f" .Mover.Volume -}}
                                 </span>
                               </a>
                             </li>
