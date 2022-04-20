@@ -18,8 +18,6 @@ func viewTickerDailyHandler() http.HandlerFunc {
 		messages := ctx.Value(ContextKey("messages")).(*[]Message)
 		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 
-		session := getSession(r)
-
 		if ok := checkAuthState(w, r); !ok {
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
@@ -38,7 +36,7 @@ func viewTickerDailyHandler() http.HandlerFunc {
 			logger.Info().Int("timespan", timespan).Msg("")
 		}
 
-		err := loadTickerDetails(ctx, symbol, timespan)
+		ticker, err := loadTickerDetails(ctx, symbol, timespan)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to load ticker details for viewing")
 			*messages = append(*messages, Message{fmt.Sprintf("Sorry, I had trouble loading that stock: %s", err.Error()), "danger"})
@@ -47,7 +45,7 @@ func viewTickerDailyHandler() http.HandlerFunc {
 		}
 
 		// Add this ticker to recents list
-		recents, err := addTickerToRecents(session, r, symbol)
+		recents, err := addTickerToRecents(ctx, r, ticker)
 		if err != nil {
 			logger.Error().Err(err).Msg("failed to add ticker to recents list")
 		}

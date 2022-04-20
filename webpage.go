@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
+func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker, error) {
 	logger := log.Ctx(ctx)
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	messages := ctx.Value(ContextKey("messages")).(*[]Message)
@@ -24,7 +24,7 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 		ticker, err = loadTicker(ctx, symbol)
 		if err != nil {
 			logger.Error().Err(err).Str("ticker", symbol).Msg("Fatal: could not load ticker info. Redirect back to desktop?")
-			return err
+			return Ticker{}, err
 		}
 		*messages = append(*messages, Message{"Company/Symbol data updated", "success"})
 	}
@@ -35,7 +35,7 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 	exchange, err := getExchangeById(ctx, ticker.ExchangeId)
 	if err != nil {
 		logger.Error().Err(err).Str("ticker", symbol).Int64("exchange_id", ticker.ExchangeId).Msg("Fatal: could not load exchange info. Redirect back to desktop?")
-		return err
+		return Ticker{}, err
 	}
 
 	// if the market is open, lets get a live quote
@@ -108,5 +108,5 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) error {
 	webdata["lineChart"] = lineChartHTML
 	webdata["klineChart"] = klineChartHTML
 
-	return nil
+	return *ticker, nil
 }
