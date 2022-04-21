@@ -118,6 +118,9 @@ func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 	ticker.createOrUpdateAttribute(ctx, "shares_short", summaryResponse.DefaultKeyStatistics.SharesShort.Fmt)
 	ticker.createOrUpdateAttribute(ctx, "float_shares", summaryResponse.DefaultKeyStatistics.FloatShares.Fmt)
 	ticker.createOrUpdateAttribute(ctx, "shares_outstanding", summaryResponse.DefaultKeyStatistics.SharesOutstanding.Fmt)
+	ticker.createOrUpdateAttribute(ctx, "forward_eps", summaryResponse.DefaultKeyStatistics.ForwardEPS.Fmt)
+	ticker.createOrUpdateAttribute(ctx, "enterprize_to_revenue", summaryResponse.DefaultKeyStatistics.EnterprizeToRevenue.Fmt)
+	ticker.createOrUpdateAttribute(ctx, "enterprize_to_ebita", summaryResponse.DefaultKeyStatistics.EnterprizeToEbita.Fmt)
 
 	return ticker, nil
 }
