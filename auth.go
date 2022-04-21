@@ -167,7 +167,7 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 			//if unixTimeNow > oauth.OAuthExpires {
 			//	logger.Warn().Int64("watcher_id", WIDvalue).Msg("OAuth record has expired")
 			//}
-			logger.Info().Msg("Authenticated visitor found")
+			logger.Info().Int64("watcher_id", watcher.WatcherId).Str("watcher_status", watcher.WatcherStatus).Msg("authenticated visitor")
 			webdata["WID"] = wid
 			webdata["watcher"] = watcher
 			return true

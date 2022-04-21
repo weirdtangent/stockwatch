@@ -222,7 +222,6 @@ func (t *Ticker) needEODs(ctx context.Context) bool {
 
 	// if it's a workday and the market closed for the day and we don't have today's EOD, then YES
 	if currentWeekday != time.Saturday && currentWeekday != time.Sunday && currentTimeStr >= "1600" && !todayEOD {
-		log.Info().Msgf("needEOD: Today is %s, it is %s, and we don't have that EOD, so YES", currentWeekday, currentTimeStr)
 		return true
 	}
 
@@ -232,7 +231,6 @@ func (t *Ticker) needEODs(ctx context.Context) bool {
 	priorEOD := t.haveEODForDate(ctx, priorWorkDateStr)
 
 	if !priorEOD {
-		log.Info().Msgf("needEOD: PriorWorkDay is %s, and we don't have that EOD, so YES", priorWorkDateStr)
 		return true
 	}
 

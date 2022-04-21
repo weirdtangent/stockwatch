@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -33,7 +34,12 @@ func main() {
 		}
 		return file + ":" + strconv.Itoa(line)
 	}
-	log.Logger = log.With().Caller().Logger()
+	pgmPath := strings.Split(os.Args[0], `/`)
+	logTag := "stockwatch"
+	if len(pgmPath) > 1 {
+		logTag = pgmPath[len(pgmPath)-1]
+	}
+	log.Logger = log.With().Str("@tag", logTag).Caller().Logger()
 
 	// grab config ---------------------------------------------------------------
 	awsConfig, err := myaws.AWSConfig("us-east-1")

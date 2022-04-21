@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -15,6 +16,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/savaki/dynastore"
 )
+
+var forwardedRE = regexp.MustCompile(`for=(.*)`)
 
 // AddContext middleware ------------------------------------------------------
 type AddContext struct {
@@ -158,10 +161,20 @@ func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// don't logs these, no reason to
 	if r.URL.String() != "/ping" && r.URL.String() != "/metrics" {
+		ForwardedHdrs := r.Header["Forwarded"]
+		remote_ip_addr := ""
+		if len(ForwardedHdrs) > 0 {
+			submatches := forwardedRE.FindStringSubmatch(ForwardedHdrs[0])
+			if len(submatches) >= 1 {
+				remote_ip_addr = submatches[1]
+			}
+		}
+
 		logger.Info().
 			Stringer("url", r.URL).
 			Int("status_code", 200).
 			Str("method", r.Method).
+			Str("remote_ip_addr", remote_ip_addr).
 			Int64("response_time", time.Since(t).Nanoseconds()).
 			Msg("")
 	}
