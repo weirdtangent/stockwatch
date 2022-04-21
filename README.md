@@ -15,6 +15,7 @@ My first attempt at a Go web app... and I had to go crazy... :shrug:
 * Bootstrap
 * JQuery
 * Open-Id Connect/OAuth2
+* Logzio
 * AWS
   * EC2
   * RDS
