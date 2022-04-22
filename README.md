@@ -18,6 +18,7 @@ My first attempt at a Go web app... and I had to go crazy... :shrug:
 * Open-Id Connect/OAuth2 - https://openid.net/connect/ https://oauth.net/2/
 * Logzio - https://logz.io/
 * Prometheus - https://prometheus.io/
+* GitHub - https://github.com https://docs.github.com/en/rest
 * AWS - https://aws.amazon.com/
   * EC2
   * RDS
