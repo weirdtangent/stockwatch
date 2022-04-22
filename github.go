@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/gomarkdown/markdown"
@@ -33,6 +34,8 @@ type Commit struct {
 	} `json:"author"`
 	URL string `json:"html_url"`
 }
+
+var convertURLs = regexp.MustCompile(`(<a href="[^"]+")>`)
 
 func getGithubCommits(ctx context.Context) (*string, *[]Commit, error) {
 	logger := log.Ctx(ctx)
@@ -73,6 +76,7 @@ func getGithubCommits(ctx context.Context) (*string, *[]Commit, error) {
 	json.NewDecoder(strings.NewReader(string(body))).Decode(&readmeResponse)
 	readmeMD, _ := base64.StdEncoding.DecodeString(readmeResponse.Content)
 	readme = string(markdown.ToHTML([]byte(readmeMD), nil, nil))
+	readme = convertURLs.ReplaceAllString(readme, `$1 target="_new">`)
 
 	url = "https://api.github.com/repos/weirdtangent/stockwatch/commits"
 	req, _ = http.NewRequest("GET", url, nil)
