@@ -89,9 +89,21 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 		logger.Error().Err(err).Str("ticker", symbol).Int64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
 	}
 
+	// schedule to update ticker financials
+	err = ticker.queueUpdateFinancials(ctx)
+	if err != nil {
+		logger.Error().Err(err).Str("ticker", symbol).Int64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateFinancials")
+	}
+
+	// get financials
+	quarterStrs, qtrBarValues, _ := ticker.GetFinancials(ctx, "bar", "quarterly")
+	annualStrs, annBarValues, _ := ticker.GetFinancials(ctx, "bar", "annual")
+
 	// Build charts
 	var lineChartHTML = chartHandlerTickerDailyLine(ctx, ticker, exchange, ticker_dailies, webwatches)
 	var klineChartHTML = chartHandlerTickerDailyKLine(ctx, ticker, exchange, ticker_dailies, webwatches)
+	var qtrBarChartHTML = chartHandlerFinancialsBar(ctx, ticker, exchange, quarterStrs, qtrBarValues)
+	var annBarChartHTML = chartHandlerFinancialsBar(ctx, ticker, exchange, annualStrs, annBarValues)
 
 	webdata["ticker"] = ticker
 	webdata["ticker_description"] = tickerDescription
@@ -107,6 +119,8 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	webdata["watches"] = webwatches
 	webdata["lineChart"] = lineChartHTML
 	webdata["klineChart"] = klineChartHTML
+	webdata["qtrBarChart"] = qtrBarChartHTML
+	webdata["annBarChart"] = annBarChartHTML
 
 	return *ticker, nil
 }

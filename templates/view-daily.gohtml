@@ -20,6 +20,8 @@
                 {{ template "_chart_js" }}
                 <div id="tickerChart1elem" class="doubleChart">{{.lineChart}}</div>
                 <div id="tickerChart2elem" class="doubleChart extraChart">{{.klineChart}}</div>
+                <div id="financialsChart1elem" class="extraChart">{{.qtrBarChart}}</div>
+                <div id="financialsChart2elem" class="extraChart">{{.annBarChart}}</div>
 
                 {{- template "_eod-table" . }}
               </div>

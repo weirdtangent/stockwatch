@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"strings"
 	"time"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
@@ -12,9 +13,9 @@ import (
 )
 
 func chartHandlerTickerDailyKLine(ctx context.Context, ticker *Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
-	mainX := "580px"
+	mainX := "880px"
 	mainY := "280px"
-	smallX := "580px"
+	smallX := "880px"
 	smallY := "200px"
 	nonce := ctx.Value(ContextKey("nonce")).(string)
 
@@ -24,20 +25,14 @@ func chartHandlerTickerDailyKLine(ctx context.Context, ticker *Ticker, exchange 
 		html, _ := renderTemplateToString("_emptychart", nil)
 		return html
 	}
-	if days >= 120 { // min 120 workdays in 6 months
-		mainX = "780px"
-		smallX = "780px"
-	}
 
 	x_axis := make([]string, 0, days)
-	hidden_axis := make([]string, 0, days)
 	candleData := make([]opts.KlineData, 0, days)
 	volumeData := make([]opts.BarData, 0, days)
 	for x := range dailies {
 		tickerDate, _ := time.Parse("2006-01-02", dailies[x].PriceDate)
 		displayDate := tickerDate.Format("Jan 02")
 		x_axis = append(x_axis, displayDate)
-		hidden_axis = append(hidden_axis, "")
 
 		candleData = append(candleData, opts.KlineData{Value: [4]float64{dailies[x].OpenPrice, dailies[x].ClosePrice, dailies[x].LowPrice, dailies[x].HighPrice}})
 		volumeData = append(volumeData, opts.BarData{Value: dailies[x].Volume / 1000000})
@@ -52,15 +47,20 @@ func chartHandlerTickerDailyKLine(ctx context.Context, ticker *Ticker, exchange 
 			Theme:      types.ThemeVintage,
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
+		charts.WithTooltipOpts(opts.Tooltip{
+			Show:    true,
+			Trigger: "axis",
+		}),
 		charts.WithTitleOpts(opts.Title{
-			Title:    fmt.Sprintf("%s (%s) %s", ticker.TickerSymbol, exchange.ExchangeAcronym, ticker.TickerName),
+			Title:    fmt.Sprintf("%s/%s - %s", ticker.TickerSymbol, strings.ToLower(exchange.ExchangeAcronym), ticker.TickerName),
 			Subtitle: "Share Price",
 			Target:   nonce, // crazy hack to get nonce into scripts
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			Show: false,
 			AxisLabel: &opts.AxisLabel{
-				Show: false,
+				Show:  false,
+				Color: "white",
 			},
 		}),
 		charts.WithYAxisOpts(opts.YAxis{
@@ -79,13 +79,17 @@ func chartHandlerTickerDailyKLine(ctx context.Context, ticker *Ticker, exchange 
 			Theme:      types.ThemeVintage,
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
+		charts.WithTooltipOpts(opts.Tooltip{
+			Show:    true,
+			Trigger: "axis",
+		}),
 		charts.WithTitleOpts(opts.Title{
 			Subtitle: "Volume in mil",
 			Target:   nonce, // crazy hack to get nonce into scripts
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			AxisLabel: &opts.AxisLabel{
-				Rotate: 45,
+				Rotate: 60,
 			},
 		}),
 		charts.WithYAxisOpts(opts.YAxis{
@@ -97,10 +101,21 @@ func chartHandlerTickerDailyKLine(ctx context.Context, ticker *Ticker, exchange 
 	)
 
 	// Put data into instance
-	prices.SetXAxis(hidden_axis).
-		AddSeries("price", candleData, charts.WithLabelOpts(opts.Label{Show: false}))
+	prices.SetXAxis(x_axis).
+		AddSeries(ticker.TickerSymbol, candleData,
+			charts.WithLabelOpts(opts.Label{Show: false}),
+			charts.WithItemStyleOpts(opts.ItemStyle{
+				Color:        "green",
+				Color0:       "red",
+				BorderColor:  "green",
+				BorderColor0: "red",
+			}),
+		)
 	volume.SetXAxis(x_axis).
-		AddSeries("volume", volumeData, charts.WithLabelOpts(opts.Label{Show: false}))
+		AddSeries("volume", volumeData,
+			charts.WithLabelOpts(opts.Label{
+				Show: false}),
+		)
 
 	prices.Renderer = newSnippetRenderer(prices, prices.Validate)
 	volume.Renderer = newSnippetRenderer(volume, volume.Validate)

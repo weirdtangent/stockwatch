@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -230,12 +231,7 @@ func (t *Ticker) needEODs(ctx context.Context) bool {
 
 	priorEOD := t.haveEODForDate(ctx, priorWorkDateStr)
 
-	if !priorEOD {
-		return true
-	}
-
-	// if we have one for the prior work day, we should have them going back a year
-	return false
+	return !priorEOD
 }
 
 // we need to get two days of the most recent EOD prices for this ticker
@@ -505,7 +501,41 @@ func (t Ticker) queueUpdateNews(ctx context.Context) error {
 			DataType:    aws.String("String"),
 			StringValue: aws.String("news"),
 		}}
-	// deduplicationId := queueName + ":" + t.TickerSymbol
+	_, err = awssvc.SendMessage(&sqs.SendMessageInput{
+		MessageBody:       aws.String(messageBody),
+		MessageAttributes: messageAttributes,
+		QueueUrl:          queueURL,
+	})
+	return err
+}
+
+func (t Ticker) queueUpdateFinancials(ctx context.Context) error {
+	awssess := ctx.Value(ContextKey("awssess")).(*session.Session)
+	awssvc := sqs.New(awssess)
+	queueName := "stockwatch-tickers-financials"
+
+	urlResult, err := awssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
+		QueueName: &queueName,
+	})
+	if err != nil {
+		return err
+	}
+
+	type TaskTickerNewsBody struct {
+		TickerId     int64  `json:"ticker_id"`
+		TickerSymbol string `json:"ticker_symbol"`
+		ExchangeId   int64  `json:"exchange_id"`
+	}
+
+	// get next message from queue, if any
+	queueURL := urlResult.QueueUrl
+	messageBytes, _ := json.Marshal(TaskTickerNewsBody{TickerSymbol: t.TickerSymbol})
+	messageBody := string(messageBytes)
+	messageAttributes := map[string]*sqs.MessageAttributeValue{
+		"action": {
+			DataType:    aws.String("String"),
+			StringValue: aws.String("financials"),
+		}}
 	_, err = awssvc.SendMessage(&sqs.SendMessageInput{
 		MessageBody:       aws.String(messageBody),
 		MessageAttributes: messageAttributes,
@@ -754,3 +784,68 @@ func (ts *TickerSplit) createIfNew(ctx context.Context) error {
 	}
 	return err
 }
+
+func (t *Ticker) GetFinancials(ctx context.Context, chartType string, period string) ([]string, []map[string]float64, error) {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+
+	var periodStrs = []string{}
+	var barValues = []map[string]float64{}
+
+	rows, err := db.Queryx(`SELECT chart_date_string, group_concat(chart_name) AS chart_names,
+	                          group_concat(chart_value) AS chart_values
+						    FROM financials WHERE ticker_id=? and form_term_name=? and chart_type=?
+							GROUP BY 1`,
+		t.TickerId, period, chartType)
+	if err != nil {
+		return periodStrs, barValues, err
+	}
+	defer rows.Close()
+
+	var financials struct {
+		ChartDateString string `db:"chart_date_string"`
+		ChartNames      string `db:"chart_names"`
+		ChartValues     string `db:"chart_values"`
+	}
+	for rows.Next() {
+		err = rows.StructScan(&financials)
+		if err != nil {
+			log.Warn().Err(err).
+				Str("table_name", "financials").
+				Msg("error reading result rows")
+		} else {
+			var barTime string
+			if period == "quarterly" {
+				quarterTime, _ := time.Parse("1/2006", financials.ChartDateString)
+				barTime = quarterTime.Format("2006-01")
+			} else {
+				barTime = financials.ChartDateString
+			}
+
+			periodStrs = append(periodStrs, barTime)
+			categories := strings.Split(financials.ChartNames, ",")
+			values := map[string]float64{}
+			for x, strValue := range strings.Split(financials.ChartValues, ",") {
+				values[categories[x]], _ = strconv.ParseFloat(strValue, 64)
+			}
+			barValues = append(barValues, values)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return periodStrs, barValues, err
+	}
+
+	return periodStrs, barValues, nil
+}
+
+// type ByQuarter BarFinancials
+
+// func (a ByQuarter) Len() int { return len(a.Quarterly) }
+// func (a ByQuarter) Less(i, j int) bool {
+// 	return a.Days[i].PriceDate < a.Days[j].PriceDate
+// }
+// func (a ByQuarter) Swap(i, j int) { a.Days[i], a.Days[j] = a.Days[j], a.Days[i] }
+
+// func (td ByQuarter) Sort() *TickerDailies {
+// 	sort.Sort(ByTickerPriceDate(td))
+// 	return &td
+// }

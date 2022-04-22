@@ -17,7 +17,10 @@ import (
 	"github.com/savaki/dynastore"
 )
 
-var forwardedRE = regexp.MustCompile(`for=(.*)`)
+var (
+	forwardedRE      = regexp.MustCompile(`for=(.*)`)
+	skipLoggingPaths = regexp.MustCompile(`^/(ping|metrics|static)`)
+)
 
 // AddContext middleware ------------------------------------------------------
 type AddContext struct {
@@ -160,7 +163,7 @@ func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := log.Ctx(r.Context())
 
 	// don't logs these, no reason to
-	if r.URL.String() != "/ping" && r.URL.String() != "/metrics" {
+	if !skipLoggingPaths.MatchString(r.URL.String()) {
 		ForwardedHdrs := r.Header["Forwarded"]
 		remote_ip_addr := ""
 		if len(ForwardedHdrs) > 0 {
