@@ -3,8 +3,8 @@ module github.com/weirdtangent/stockwatch
 go 1.13
 
 require (
-	cloud.google.com/go/compute v1.6.0 // indirect
-	github.com/aws/aws-sdk-go v1.43.43
+	cloud.google.com/go/compute v1.6.1 // indirect
+	github.com/aws/aws-sdk-go v1.43.44
 	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/gomarkdown/markdown v0.0.0-20220419181919-412bcf14cd2e
 	github.com/gomodule/redigo v1.8.8
@@ -22,8 +22,7 @@ require (
 	github.com/weirdtangent/mymath v0.1.0
 	github.com/weirdtangent/mytime v0.1.1
 	github.com/weirdtangent/yhfinance v0.2.1
-	golang.org/x/net v0.0.0-20220420153159-1850ba15e1be // indirect
-	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
-	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
+	golang.org/x/net v0.0.0-20220421235706-1d1ef9303861 // indirect
+	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150 // indirect
 	golang.org/x/text v0.3.7
 )

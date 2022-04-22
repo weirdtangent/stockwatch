@@ -11,12 +11,14 @@ My first attempt at a Go web app... and I had to go crazy... :shrug:
 
 ### Technologies
 
-* Go
-* Bootstrap
-* JQuery
-* Open-Id Connect/OAuth2
-* Logzio
-* AWS
+* Go - https://go.dev/
+* Bootstrap - https://getbootstrap.com/
+* JQuery - https://jquery.com/
+* RapidAPI - https://rapidapi.com/
+* Open-Id Connect/OAuth2 - https://openid.net/connect/ https://oauth.net/2/
+* Logzio - https://logz.io/
+* Prometheus - https://prometheus.io/
+* AWS - https://aws.amazon.com/
   * EC2
   * RDS
   * Secrets
