@@ -21,10 +21,11 @@ func apiV1Handler() http.HandlerFunc {
 		ctx := r.Context()
 		logger := log.Ctx(ctx)
 
-		if ok := checkAuthState(w, r); !ok {
-			http.NotFound(w, r)
-			return
-		}
+		checkAuthState(w, r)
+		// if ok := checkAuthState(w, r); !ok {
+		// 	http.NotFound(w, r)
+		// 	return
+		// }
 
 		w.Header().Add("Content-Type", "application/json")
 

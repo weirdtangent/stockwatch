@@ -123,7 +123,7 @@ func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, e
     			LIMIT 6`
 		rows, err = db.Queryx(query, fromDate, keyword, keyword, keyword)
 	} else {
-		fromDate := time.Now().AddDate(0, 0, -5).Format("2006-01-02 15:04:05")
+		fromDate := time.Now().AddDate(0, 0, -15).Format("2006-01-02 15:04:05")
 		query = `SELECT article.article_id, article.source_id, article.external_id, article.published_datetime, article.pubupdated_datetime,
 		            article.title, article.body, article.article_url, article.image_url,
                 	ANY_VALUE(article_author.byline) AS author_byline,
@@ -136,7 +136,7 @@ func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, e
 				WHERE published_datetime > ?
 				GROUP BY article_id
 				ORDER BY published_datetime DESC
-				LIMIT 15`
+				LIMIT 25`
 		rows, err = db.Queryx(query, fromDate)
 	}
 

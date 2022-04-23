@@ -28,7 +28,7 @@
                       {{end}}
                     {{end}}
                     <span class="text-info">
-                    {{if .quote}}as of </span><span id="quote_asof" class="text-light">{{ FormatUnixTime .quote.QuoteTime "Jan 2 15:04" }}
+                    {{if .quote}}as of </span><span id="quote_asof" class="text-light">{{ FormatUnixTime .quote.QuoteTime "Jan 2 15:04" }}</span>
                     {{else}}at close on </span><span id="quote_asof" class="h6 text-light">{{ FormatDatetimeStr .lastClose.PriceDate "Jan 2" }}</span>
                     {{end}}
                   </div>

@@ -646,7 +646,9 @@ func (td *TickerDaily) createOrUpdate(ctx context.Context) error {
 	return err
 }
 
-func getLastTickerDailyMove(db *sqlx.DB, ticker_id int64) (string, error) {
+func getLastTickerDailyMove(ctx context.Context, ticker_id int64) (string, error) {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+
 	var lastTickerDailyMove string
 	row := db.QueryRowx(
 		`SELECT IF(ticker_daily.close_price >= prev.close_price,"up",IF(ticker_daily.close_price < prev.close_price,"down","unknown")) AS lastTickerDailyMove

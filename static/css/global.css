@@ -9,6 +9,13 @@ a:hover {
   color: #F5E239 !important;
 }
 
+a.hide-link,
+a:hover.hide-link,
+a:visited.hide-link {
+  text-decoration: none !important;
+  color: white !important;
+}
+
 .logo {
   background-color: #375a7f;
 }
@@ -156,13 +163,23 @@ footer p {
 .flush-left {
   text-align: -webkit-left;
   text-align: -moz-left;
-  text-align: -o-left; 
+  text-align: -o-left;
   text-align: -ms-left;
 }
 
 .flush-right {
   text-align: -webkit-right;
   text-align: -moz-right;
-  text-align: -o-right; 
+  text-align: -o-right;
   text-align: -ms-right;
+}
+
+.ticker-card {
+  background: #303030;
+  border: 2px solid transparent;
+}
+
+.ticker-card:hover {
+  background: #303030;
+  border: 2px solid #F5E239;
 }

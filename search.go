@@ -38,10 +38,12 @@ func searchHandler() http.HandlerFunc {
 		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 		messages := ctx.Value(ContextKey("messages")).(*[]Message)
 
-		if ok := checkAuthState(w, r); !ok {
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-			return
-		}
+		checkAuthState(w, r)
+
+		// if ok := checkAuthState(w, r); !ok {
+		// 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		// 	return
+		// }
 
 		params := mux.Vars(r)
 		searchType := params["type"]

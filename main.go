@@ -54,7 +54,7 @@ func main() {
 	}
 
 	// connect to MySQL
-	db := myaws.DBMustConnect(awssess, "stockwatch", "stockwatch")
+	db := myaws.DBMustConnect(awssess, "stockwatch")
 
 	_, err = db.Exec("SET NAMES utf8mb4 COLLATE utf8mb4_general_ci")
 	if err != nil {
@@ -176,7 +176,7 @@ func main() {
 		dynastore.HTTPOnly(),
 		dynastore.Domain("stockwatch.graystorm.com"),
 		dynastore.Path("/"),
-		dynastore.MaxAge(31*24*60*60),
+		dynastore.MaxAge(24*60*60),
 		dynastore.Codecs(secureCookie),
 	)
 	if err != nil {

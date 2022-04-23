@@ -21,6 +21,13 @@ func desktopHandler() http.HandlerFunc {
 		articles, _ := getArticlesByKeyword(ctx, "")
 		webdata["articles"] = articles
 
+		recentPlus, _ := getRecentsPlusInfo(ctx, r)
+		webdata["recentplus"] = recentPlus
+
+		webdata["announcement"] = []string{
+			"Moving things around alot, especially on the desktop. Trying to find what I like, but email me if you have ideas!",
+		}
+
 		renderTemplateDefault(w, r, "desktop")
 	})
 }

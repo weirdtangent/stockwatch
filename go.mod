@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	cloud.google.com/go/compute v1.6.1 // indirect
-	github.com/aws/aws-sdk-go v1.43.44
+	github.com/aws/aws-sdk-go v1.43.45
 	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/gomarkdown/markdown v0.0.0-20220419181919-412bcf14cd2e
 	github.com/gomodule/redigo v1.8.8
@@ -18,7 +18,7 @@ require (
 	github.com/prometheus/common v0.34.0 // indirect
 	github.com/rs/zerolog v1.26.1
 	github.com/savaki/dynastore v0.0.0-20171109173440-28d8558bb429
-	github.com/weirdtangent/myaws v1.0.1
+	github.com/weirdtangent/myaws v1.0.2
 	github.com/weirdtangent/mymath v0.1.0
 	github.com/weirdtangent/mytime v0.1.1
 	github.com/weirdtangent/yhfinance v0.2.1

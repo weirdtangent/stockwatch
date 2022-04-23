@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 )
@@ -28,6 +29,8 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 		"SinceColor":        SinceColor,
 		"PriceDiffAmt":      PriceDiffAmt,
 		"PriceDiffPerc":     PriceDiffPerc,
+		"ToUpper":           strings.ToUpper,
+		"ToLower":           strings.ToLower,
 	}
 
 	tmpl := template.New("blank").Funcs(funcMap)

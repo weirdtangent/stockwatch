@@ -10,15 +10,16 @@ import (
 )
 
 type Watcher struct {
-	WatcherId      int64  `db:"watcher_id"`
-	WatcherSub     string `db:"watcher_sub"`
-	WatcherName    string `db:"watcher_name"`
-	WatcherStatus  string `db:"watcher_status"`
-	WatcherLevel   string `db:"watcher_level"`
-	WatcherPicURL  string `db:"watcher_pic_url"`
-	SessionId      string `db:"session_id"`
-	CreateDatetime string `db:"create_datetime"`
-	UpdateDatetime string `db:"update_datetime"`
+	WatcherId       int64  `db:"watcher_id"`
+	WatcherSub      string `db:"watcher_sub"`
+	WatcherName     string `db:"watcher_name"`
+	WatcherStatus   string `db:"watcher_status"`
+	WatcherLevel    string `db:"watcher_level"`
+	WatcherTimezone string `db:"watcher_timezone"`
+	WatcherPicURL   string `db:"watcher_pic_url"`
+	SessionId       string `db:"session_id"`
+	CreateDatetime  string `db:"create_datetime"`
+	UpdateDatetime  string `db:"update_datetime"`
 }
 
 type WatcherEmail struct {
@@ -56,48 +57,26 @@ func (w *Watcher) update(ctx context.Context, email string) error {
 }
 
 func (w *Watcher) create(ctx context.Context, email string) error {
-	logger := log.Ctx(ctx)
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	tx, err := db.BeginTx(ctx, nil)
+	insert := "INSERT INTO watcher SET watcher_sub=?, watcher_name=?, watcher_status=?, watcher_pic_url=?, session_id=?"
+	_, err := db.Exec(insert, w.WatcherSub, w.WatcherName, w.WatcherStatus, w.WatcherPicURL, w.SessionId)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Failed to init db transaction")
-	}
-
-	var insert = "INSERT INTO watcher SET watcher_sub=?, watcher_name=?, watcher_status=?, watcher_pic_url=?, session_id=?"
-	res, err := tx.Exec(insert, w.WatcherSub, w.WatcherName, w.WatcherStatus, w.WatcherPicURL, w.SessionId)
-	if err != nil {
-		tx.Rollback()
-		logger.Fatal().Err(err).Str("table_name", "watcher").Msg("Failed on INSERT")
+		log.Error().Err(err).Str("table_name", "watcher").Msg("failed on INSERT")
 		return err
 	}
-
-	watcherId, err := res.LastInsertId()
-	if err != nil {
-		tx.Rollback()
-		logger.Fatal().Err(err).Str("table_name", "watcher").Msg("Failed on LAST_INSERT_ID")
+	w.WatcherId, err = getWatcherIdBySession(ctx, w.SessionId)
+	if err != nil || w.WatcherId == 0 {
+		log.Error().Err(err).Str("table_name", "watcher").Msg("failed on getting watcher_id of who we just inserted")
 		return err
 	}
-
-	err = getWatcherById(ctx, w, watcherId)
-	if err == nil {
-		var insert = "INSERT INTO watcher_email SET watcher_id=?, email_address=?, email_is_primary=1"
-		_, err = tx.Exec(insert, w.WatcherId, email)
-		if err != nil {
-			tx.Rollback()
-			logger.Warn().Err(err).Str("table_name", "watcher_email").Msg("Failed to store/ignore email address after INSERT")
-		} else {
-			err = tx.Commit()
-			if err != nil {
-				logger.Fatal().Err(err).Msg("Failed to commit db transaction")
-			}
-			return nil
-		}
-
+	insert = "INSERT INTO watcher_email SET watcher_id=?, email_address=?, email_is_primary=1"
+	_, err = db.Exec(insert, w.WatcherId, email)
+	if err != nil {
+		log.Warn().Err(err).Str("table_name", "watcher_email").Msg("failed on INSERT")
 	}
 
-	tx.Rollback()
-	return err
+	return nil
 }
 
 func (w *Watcher) createOrUpdate(ctx context.Context, email string) error {
@@ -107,11 +86,13 @@ func (w *Watcher) createOrUpdate(ctx context.Context, email string) error {
 	}
 
 	if watcherId == 0 {
+		log.Info().Msg("did not connect to watcher via sessionId")
 		watcherId, err = getWatcherIdByEmail(ctx, email)
 		if err != nil {
 			return nil
 		}
 		if watcherId == 0 {
+			log.Info().Msg("did not connect to watcher via emailAddress")
 			return w.create(ctx, email)
 		}
 	}

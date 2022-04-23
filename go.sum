@@ -65,6 +65,8 @@ github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kd
 github.com/aws/aws-sdk-go v1.43.40/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
 github.com/aws/aws-sdk-go v1.43.44 h1:t+97cY4ScE/czlNlK5iikUGi7w1fC0uop1OUalDIRT4=
 github.com/aws/aws-sdk-go v1.43.44/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
+github.com/aws/aws-sdk-go v1.43.45 h1:2708Bj4uV+ym62MOtBnErm/CDX61C4mFe9V2gXy1caE=
+github.com/aws/aws-sdk-go v1.43.45/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
@@ -324,6 +326,8 @@ github.com/stretchr/testify v1.7.1 h1:5TQK59W5E3v0r2duFAb7P95B6hEeOyEnHRa8MjYSMT
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/weirdtangent/myaws v1.0.1 h1:p3k+3ZyYxllPs7dGNUatiq9K5BVe814inY0jeqFKwDo=
 github.com/weirdtangent/myaws v1.0.1/go.mod h1:/PEPza3XdSYhWrVnDaIdw6I+9nmQEn0MPfa0IAcoP3I=
+github.com/weirdtangent/myaws v1.0.2 h1:hPk5CRAg8CSbI9u9x5o9MsypaB39RTNGFVzCDDRtFtc=
+github.com/weirdtangent/myaws v1.0.2/go.mod h1:XmAqF4PxJOpxu4NBYmJ48RfjOJWYBVhWkQhEd9RIdYE=
 github.com/weirdtangent/mymath v0.1.0 h1:oFYr1tzTbEbueqx/AWVFziDhueRbqZbmTR5v7HxY5xc=
 github.com/weirdtangent/mymath v0.1.0/go.mod h1:wkMYAvjtjbEuuvX/fes61TQYmYpFcyqebwfF9blhqgo=
 github.com/weirdtangent/mytime v0.1.1 h1:QOHeGWqDx+3795L2iTlIO0maAi35Jg9rkp50Cqt9dLU=

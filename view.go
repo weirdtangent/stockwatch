@@ -18,10 +18,12 @@ func viewTickerDailyHandler() http.HandlerFunc {
 		messages := ctx.Value(ContextKey("messages")).(*[]Message)
 		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 
-		if ok := checkAuthState(w, r); !ok {
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-			return
-		}
+		checkAuthState(w, r)
+
+		// if ok := checkAuthState(w, r); !ok {
+		// 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		// 	return
+		// }
 
 		params := mux.Vars(r)
 		symbol := params["symbol"]

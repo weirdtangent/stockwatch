@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
@@ -65,7 +66,7 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	tickerSplits, _ := ticker.getSplits(ctx)
 
 	lastClose, priorClose := ticker.getLastAndPriorClose(ctx)
-	lastTickerDailyMove, _ := getLastTickerDailyMove(db, ticker.TickerId)
+	lastTickerDailyMove, _ := getLastTickerDailyMove(ctx, ticker.TickerId)
 
 	// load up to last 100 days of EOD data
 	ticker_dailies, _ := ticker.getTickerEODs(ctx, timespan)
@@ -84,15 +85,37 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	}
 
 	// schedule to update ticker news
-	err = ticker.queueUpdateNews(ctx)
-	if err != nil {
-		logger.Error().Err(err).Str("ticker", symbol).Int64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
+	lastdone := LastDone{Activity: "ticker_news", UniqueKey: ticker.TickerSymbol}
+	err = lastdone.getByActivity(ctx)
+	if err == nil && lastdone.LastStatus == "success" {
+		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
+			err = ticker.queueUpdateNews(ctx)
+			if err != nil {
+				logger.Error().Err(err).Str("ticker", symbol).Int64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
+			}
+		}
+	} else {
+		err = ticker.queueUpdateNews(ctx)
+		if err != nil {
+			logger.Error().Err(err).Str("ticker", symbol).Int64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
+		}
 	}
 
 	// schedule to update ticker financials
-	err = ticker.queueUpdateFinancials(ctx)
-	if err != nil {
-		logger.Error().Err(err).Str("ticker", symbol).Int64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateFinancials")
+	lastdone = LastDone{Activity: "ticker_financials", UniqueKey: ticker.TickerSymbol}
+	err = lastdone.getByActivity(ctx)
+	if err == nil && lastdone.LastStatus == "success" {
+		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerFinancialsDelay).Before(time.Now()) {
+			err = ticker.queueUpdateNews(ctx)
+			if err != nil {
+				logger.Error().Err(err).Str("ticker", symbol).Int64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateFinancials")
+			}
+		}
+	} else {
+		err = ticker.queueUpdateNews(ctx)
+		if err != nil {
+			logger.Error().Err(err).Str("ticker", symbol).Int64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateFinancials")
+		}
 	}
 
 	// get financials

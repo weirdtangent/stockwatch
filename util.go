@@ -31,6 +31,8 @@ func FormatDatetimeStr(dateStr string, formatStr string) string {
 		dateObj, _ = time.Parse("2006-01-02", dateStr)
 	} else if len(dateStr) == 19 {
 		dateObj, _ = time.Parse("2006-01-02 15:04:05", dateStr)
+	} else if len(dateStr) == 20 {
+		dateObj, _ = time.Parse("2006-01-02T15:04:05Z", dateStr)
 	} else {
 		log.Fatal().Str("dateStr", dateStr).Msg("Unknown how to parse this datetime string")
 	}
@@ -49,6 +51,8 @@ func Over24Hours(dateStr string) bool {
 		dateObj, _ = time.Parse("2006-01-02", dateStr)
 	} else if len(dateStr) == 19 {
 		dateObj, _ = time.Parse("2006-01-02 15:04:05", dateStr)
+	} else if len(dateStr) == 20 {
+		dateObj, _ = time.Parse("2006-01-02T15:04:05Z", dateStr)
 	} else {
 		log.Fatal().Str("dateStr", dateStr).Msg("Unknown how to parse this datetime string")
 	}
@@ -66,6 +70,8 @@ func Over24HoursUTC(dateStr string) bool {
 		dateObj, _ = time.Parse("2006-01-02", dateStr)
 	} else if len(dateStr) == 19 {
 		dateObj, _ = time.Parse("2006-01-02 15:04:05", dateStr)
+	} else if len(dateStr) == 20 {
+		dateObj, _ = time.Parse("2006-01-02T15:04:05Z", dateStr)
 	} else {
 		log.Fatal().Str("dateStr", dateStr).Msg("Unknown how to parse this datetime string")
 	}

@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
+	"github.com/weirdtangent/yhfinance"
 )
 
 type Recent struct {
@@ -15,8 +17,20 @@ type Recent struct {
 	LastSeenDatetime string `db:"lastseen_datetime"`
 }
 
+type RecentPlus struct {
+	TickerId        int64
+	TickerSymbol    string
+	Exchange        string
+	TickerName      string
+	CompanyName     string
+	LiveQuote       yhfinance.YFQuote
+	LastClose       TickerDaily
+	LastDailyMove   string
+	NewsLastUpdated string
+	UpdatingNewsNow bool
+}
+
 func getRecents(session *sessions.Session, r *http.Request) (*[]string, error) {
-	// get current list (if any) from session
 	var recents []string
 
 	if session.Values["recents"] != nil {
@@ -24,6 +38,69 @@ func getRecents(session *sessions.Session, r *http.Request) (*[]string, error) {
 	}
 
 	return &recents, nil
+}
+
+func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, error) {
+	webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
+	session := getSession(r)
+	var recents []string
+	var recentPlus []RecentPlus
+
+	if session.Values["recents"] != nil {
+		recents = session.Values["recents"].([]string)
+		for _, symbol := range recents {
+			ticker, err := getTickerBySymbol(ctx, symbol)
+			if err != nil {
+				continue
+			}
+			exchange, err := getExchangeById(ctx, ticker.ExchangeId)
+			if err != nil {
+				continue
+			}
+			quote := yhfinance.YFQuote{}
+			if isMarketOpen() {
+				quote, err = loadTickerQuote(ctx, ticker.TickerSymbol)
+				if err != nil {
+					continue
+				}
+			}
+			lastClose, _ := ticker.getLastAndPriorClose(ctx)
+			lastDailyMove, _ := getLastTickerDailyMove(ctx, ticker.TickerId)
+
+			newsLastUpdated := "-"
+			updatingNewsNow := false
+			lastdone := LastDone{Activity: "ticker_news", UniqueKey: ticker.TickerSymbol}
+			err = lastdone.getByActivity(ctx)
+			if err != nil {
+				log.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get LastDone activity for {symbol}")
+			}
+			if err == nil && lastdone.LastStatus == "success" {
+				newsLastUpdated = lastdone.LastDoneDatetime.Time.In(webdata["tzlocation"].(*time.Location)).Format("Jan 02 15:04 MST")
+				if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
+					err = ticker.queueUpdateNews(ctx)
+					updatingNewsNow = err == nil
+				}
+			} else {
+				err = ticker.queueUpdateNews(ctx)
+				updatingNewsNow = err == nil
+			}
+
+			recentPlus = append(recentPlus, RecentPlus{
+				TickerId:        ticker.TickerId,
+				TickerSymbol:    ticker.TickerSymbol,
+				Exchange:        exchange.ExchangeAcronym,
+				TickerName:      ticker.TickerName,
+				CompanyName:     ticker.CompanyName,
+				LiveQuote:       quote,
+				LastClose:       *lastClose,
+				LastDailyMove:   lastDailyMove,
+				NewsLastUpdated: newsLastUpdated,
+				UpdatingNewsNow: updatingNewsNow,
+			})
+		}
+	}
+
+	return &recentPlus, nil
 }
 
 func addTickerToRecents(ctx context.Context, r *http.Request, ticker Ticker) (*[]string, error) {

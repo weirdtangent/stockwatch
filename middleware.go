@@ -20,6 +20,7 @@ import (
 var (
 	forwardedRE      = regexp.MustCompile(`for=(.*)`)
 	skipLoggingPaths = regexp.MustCompile(`^/(ping|metrics|static)`)
+	obfuscateParams  = regexp.MustCompile(`(token|verifier|pwd|password)=([^\&]+)`)
 )
 
 // AddContext middleware ------------------------------------------------------
@@ -173,8 +174,11 @@ func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		cleanURL := r.URL.String()
+		cleanURL = obfuscateParams.ReplaceAllString(cleanURL, "$1=xxxxxx")
+
 		logger.Info().
-			Stringer("url", r.URL).
+			Str("url", cleanURL).
 			Int("status_code", 200).
 			Str("method", r.Method).
 			Str("remote_ip_addr", remote_ip_addr).

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -48,7 +49,7 @@ func signinUser(w http.ResponseWriter, r *http.Request, gothUser goth.User) {
 	// get (or create) watcher account based on oauth properties
 	// specifically, based on the sub value, because email addresses can change
 	// and we want a watchers session and "account" to follow them even if they change
-	var watcher = &Watcher{0, gothUser.UserID, gothUser.Name, "active", "standard", gothUser.AvatarURL, session.ID, "", ""}
+	watcher := Watcher{0, gothUser.UserID, gothUser.Name, "active", "standard", "", gothUser.AvatarURL, session.ID, "", ""}
 	err := watcher.createOrUpdate(ctx, gothUser.Email)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to get/create watcher from one-tap")
@@ -59,11 +60,22 @@ func signinUser(w http.ResponseWriter, r *http.Request, gothUser goth.User) {
 		logger.Fatal().Msg("WatcherId should not be 0 here")
 	}
 
-	// get (or write) oauth record tied to watcher until it expires
-	var oauth = &OAuth{0, gothUser.Provider, gothUser.UserID, time.Now().Unix(), gothUser.ExpiresAt.Unix(), "", ""}
+	// why does twitter send back a weird gothUser.ExpiresAt?
+	if gothUser.ExpiresAt.IsZero() {
+		gothUser.ExpiresAt = time.Now().Add(24 * time.Hour)
+	}
+	oauth := OAuth{
+		0,
+		gothUser.Provider,
+		gothUser.UserID,
+		sql.NullTime{Valid: true, Time: time.Now()},
+		sql.NullTime{Valid: true, Time: gothUser.ExpiresAt},
+		sql.NullTime{Valid: true, Time: time.Now()},
+		sql.NullTime{Valid: true, Time: time.Now()},
+	}
 	err = oauth.createOrUpdate(ctx)
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to create/update oauth record")
+		logger.Error().Err(err).Msg("failed to create/update oauth record")
 		http.NotFound(w, r)
 		return
 	}
@@ -132,6 +144,8 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 	webdata["config"] = ConfigData{}
 	webdata["recents"] = *recents
 	webdata["nonce"] = nonce
+	location, _ := time.LoadLocation("UTC")
+	webdata["tzlocation"] = location
 
 	if wid, err := r.Cookie("WID"); err == nil {
 		var WIDstr string
@@ -170,6 +184,12 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 			logger.Info().Int64("watcher_id", watcher.WatcherId).Str("watcher_status", watcher.WatcherStatus).Msg("authenticated visitor")
 			webdata["WID"] = wid
 			webdata["watcher"] = watcher
+
+			location, err := time.LoadLocation(watcher.WatcherTimezone)
+			if err == nil {
+				webdata["tzlocation"] = location
+			}
+
 			return true
 		}
 	}
