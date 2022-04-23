@@ -34,7 +34,6 @@ type SearchResult struct {
 func searchHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		logger := log.Ctx(ctx)
 		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 		messages := ctx.Value(ContextKey("messages")).(*[]Message)
 
@@ -58,11 +57,7 @@ func searchHandler() http.HandlerFunc {
 			}
 			webdata["searchString"] = searchString
 
-			logger.Info().
-				Str("search_provider", "yhfinance").
-				Str("search_type", searchType).
-				Str("search_string", searchString).
-				Msg("Search performed")
+			log.Info().Str("search_provider", "yhfinance").Str("search_type", searchType).Str("search_string", searchString).Msg("Search performed")
 
 			if searchType == "jump" {
 				searchResultTicker, err := jumpSearch(ctx, searchString)
@@ -106,9 +101,7 @@ func searchHandler() http.HandlerFunc {
 			}
 
 		default:
-			logger.Warn().
-				Str("search_type", searchType).
-				Msg("Unknown search_type")
+			log.Warn().Str("search_type", searchType).Msg("Unknown search_type")
 			*messages = append(*messages, Message{"sorry, invalid search request", "danger"})
 		}
 

@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"regexp"
 	"sort"
 	"strconv"
@@ -21,54 +23,54 @@ import (
 )
 
 type Ticker struct {
-	TickerId        int64  `db:"ticker_id"`
-	TickerSymbol    string `db:"ticker_symbol"`
-	ExchangeId      int64  `db:"exchange_id"`
-	TickerName      string `db:"ticker_name"`
-	CompanyName     string `db:"company_name"`
-	Address         string `db:"address"`
-	City            string `db:"city"`
-	State           string `db:"state"`
-	Zip             string `db:"zip"`
-	Country         string `db:"country"`
-	Website         string `db:"website"`
-	Phone           string `db:"phone"`
-	Sector          string `db:"sector"`
-	Industry        string `db:"industry"`
-	FetchDatetime   string `db:"fetch_datetime"`
-	MSPerformanceId string `db:"ms_performance_id"`
-	CreateDatetime  string `db:"create_datetime"`
-	UpdateDatetime  string `db:"update_datetime"`
+	TickerId        uint64       `db:"ticker_id"`
+	TickerSymbol    string       `db:"ticker_symbol"`
+	ExchangeId      uint64       `db:"exchange_id"`
+	TickerName      string       `db:"ticker_name"`
+	CompanyName     string       `db:"company_name"`
+	Address         string       `db:"address"`
+	City            string       `db:"city"`
+	State           string       `db:"state"`
+	Zip             string       `db:"zip"`
+	Country         string       `db:"country"`
+	Website         string       `db:"website"`
+	Phone           string       `db:"phone"`
+	Sector          string       `db:"sector"`
+	Industry        string       `db:"industry"`
+	FetchDatetime   sql.NullTime `db:"fetch_datetime"`
+	MSPerformanceId string       `db:"ms_performance_id"`
+	CreateDatetime  sql.NullTime `db:"create_datetime"`
+	UpdateDatetime  sql.NullTime `db:"update_datetime"`
 }
 
 type TickersEODTask struct {
 	TaskAction string `json:"action"`
-	TickerId   int64  `json:"ticker_id"`
+	TickerId   uint64 `json:"ticker_id"`
 	DaysBack   int    `json:"days_back"`
 	Offset     int    `json:"offset"`
 }
 
 type TickerAttribute struct {
-	TickerAttributeId int64  `db:"attribute_id"`
-	TickerId          int64  `db:"ticker_id"`
-	AttributeName     string `db:"attribute_name"`
-	AttributeValue    string `db:"attribute_value"`
-	CreateDatetime    string `db:"create_datetime"`
-	UpdateDatetime    string `db:"update_datetime"`
+	TickerAttributeId uint64       `db:"attribute_id"`
+	TickerId          uint64       `db:"ticker_id"`
+	AttributeName     string       `db:"attribute_name"`
+	AttributeValue    string       `db:"attribute_value"`
+	CreateDatetime    sql.NullTime `db:"create_datetime"`
+	UpdateDatetime    sql.NullTime `db:"update_datetime"`
 }
 
 type TickerDaily struct {
-	TickerDailyId  int64   `db:"ticker_daily_id"`
-	TickerId       int64   `db:"ticker_id"`
-	PriceDate      string  `db:"price_date"`
-	PriceTime      string  `db:"price_time"`
-	OpenPrice      float64 `db:"open_price"`
-	HighPrice      float64 `db:"high_price"`
-	LowPrice       float64 `db:"low_price"`
-	ClosePrice     float64 `db:"close_price"`
-	Volume         float64 `db:"volume"`
-	CreateDatetime string  `db:"create_datetime"`
-	UpdateDatetime string  `db:"update_datetime"`
+	TickerDailyId  uint64       `db:"ticker_daily_id"`
+	TickerId       uint64       `db:"ticker_id"`
+	PriceDate      string       `db:"price_date"`
+	PriceTime      string       `db:"price_time"`
+	OpenPrice      float64      `db:"open_price"`
+	HighPrice      float64      `db:"high_price"`
+	LowPrice       float64      `db:"low_price"`
+	ClosePrice     float64      `db:"close_price"`
+	Volume         float64      `db:"volume"`
+	CreateDatetime sql.NullTime `db:"create_datetime"`
+	UpdateDatetime sql.NullTime `db:"update_datetime"`
 }
 
 type TickerDailies struct {
@@ -76,21 +78,21 @@ type TickerDailies struct {
 }
 
 type TickerDescription struct {
-	TickerDescriptionId int64  `db:"description_id"`
-	TickerId            int64  `db:"ticker_id"`
-	BusinessSummary     string `db:"business_summary"`
-	CreateDatetime      string `db:"create_datetime"`
-	UpdateDatetime      string `db:"update_datetime"`
+	TickerDescriptionId uint64       `db:"description_id"`
+	TickerId            uint64       `db:"ticker_id"`
+	BusinessSummary     string       `db:"business_summary"`
+	CreateDatetime      sql.NullTime `db:"create_datetime"`
+	UpdateDatetime      sql.NullTime `db:"update_datetime"`
 }
 
 type TickerIntraday struct {
-	TickerIntradayId int64   `db:"intraday_id"`
-	TickerId         int64   `db:"ticker_id"`
-	PriceDate        string  `db:"price_date"`
-	LastPrice        float64 `db:"last_price"`
-	Volume           float64 `db:"volume"`
-	CreateDatetime   string  `db:"create_datetime"`
-	UpdateDatetime   string  `db:"update_datetime"`
+	TickerIntradayId uint64       `db:"intraday_id"`
+	TickerId         uint64       `db:"ticker_id"`
+	PriceDate        string       `db:"price_date"`
+	LastPrice        float64      `db:"last_price"`
+	Volume           float64      `db:"volume"`
+	CreateDatetime   sql.NullTime `db:"create_datetime"`
+	UpdateDatetime   sql.NullTime `db:"update_datetime"`
 }
 
 type TickerIntradays struct {
@@ -98,25 +100,25 @@ type TickerIntradays struct {
 }
 
 type TickerUpDown struct {
-	TickerUpDownId  int64  `db:"updown_id"`
-	TickerId        int64  `db:"ticker_id"`
-	UpDownAction    string `db:"updown_action"`
-	UpDownFromGrade string `db:"updown_fromgrade"`
-	UpDownToGrade   string `db:"updown_tograde"`
-	UpDownDate      string `db:"updown_date"`
-	UpDownFirm      string `db:"updown_firm"`
-	UpDownSince     string `db:"updown_since"`
-	CreateDatetime  string `db:"create_datetime"`
-	UpdateDatetime  string `db:"update_datetime"`
+	TickerUpDownId  uint64       `db:"updown_id"`
+	TickerId        uint64       `db:"ticker_id"`
+	UpDownAction    string       `db:"updown_action"`
+	UpDownFromGrade string       `db:"updown_fromgrade"`
+	UpDownToGrade   string       `db:"updown_tograde"`
+	UpDownDate      string       `db:"updown_date"`
+	UpDownFirm      string       `db:"updown_firm"`
+	UpDownSince     string       `db:"updown_since"`
+	CreateDatetime  sql.NullTime `db:"create_datetime"`
+	UpdateDatetime  sql.NullTime `db:"update_datetime"`
 }
 
 type TickerSplit struct {
-	TickerSplitId  int64  `db:"ticker_split_id"`
-	TickerId       int64  `db:"ticker_id"`
-	SplitDate      string `db:"split_date"`
-	SplitRatio     string `db:"split_ratio"`
-	CreateDatetime string `db:"create_datetime"`
-	UpdateDatetime string `db:"update_datetime"`
+	TickerSplitId  uint64       `db:"ticker_split_id"`
+	TickerId       uint64       `db:"ticker_id"`
+	SplitDate      string       `db:"split_date"`
+	SplitRatio     string       `db:"split_ratio"`
+	CreateDatetime sql.NullTime `db:"create_datetime"`
+	UpdateDatetime sql.NullTime `db:"update_datetime"`
 }
 
 func (t *Ticker) getBySymbol(ctx context.Context) error {
@@ -126,79 +128,64 @@ func (t *Ticker) getBySymbol(ctx context.Context) error {
 	return err
 }
 
-func (t *Ticker) checkBySymbol(ctx context.Context) int64 {
+func (t *Ticker) getById(ctx context.Context) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	var tickerId int64
-	db.QueryRowx("SELECT ticker_id FROM ticker WHERE ticker_symbol=?", t.TickerSymbol).Scan(&tickerId)
-	return tickerId
+	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_id=?", t.TickerId).StructScan(t)
+	return err
 }
 
 func (t *Ticker) create(ctx context.Context) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-	logger := log.Ctx(ctx)
 
 	if t.TickerSymbol == "" {
-		// logger.Warn().Msg("refusing to add ticker with blank symbol")
+		// refusing to add ticker with blank symbol
 		return nil
 	}
 
 	var insert = "INSERT INTO ticker SET ticker_symbol=?, exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=?"
-	if t.FetchDatetime == "now()" {
+	if !t.FetchDatetime.Valid {
 		insert += ", fetch_datetime=now()"
 	}
 	res, err := db.Exec(insert, t.TickerSymbol, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry)
 	if err != nil {
-		logger.Fatal().Err(err).
-			Str("table_name", "ticker").
-			Str("ticker", t.TickerSymbol).
-			Msg("failed on INSERT")
+		log.Fatal().Err(err).Str("table_name", "ticker").Str("ticker", t.TickerSymbol).Msg("failed on INSERT")
 		return err
 	}
-	t.TickerId, err = res.LastInsertId()
+	tickerId, err := res.LastInsertId()
 	if err != nil {
-		logger.Fatal().Err(err).
-			Str("table_name", "ticker").
-			Str("symbol", t.TickerSymbol).
-			Msg("failed on LAST_INSERTID")
+		log.Fatal().Err(err).Str("table_name", "ticker").Str("symbol", t.TickerSymbol).Msg("failed on LAST_INSERTID")
 		return err
 	}
+	t.TickerId = uint64(tickerId)
 	return nil
 }
 
 func (t *Ticker) createOrUpdate(ctx context.Context) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-	logger := log.Ctx(ctx)
 
 	if t.TickerSymbol == "" {
-		// logger.Warn().Msg("refusing to add ticker with blank symbol")
+		// refusing to add ticker with blank symbol
 		return nil
 	}
 
-	t.TickerId = t.checkBySymbol(ctx)
-	if t.TickerId == 0 {
+	err := t.getBySymbol(ctx)
+	if errors.Is(err, sql.ErrNoRows) || t.TickerId == 0 {
 		return t.create(ctx)
 	}
 
-	var update = "UPDATE ticker SET exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=?"
-	if t.FetchDatetime == "now()" {
-		update += ", fetch_datetime=now()"
-	}
-	update += " WHERE ticker_id=?"
-	_, err := db.Exec(update, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry, t.TickerId)
+	var update = "UPDATE ticker SET exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=?, fetch_datetime=now() WHERE ticker_id=?"
+	_, err = db.Exec(update, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry, t.TickerId)
 	if err != nil {
-		logger.Warn().Err(err).
-			Str("table_name", "ticker").
-			Str("ticker", t.TickerSymbol).
-			Msg("failed on UPDATE")
+		log.Error().Err(err).Str("table_name", "ticker").Str("symbol", t.TickerSymbol).Msg("failed on update")
 	}
-	return t.getBySymbol(ctx)
+	return t.getById(ctx)
 }
 
 func (t *Ticker) createOrUpdateAttribute(ctx context.Context, attributeName string, attributeValue string) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	var attribute = TickerAttribute{0, t.TickerId, attributeName, attributeValue, "", ""}
+	attribute := TickerAttribute{0, t.TickerId, attributeName, attributeValue, sql.NullTime{}, sql.NullTime{}}
 	err := attribute.getByUniqueKey(ctx)
 	if err == nil {
 		var update = "UPDATE ticker_attribute SET attribute_value=? WHERE ticker_id=? AND attribute_name=?"
@@ -307,7 +294,7 @@ func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) bool {
 	log.Info().Msg(string(taskJSON))
 	if err != nil {
 		log.Error().Err(err).
-			Int64("ticker_id", t.TickerId).
+			Uint64("ticker_id", t.TickerId).
 			Msg("failed to create task JSON for EOD update for ticker")
 		return false
 	}
@@ -315,7 +302,7 @@ func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) bool {
 	_, err = sendNotification(awssess, "tickers", taskAction, string(taskJSON))
 	if err == nil {
 		log.Info().
-			Int64("ticker_id", t.TickerId).
+			Uint64("ticker_id", t.TickerId).
 			Msg("sent task notification for EOD update for ticker")
 	}
 
@@ -325,7 +312,7 @@ func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) bool {
 	log.Info().Msg(string(taskJSON))
 	if err != nil {
 		log.Error().Err(err).
-			Int64("ticker_id", t.TickerId).
+			Uint64("ticker_id", t.TickerId).
 			Msg("failed to create task JSON for EOD update for ticker")
 		return true
 	}
@@ -333,7 +320,7 @@ func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) bool {
 	_, err = sendNotification(awssess, "tickers", taskAction, string(taskJSON))
 	if err == nil {
 		log.Info().
-			Int64("ticker_id", t.TickerId).
+			Uint64("ticker_id", t.TickerId).
 			Msg("sent task notification for EOD update for ticker")
 	}
 	return true
@@ -341,7 +328,6 @@ func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) bool {
 
 func (t Ticker) getTickerEODs(ctx context.Context, days int) ([]TickerDaily, error) {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-	logger := log.Ctx(ctx)
 
 	var ticker_daily TickerDaily
 
@@ -350,7 +336,7 @@ func (t Ticker) getTickerEODs(ctx context.Context, days int) ([]TickerDaily, err
 
 	rows, err := db.Queryx(
 		`SELECT * FROM (
-       SELECT * FROM ticker_daily WHERE ticker_id=? AND volume > 0 AND price_date > ?
+           SELECT * FROM ticker_daily WHERE ticker_id=? AND volume > 0 AND price_date > ?
 		   ORDER BY price_date DESC) DT1
 		 ORDER BY price_date`,
 		t.TickerId, fromDate)
@@ -362,9 +348,7 @@ func (t Ticker) getTickerEODs(ctx context.Context, days int) ([]TickerDaily, err
 	for rows.Next() {
 		err = rows.StructScan(&ticker_daily)
 		if err != nil {
-			logger.Warn().Err(err).
-				Str("table_name", "ticker_daily").
-				Msg("error reading result rows")
+			log.Warn().Err(err).Str("table_name", "ticker_daily").Msg("error reading result rows")
 		} else {
 			dailies = append(dailies, ticker_daily)
 		}
@@ -377,7 +361,6 @@ func (t Ticker) getTickerEODs(ctx context.Context, days int) ([]TickerDaily, err
 }
 
 func (t Ticker) getUpDowns(ctx context.Context, daysAgo int) ([]TickerUpDown, error) {
-	logger := log.Ctx(ctx)
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var tickerUpDown TickerUpDown
@@ -394,9 +377,7 @@ func (t Ticker) getUpDowns(ctx context.Context, daysAgo int) ([]TickerUpDown, er
 	for rows.Next() {
 		err = rows.StructScan(&tickerUpDown)
 		if err != nil {
-			logger.Warn().Err(err).
-				Str("table_name", "ticker_updown").
-				Msg("error reading result rows")
+			log.Warn().Err(err).Str("table_name", "ticker_updown").Msg("error reading result rows")
 		} else {
 			upDowns = append(upDowns, tickerUpDown)
 		}
@@ -410,7 +391,6 @@ func (t Ticker) getUpDowns(ctx context.Context, daysAgo int) ([]TickerUpDown, er
 
 func (t Ticker) getAttributes(ctx context.Context) ([]TickerAttribute, error) {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-	logger := log.Ctx(ctx)
 
 	var tickerAttribute TickerAttribute
 	tickerAttributes := make([]TickerAttribute, 0)
@@ -425,9 +405,7 @@ func (t Ticker) getAttributes(ctx context.Context) ([]TickerAttribute, error) {
 	for rows.Next() {
 		err = rows.StructScan(&tickerAttribute)
 		if err != nil {
-			logger.Warn().Err(err).
-				Str("table_name", "ticker_attribute").
-				Msg("error reading result rows")
+			log.Warn().Err(err).Str("table_name", "ticker_attribute").Msg("error reading result rows")
 		} else {
 			underscore_rx := regexp.MustCompile(`_`)
 			tickerAttribute.AttributeName = string(underscore_rx.ReplaceAll([]byte(tickerAttribute.AttributeName), []byte(" ")))
@@ -444,7 +422,6 @@ func (t Ticker) getAttributes(ctx context.Context) ([]TickerAttribute, error) {
 
 func (t Ticker) getSplits(ctx context.Context) ([]TickerSplit, error) {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-	logger := log.Ctx(ctx)
 
 	var tickerSplit TickerSplit
 	tickerSplits := make([]TickerSplit, 0)
@@ -459,9 +436,7 @@ func (t Ticker) getSplits(ctx context.Context) ([]TickerSplit, error) {
 	for rows.Next() {
 		err = rows.StructScan(&tickerSplit)
 		if err != nil {
-			logger.Warn().Err(err).
-				Str("table_name", "ticker_attribute").
-				Msg("error reading result rows")
+			log.Warn().Err(err).Str("table_name", "ticker_attribute").Msg("error reading result rows")
 		} else {
 			tickerSplits = append(tickerSplits, tickerSplit)
 		}
@@ -487,9 +462,9 @@ func (t Ticker) queueUpdateNews(ctx context.Context) error {
 	}
 
 	type TaskTickerNewsBody struct {
-		TickerId     int64  `json:"ticker_id"`
+		TickerId     uint64 `json:"ticker_id"`
 		TickerSymbol string `json:"ticker_symbol"`
-		ExchangeId   int64  `json:"exchange_id"`
+		ExchangeId   uint64 `json:"exchange_id"`
 	}
 
 	// get next message from queue, if any
@@ -522,9 +497,9 @@ func (t Ticker) queueUpdateFinancials(ctx context.Context) error {
 	}
 
 	type TaskTickerNewsBody struct {
-		TickerId     int64  `json:"ticker_id"`
+		TickerId     uint64 `json:"ticker_id"`
 		TickerSymbol string `json:"ticker_symbol"`
-		ExchangeId   int64  `json:"exchange_id"`
+		ExchangeId   uint64 `json:"exchange_id"`
 	}
 
 	// get next message from queue, if any
@@ -545,22 +520,6 @@ func (t Ticker) queueUpdateFinancials(ctx context.Context) error {
 }
 
 // misc -----------------------------------------------------------------------
-
-func getTickerBySymbol(ctx context.Context, symbol string) (*Ticker, error) {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-
-	var ticker Ticker
-	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_symbol=?", symbol).StructScan(&ticker)
-	return &ticker, err
-}
-
-func getTickerById(ctx context.Context, ticker_id int64) (*Ticker, error) {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-
-	var ticker Ticker
-	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_id=?", ticker_id).StructScan(&ticker)
-	return &ticker, err
-}
 
 func (ta *TickerAttribute) getByUniqueKey(ctx context.Context) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
@@ -595,39 +554,35 @@ func (td *TickerDaily) IsFinalPrice() bool {
 	return td.PriceTime == "09:30:00" || td.PriceTime >= "16:00:00"
 }
 
-func (td *TickerDaily) checkByDate(ctx context.Context) int64 {
+func (td *TickerDaily) checkByDate(ctx context.Context) uint64 {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	var tickerDailyId int64
+	var tickerDailyId uint64
 	db.QueryRowx(`SELECT ticker_daily_id FROM ticker_daily WHERE ticker_id=? AND price_date=?`, td.TickerId, td.PriceDate).Scan(&tickerDailyId)
 	return tickerDailyId
 }
 
 func (td *TickerDaily) create(ctx context.Context) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-	logger := log.Ctx(ctx)
 
 	if td.Volume == 0 {
-		// logger.Warn().Msg("Refusing to add ticker daily with 0 volume")
+		// Refusing to add ticker daily with 0 volume
 		return nil
 	}
 
 	var insert = "INSERT INTO ticker_daily SET ticker_id=?, price_date=?, price_time=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=?"
 	_, err := db.Exec(insert, td.TickerId, td.PriceDate, td.PriceTime, td.OpenPrice, td.HighPrice, td.LowPrice, td.ClosePrice, td.Volume)
 	if err != nil {
-		logger.Fatal().Err(err).
-			Str("table_name", "ticker_daily").
-			Msg("Failed on INSERT")
+		log.Fatal().Err(err).Str("table_name", "ticker_daily").Msg("Failed on INSERT")
 	}
 	return err
 }
 
 func (td *TickerDaily) createOrUpdate(ctx context.Context) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-	logger := log.Ctx(ctx)
 
 	if td.Volume == 0 {
-		// logger.Warn().Msg("Refusing to add ticker daily with 0 volume")
+		// Refusing to add ticker daily with 0 volume
 		return nil
 	}
 
@@ -639,14 +594,12 @@ func (td *TickerDaily) createOrUpdate(ctx context.Context) error {
 	var update = "UPDATE ticker_daily SET price_time=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=? WHERE ticker_id=? AND price_date=?"
 	_, err := db.Exec(update, td.PriceTime, td.OpenPrice, td.HighPrice, td.LowPrice, td.ClosePrice, td.Volume, td.TickerId, td.PriceDate)
 	if err != nil {
-		logger.Warn().Err(err).
-			Str("table_name", "ticker_daily").
-			Msg("Failed on UPDATE")
+		log.Warn().Err(err).Str("table_name", "ticker_daily").Msg("Failed on UPDATE")
 	}
 	return err
 }
 
-func getLastTickerDailyMove(ctx context.Context, ticker_id int64) (string, error) {
+func getLastTickerDailyMove(ctx context.Context, ticker_id uint64) (string, error) {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var lastTickerDailyMove string
@@ -670,32 +623,35 @@ func (td *TickerDescription) getByUniqueKey(ctx context.Context) error {
 	return err
 }
 
-func (td *TickerDescription) createIfNew(ctx context.Context) error {
+func (td *TickerDescription) createOrUpdate(ctx context.Context) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-	logger := log.Ctx(ctx)
 
 	if td.BusinessSummary == "" {
 		return nil
 	}
 
+	newBusinessSummary := td.BusinessSummary
 	err := td.getByUniqueKey(ctx)
 	if err == nil {
-		return nil
+		update := "UPDATE ticker_description SET business_summary=? WHERE ticker_description_id=?"
+		_, err = db.Exec(update, newBusinessSummary, td.TickerDescriptionId)
+		if err != nil {
+			log.Fatal().Err(err).Str("table_name", "ticker_description").Msg("failed on update")
+		}
+		return err
 	}
 
 	var insert = "INSERT INTO ticker_description SET ticker_id=?, business_summary=?"
 	_, err = db.Exec(insert, td.TickerId, td.BusinessSummary)
 	if err != nil {
-		logger.Fatal().Err(err).
-			Str("table_name", "ticker_description").
-			Msg("Failed on INSERT")
+		log.Fatal().Err(err).Str("table_name", "ticker_description").Msg("failed on insert")
 	}
 	return err
 }
 
 // misc -----------------------------------------------------------------------
 
-func getTickerDescriptionByTickerId(ctx context.Context, ticker_id int64) (*TickerDescription, error) {
+func getTickerDescriptionByTickerId(ctx context.Context, ticker_id uint64) (*TickerDescription, error) {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var tickerDescription TickerDescription
@@ -734,7 +690,6 @@ func (tud *TickerUpDown) getByUniqueKey(ctx context.Context) error {
 
 func (tud *TickerUpDown) createIfNew(ctx context.Context) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-	logger := log.Ctx(ctx)
 
 	if tud.UpDownToGrade == "" {
 		return nil
@@ -749,9 +704,7 @@ func (tud *TickerUpDown) createIfNew(ctx context.Context) error {
 	var insert = "INSERT INTO ticker_updown SET ticker_id=?, updown_action=?, updown_fromgrade=?, updown_tograde=?, updown_date=?, updown_firm=?"
 	_, err = db.Exec(insert, tud.TickerId, tud.UpDownAction, tud.UpDownFromGrade, tud.UpDownToGrade, tud.UpDownDate, tud.UpDownFirm)
 	if err != nil {
-		logger.Fatal().Err(err).
-			Str("table_name", "ticker_updown").
-			Msg("Failed on INSERT")
+		log.Fatal().Err(err).Str("table_name", "ticker_updown").Msg("Failed on INSERT")
 	}
 	return err
 }
@@ -765,10 +718,9 @@ func (ts *TickerSplit) getByDate(ctx context.Context) error {
 
 func (ts *TickerSplit) createIfNew(ctx context.Context) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-	logger := log.Ctx(ctx)
 
 	if ts.SplitRatio == "" {
-		// logger.Warn().Msg("Refusing to add ticker split with blank ratio")
+		// Refusing to add ticker split with blank ratio
 		return nil
 	}
 
@@ -780,9 +732,7 @@ func (ts *TickerSplit) createIfNew(ctx context.Context) error {
 	var insert = "INSERT INTO ticker_split SET ticker_id=?, split_date=?, split_ratio=?"
 	_, err = db.Exec(insert, ts.TickerId, ts.SplitDate, ts.SplitRatio)
 	if err != nil {
-		logger.Fatal().Err(err).
-			Str("table_name", "ticker_split").
-			Msg("Failed on INSERT")
+		log.Fatal().Err(err).Str("table_name", "ticker_split").Msg("Failed on INSERT")
 	}
 	return err
 }

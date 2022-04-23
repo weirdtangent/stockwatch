@@ -23,6 +23,15 @@ import (
 	"github.com/weirdtangent/myaws"
 )
 
+const (
+	skipRedisChecks     = true // always skip the redis cache info
+	skipLocalTickerInfo = true // always fetch ticker info from yhfinance
+
+	sqlDateType = "2006-01-02"
+
+	volumeUnits = 1_000_000
+)
+
 func main() {
 	// setup logging -------------------------------------------------------------
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)

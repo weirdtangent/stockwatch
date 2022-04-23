@@ -14,69 +14,69 @@ import (
 )
 
 type Article struct {
-	ArticleId          int64  `db:"article_id"`
-	SourceId           int64  `db:"source_id"`
-	ExternalId         string `db:"external_id"`
-	PublishedDatetime  string `db:"published_datetime"`
-	PubUpdatedDatetime string `db:"pubupdated_datetime"`
-	Title              string `db:"title"`
-	Body               string `db:"body"`
-	ArticleURL         string `db:"article_url"`
-	ImageURL           string `db:"image_url"`
-	CreateDatetime     string `db:"create_datetime"`
-	UpdateDatetime     string `db:"update_datetime"`
+	ArticleId          uint64       `db:"article_id"`
+	SourceId           uint64       `db:"source_id"`
+	ExternalId         string       `db:"external_id"`
+	PublishedDatetime  sql.NullTime `db:"published_datetime"`
+	PubUpdatedDatetime sql.NullTime `db:"pubupdated_datetime"`
+	Title              string       `db:"title"`
+	Body               string       `db:"body"`
+	ArticleURL         string       `db:"article_url"`
+	ImageURL           string       `db:"image_url"`
+	CreateDatetime     sql.NullTime `db:"create_datetime"`
+	UpdateDatetime     sql.NullTime `db:"update_datetime"`
 }
 
 type ArticleTicker struct {
-	ArticleTickerId int64  `db:"article_ticker_id"`
-	ArticleId       int64  `db:"article_id"`
-	TickerSymbol    string `db:"ticker_symbol"`
-	TickerId        int64  `db:"ticker_id"`
-	CreateDatetime  string `db:"create_datetime"`
-	UpdateDatetime  string `db:"update_datetime"`
+	ArticleTickerId uint64       `db:"article_ticker_id"`
+	ArticleId       uint64       `db:"article_id"`
+	TickerSymbol    string       `db:"ticker_symbol"`
+	TickerId        uint64       `db:"ticker_id"`
+	CreateDatetime  sql.NullTime `db:"create_datetime"`
+	UpdateDatetime  sql.NullTime `db:"update_datetime"`
 }
 
 type ArticleKeyword struct {
-	ArticleKeywordId int64  `db:"article_keyword_id"`
-	ArticleId        int64  `db:"article_id"`
-	Keyword          string `db:"keyword"`
-	CreateDatetime   string `db:"create_datetime"`
-	UpdateDatetime   string `db:"update_datetime"`
+	ArticleKeywordId uint64       `db:"article_keyword_id"`
+	ArticleId        uint64       `db:"article_id"`
+	Keyword          string       `db:"keyword"`
+	CreateDatetime   sql.NullTime `db:"create_datetime"`
+	UpdateDatetime   sql.NullTime `db:"update_datetime"`
 }
 
 type ArticleAuthor struct {
-	ArticleAuthorId int64  `db:"article_author_id"`
-	ArticleId       int64  `db:"article_id"`
-	Byline          string `db:"byline"`
-	JobTitle        string `db:"job_title"`
-	ShortBio        string `db:"short_bio"`
-	LongBio         string `db:"long_bio"`
-	ImageURL        string `db:"image_url"`
-	CreateDatetime  string `db:"create_datetime"`
-	UpdateDatetime  string `db:"update_datetime"`
+	ArticleAuthorId uint64       `db:"article_author_id"`
+	ArticleId       uint64       `db:"article_id"`
+	Byline          string       `db:"byline"`
+	JobTitle        string       `db:"job_title"`
+	ShortBio        string       `db:"short_bio"`
+	LongBio         string       `db:"long_bio"`
+	ImageURL        string       `db:"image_url"`
+	CreateDatetime  sql.NullTime `db:"create_datetime"`
+	UpdateDatetime  sql.NullTime `db:"update_datetime"`
 }
 
 type ArticleTag struct {
-	ArticleTagId   int64  `db:"article_tag_id"`
-	ArticleId      int64  `db:"article_id"`
-	Tag            string `db:"tag"`
-	CreateDatetime string `db:"create_datetime"`
-	UpdateDatetime string `db:"update_datetime"`
+	ArticleTagId   uint64       `db:"article_tag_id"`
+	ArticleId      uint64       `db:"article_id"`
+	Tag            string       `db:"tag"`
+	CreateDatetime sql.NullTime `db:"create_datetime"`
+	UpdateDatetime sql.NullTime `db:"update_datetime"`
 }
 
 type WebArticle struct {
-	ArticleId          int64  `db:"article_id"`
-	SourceId           int64  `db:"source_id"`
-	ExternalId         string `db:"external_id"`
-	PublishedDatetime  string `db:"published_datetime"`
-	PubUpdatedDatetime string `db:"pubupdated_datetime"`
-	Title              string `db:"title"`
-	Body               string `db:"body"`
+	ArticleId          uint64       `db:"article_id"`
+	SourceId           uint64       `db:"source_id"`
+	ExternalId         string       `db:"external_id"`
+	PublishedDatetime  sql.NullTime `db:"published_datetime"`
+	PubUpdatedDatetime sql.NullTime `db:"pubupdated_datetime"`
+	Title              string       `db:"title"`
+	Body               string       `db:"body"`
 	BodyTemplate       template.HTML
 	ArticleURL         string         `db:"article_url"`
 	ImageURL           string         `db:"image_url"`
-	CreateDatetime     string         `db:"create_datetime"`
-	UpdateDatetime     string         `db:"update_datetime"`
+	CreateDatetime     sql.NullTime   `db:"create_datetime"`
+	UpdateDatetime     sql.NullTime   `db:"update_datetime"`
 	AuthorByline       sql.NullString `db:"author_byline"`
 	AuthorLongBio      sql.NullString `db:"author_long_bio"`
 	AuthorImageURL     sql.NullString `db:"author_image_url"`
@@ -87,7 +87,6 @@ type WebArticle struct {
 }
 
 func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, error) {
-	logger := log.Ctx(ctx)
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var article WebArticle
@@ -141,7 +140,7 @@ func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, e
 	}
 
 	if err != nil {
-		logger.Warn().Err(err).Msg("Failed to check for articles")
+		log.Warn().Err(err).Msg("Failed to check for articles")
 		return &articles, err
 	}
 	defer rows.Close()
@@ -151,7 +150,7 @@ func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, e
 	for rows.Next() {
 		err = rows.StructScan(&article)
 		if err != nil {
-			logger.Warn().Err(err).
+			log.Warn().Err(err).
 				Str("table_name", "article,article_author").
 				Msg("Error reading result rows")
 		} else {
@@ -183,8 +182,7 @@ func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, e
 	return &articles, nil
 }
 
-func getArticlesByTicker(ctx context.Context, ticker_id int64) (*[]WebArticle, error) {
-	logger := log.Ctx(ctx)
+func getArticlesByTicker(ctx context.Context, ticker_id uint64) (*[]WebArticle, error) {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var article WebArticle
@@ -222,7 +220,7 @@ func getArticlesByTicker(ctx context.Context, ticker_id int64) (*[]WebArticle, e
 	rows, err = db.Queryx(query, fromDate, ticker_id)
 
 	if err != nil {
-		logger.Warn().Err(err).Msg("Failed to check for articles")
+		log.Warn().Err(err).Msg("Failed to check for articles")
 		return &articles, err
 	}
 	defer rows.Close()
@@ -232,9 +230,7 @@ func getArticlesByTicker(ctx context.Context, ticker_id int64) (*[]WebArticle, e
 	for rows.Next() {
 		err = rows.StructScan(&article)
 		if err != nil {
-			logger.Warn().Err(err).
-				Str("table_name", "article,article_author").
-				Msg("Error reading result rows")
+			log.Warn().Err(err).Str("table_name", "article,article_author").Msg("Error reading result rows")
 		} else {
 			if len(article.Body) > 0 {
 				sha := fmt.Sprintf("%x", sha256.Sum256([]byte(article.Body)))

@@ -7,32 +7,32 @@ import (
 // table schema from aurora ---------------------------------------------------
 
 type Country struct {
-	CountryId      int64  `db:"country_id"`
-	CountryCode    string `db:"country_code"`
-	CountryName    string `db:"country_name"`
-	CreateDatetime string `db:"create_datetime"`
-	UpdateDatetime string `db:"update_datetime"`
+	CountryId      uint64       `db:"country_id"`
+	CountryCode    string       `db:"country_code"`
+	CountryName    string       `db:"country_name"`
+	CreateDatetime sql.NullTime `db:"create_datetime"`
+	UpdateDatetime sql.NullTime `db:"update_datetime"`
 }
 
 type Source struct {
-	SourceId       int64  `db:"source_id"`
-	SourceCompany  string `db:"source_company"`
-	SourceName     string `db:"source_name"`
-	SourceWebsite  string `db:"source_website"`
-	SourceEmail    string `db:"source_email"`
-	CreateDatetime string `db:"create_datetime"`
-	UpdateDatetime string `db:"update_datetime"`
+	SourceId       uint64       `db:"source_id"`
+	SourceCompany  string       `db:"source_company"`
+	SourceName     string       `db:"source_name"`
+	SourceWebsite  string       `db:"source_website"`
+	SourceEmail    string       `db:"source_email"`
+	CreateDatetime sql.NullTime `db:"create_datetime"`
+	UpdateDatetime sql.NullTime `db:"update_datetime"`
 }
 
 type Watch struct {
-	WatchId        int64          `db:"watch_id"`
-	TickerId       int64          `db:"ticker_id"`
-	SourceId       int64          `db:"source_id"`
-	SourceDate     string         `db:"source_date"`
-	TargetPrice    float64        `db:"target_price"`
-	TargetDate     sql.NullString `db:"target_date"`
-	CreateDatetime string         `db:"create_datetime"`
-	UpdateDatetime string         `db:"update_datetime"`
+	WatchId        uint64       `db:"watch_id"`
+	TickerId       uint64       `db:"ticker_id"`
+	SourceId       uint64       `db:"source_id"`
+	SourceDate     string       `db:"source_date"`
+	TargetPrice    float64      `db:"target_price"`
+	TargetDate     sql.NullTime `db:"target_date"`
+	CreateDatetime sql.NullTime `db:"create_datetime"`
+	UpdateDatetime sql.NullTime `db:"update_datetime"`
 }
 
 // google oauth ---------------------------------------------------------------

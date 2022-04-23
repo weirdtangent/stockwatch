@@ -11,7 +11,7 @@ import (
 	"github.com/go-echarts/go-echarts/v2/types"
 )
 
-func chartHandlerFinancialsBar(ctx context.Context, ticker *Ticker, exchange *Exchange, periodStrs []string, barValues []map[string]float64) template.HTML {
+func chartHandlerFinancialsBar(ctx context.Context, ticker Ticker, exchange *Exchange, periodStrs []string, barValues []map[string]float64) template.HTML {
 	mainX := "880px"
 	mainY := "400px"
 	nonce := ctx.Value(ContextKey("nonce")).(string)

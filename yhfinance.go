@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -12,15 +13,12 @@ import (
 	"github.com/weirdtangent/yhfinance"
 )
 
-// load new ticker (and possibly new exchange)
-func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
-	logger := log.Ctx(ctx)
+// fetch ticker info (and possibly new exchange) from yhfinance
+func fetchTickerInfo(ctx context.Context, symbol string) (Ticker, error) {
 	redisPool := ctx.Value(ContextKey("redisPool")).(*redis.Pool)
 
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
-
-	var ticker *Ticker
 
 	apiKey := ctx.Value(ContextKey("yhfinance_apikey")).(string)
 	apiHost := ctx.Value(ContextKey("yhfinance_apihost")).(string)
@@ -28,24 +26,19 @@ func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 	// pull recent response from redis (1 day expire), or go get from YF
 	redisKey := "yhfinance/summary/" + symbol
 	response, err := redis.String(redisConn.Do("GET", redisKey))
-	if err == nil {
+	if err == nil && !skipRedisChecks {
 		log.Info().Str("redis_key", redisKey).Msg("redis cache hit")
 	} else {
 		var err error
 		summaryParams := map[string]string{"symbol": symbol}
 		response, err = yhfinance.GetFromYHFinance(&apiKey, &apiHost, "summary", summaryParams)
 		if err != nil {
-			logger.Warn().Err(err).
-				Str("ticker", symbol).
-				Msg("Failed to retrieve ticker")
-			return ticker, err
+			log.Warn().Err(err).Str("ticker", symbol).Msg("failed to retrieve ticker")
+			return Ticker{}, err
 		}
 		_, err = redisConn.Do("SET", redisKey, response, "EX", 60*60*24)
 		if err != nil {
-			logger.Error().Err(err).
-				Str("ticker", symbol).
-				Str("redis_key", redisKey).
-				Msg("Failed to save to redis")
+			log.Error().Err(err).Str("ticker", symbol).Str("redis_key", redisKey).Msg("failed to save to redis")
 		}
 	}
 
@@ -55,20 +48,18 @@ func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 	// can't create exchange - all we get is ExchangeCode and I can't find a
 	// table to translate those to Exchange MIC or Acronym... so I have to
 	// link them manually for now
-	exchangeId, err := getExchangeByCode(ctx, summaryResponse.Price.ExchangeCode)
+	exchange := Exchange{ExchangeCode: summaryResponse.Price.ExchangeCode}
+	err = exchange.getByCode(ctx)
 	if err != nil {
-		logger.Error().Err(err).
-			Str("ticker", summaryResponse.QuoteType.Symbol).
-			Str("exchange_code", summaryResponse.Price.ExchangeCode).
-			Msg("Failed to find exchange_code matched to exchange mic record")
-		return ticker, err
+		log.Error().Err(err).Str("ticker", summaryResponse.QuoteType.Symbol).Str("exchange_code", summaryResponse.Price.ExchangeCode).Msg("failed to find exchange_code matched to exchange mic record")
+		return Ticker{}, err
 	}
 
 	// create/update ticker
-	ticker = &Ticker{
-		0, // id
+	ticker := Ticker{
+		0,
 		summaryResponse.QuoteType.Symbol,
-		exchangeId,
+		exchange.ExchangeId,
 		summaryResponse.QuoteType.ShortName,
 		summaryResponse.QuoteType.LongName,
 		summaryResponse.SummaryProfile.Address1,
@@ -80,32 +71,27 @@ func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 		summaryResponse.SummaryProfile.Phone,
 		summaryResponse.SummaryProfile.Sector,
 		summaryResponse.SummaryProfile.Industry,
-		"now()",
-		"", // ms_performance_id
-		"", // create_datetime
-		"", // update_datetime
+		sql.NullTime{},
+		"",
+		sql.NullTime{},
+		sql.NullTime{},
 	}
 	err = ticker.createOrUpdate(ctx)
 	if err != nil {
-		logger.Error().Err(err).
-			Str("ticker", summaryResponse.QuoteType.Symbol).
-			Str("exchange_code", summaryResponse.QuoteType.ExchangeCode).
-			Msg("Failed to create or update ticker")
-		return ticker, err
+		log.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to create or update ticker")
+		return Ticker{}, err
 	}
 
-	tickerDescription := &TickerDescription{0, ticker.TickerId, summaryResponse.SummaryProfile.LongBusinessSummary, "", ""}
-	err = tickerDescription.createIfNew(ctx)
+	tickerDescription := TickerDescription{0, ticker.TickerId, summaryResponse.SummaryProfile.LongBusinessSummary, sql.NullTime{}, sql.NullTime{}}
+	err = tickerDescription.createOrUpdate(ctx)
 	if err != nil {
-		logger.Error().Err(err).
-			Str("ticker", ticker.TickerSymbol).
-			Msg("Failed to create ticker description")
+		log.Error().Err(err).Str("ticker", ticker.TickerSymbol).Msg("Failed to create ticker description")
 	}
 
 	// create upgrade/downgrade recommendations
 	for _, updown := range summaryResponse.UpgradeDowngradeHistory.Histories {
 		updownDate := UnixToDatetimeStr(updown.GradeDate)
-		UpDown := TickerUpDown{0, ticker.TickerId, updown.Action, updown.FromGrade, updown.ToGrade, updownDate, updown.Firm, "", "", ""}
+		UpDown := TickerUpDown{0, ticker.TickerId, updown.Action, updown.FromGrade, updown.ToGrade, updownDate, updown.Firm, "", sql.NullTime{}, sql.NullTime{}}
 		UpDown.createIfNew(ctx)
 	}
 
@@ -127,7 +113,6 @@ func loadTicker(ctx context.Context, symbol string) (*Ticker, error) {
 
 // load ticker up-to-date quote
 func loadTickerQuote(ctx context.Context, symbol string) (yhfinance.YFQuote, error) {
-	logger := log.Ctx(ctx)
 	redisPool := ctx.Value(ContextKey("redisPool")).(*redis.Pool)
 
 	redisConn := redisPool.Get()
@@ -141,24 +126,19 @@ func loadTickerQuote(ctx context.Context, symbol string) (yhfinance.YFQuote, err
 	// pull recent response from redis (20 sec expire), or go get from YF
 	redisKey := "yhfinance/quote/" + symbol
 	response, err := redis.String(redisConn.Do("GET", redisKey))
-	if err == nil {
+	if err == nil && !skipRedisChecks {
 		log.Info().Str("redis_key", redisKey).Msg("redis cache hit")
 	} else {
 		var err error
 		quoteParams := map[string]string{"symbols": symbol}
 		response, err = yhfinance.GetFromYHFinance(&apiKey, &apiHost, "quote", quoteParams)
 		if err != nil {
-			logger.Warn().Err(err).
-				Str("ticker", symbol).
-				Msg("Failed to retrieve quote")
+			log.Warn().Err(err).Str("ticker", symbol).Msg("Failed to retrieve quote")
 			return quote, err
 		}
 		_, err = redisConn.Do("SET", redisKey, response, "EX", 20)
 		if err != nil {
-			logger.Error().Err(err).
-				Str("ticker", symbol).
-				Str("redis_key", redisKey).
-				Msg("Failed to save to redis")
+			log.Error().Err(err).Str("ticker", symbol).Str("redis_key", redisKey).Msg("Failed to save to redis")
 		}
 	}
 
@@ -171,10 +151,9 @@ func loadTickerQuote(ctx context.Context, symbol string) (yhfinance.YFQuote, err
 }
 
 // load ticker historical prices
-func loadTickerEODs(ctx context.Context, ticker *Ticker) error {
+func loadTickerEODs(ctx context.Context, ticker Ticker) error {
 	apiKey := ctx.Value(ContextKey("yhfinance_apikey")).(string)
 	apiHost := ctx.Value(ContextKey("yhfinance_apihost")).(string)
-	logger := log.Ctx(ctx)
 
 	EasternTZ, _ := time.LoadLocation("America/New_York")
 	currentDate := time.Now().In(EasternTZ)
@@ -184,9 +163,7 @@ func loadTickerEODs(ctx context.Context, ticker *Ticker) error {
 	historicalParams := map[string]string{"symbol": ticker.TickerSymbol}
 	response, err := yhfinance.GetFromYHFinance(&apiKey, &apiHost, "historical", historicalParams)
 	if err != nil {
-		logger.Warn().Err(err).
-			Str("ticker", ticker.TickerSymbol).
-			Msg("Failed to retrieve historical prices")
+		log.Warn().Err(err).Str("ticker", ticker.TickerSymbol).Msg("Failed to retrieve historical prices")
 		return err
 	}
 
@@ -202,30 +179,26 @@ func loadTickerEODs(ctx context.Context, ticker *Ticker) error {
 		if priceDate == currentDateStr {
 			priceTime = currentTimeStr
 		}
-		tickerDaily := TickerDaily{0, ticker.TickerId, priceDate, priceTime, price.Open, price.High, price.Low, price.Close, price.Volume, "", ""}
+		tickerDaily := TickerDaily{0, ticker.TickerId, priceDate, priceTime, price.Open, price.High, price.Low, price.Close, price.Volume, sql.NullTime{}, sql.NullTime{}}
 		err = tickerDaily.createOrUpdate(ctx)
 		if err != nil {
 			lastErr = err
 		}
 	}
 	if lastErr != nil {
-		logger.Warn().Err(err).
-			Str("ticker", ticker.TickerSymbol).
-			Msg("Failed to load at least one historical price")
+		log.Warn().Err(err).Str("ticker", ticker.TickerSymbol).Msg("Failed to load at least one historical price")
 	}
 
 	for _, split := range historicalResponse.Events {
 		splitDate := FormatUnixTime(split.Date, "2006-01-02")
-		tickerSplit := TickerSplit{0, ticker.TickerId, splitDate, split.SplitRatio, "", ""}
+		tickerSplit := TickerSplit{0, ticker.TickerId, splitDate, split.SplitRatio, sql.NullTime{}, sql.NullTime{}}
 		err = tickerSplit.createIfNew(ctx)
 		if err != nil {
 			lastErr = err
 		}
 	}
 	if lastErr != nil {
-		logger.Warn().Err(err).
-			Str("ticker", ticker.TickerSymbol).
-			Msg("Failed to load at least one historical split")
+		log.Warn().Err(err).Str("ticker", ticker.TickerSymbol).Msg("Failed to load at least one historical split")
 	}
 
 	return nil
@@ -259,7 +232,7 @@ func listSearch(ctx context.Context, searchString string, resultTypes string) ([
 	apiKey := ctx.Value(ContextKey("yhfinance_apikey")).(string)
 	apiHost := ctx.Value(ContextKey("yhfinance_apihost")).(string)
 
-	searchResults := make([]SearchResult, 0)
+	searchResults := make([]SearchResult, 100)
 
 	searchParams := map[string]string{"q": searchString}
 	response, err := yhfinance.GetFromYHFinance(&apiKey, &apiHost, "autocomplete", searchParams)
@@ -270,7 +243,13 @@ func listSearch(ctx context.Context, searchString string, resultTypes string) ([
 	var searchResponse yhfinance.YFAutoCompleteResponse
 	json.NewDecoder(strings.NewReader(response)).Decode(&searchResponse)
 
-	if len(searchResponse.Quotes) == 0 && len(searchResponse.News) == 0 {
+	if resultTypes == "ticker" && len(searchResponse.Quotes) == 0 {
+		return searchResults, fmt.Errorf("sorry, the search returned zero results")
+	}
+	if resultTypes == "news" && len(searchResponse.News) == 0 {
+		return searchResults, fmt.Errorf("sorry, the search returned zero results")
+	}
+	if resultTypes == "both" && len(searchResponse.Quotes)+len(searchResponse.News) == 0 {
 		return searchResults, fmt.Errorf("sorry, the search returned zero results")
 	}
 
@@ -292,9 +271,9 @@ func listSearch(ctx context.Context, searchString string, resultTypes string) ([
 
 	if resultTypes == "ticker" || resultTypes == "both" {
 		for _, quoteResult := range searchResponse.Quotes {
-			exchangeId, err := getExchangeByCode(ctx, quoteResult.ExchangeCode)
-			if err == nil && exchangeId > 0 {
-				exchange, _ := getExchangeById(ctx, exchangeId)
+			exchange := Exchange{ExchangeCode: quoteResult.ExchangeCode}
+			err := exchange.getByCode(ctx)
+			if err == nil && exchange.ExchangeId > 0 {
 				searchResults = append(searchResults, SearchResult{
 					ResultType: "ticker",
 					News:       SearchResultNews{},
@@ -311,10 +290,7 @@ func listSearch(ctx context.Context, searchString string, resultTypes string) ([
 		}
 	}
 
-	log.Info().
-		Str("search_string", searchString).
-		Int("results_count", len(searchResults)).
-		Msg("Search returned results")
+	log.Info().Str("search_string", searchString).Int("results_count", len(searchResults)).Msg("Search returned results")
 
 	return searchResults, nil
 }

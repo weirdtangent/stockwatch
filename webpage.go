@@ -10,21 +10,17 @@ import (
 )
 
 func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker, error) {
-	logger := log.Ctx(ctx)
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	messages := ctx.Value(ContextKey("messages")).(*[]Message)
 	webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 
-	// if we have this ticker and today is a weekend or we have today's closing price
-	// then we don't need to call APIs and load a bunch of data we already have!
-	ticker, err := getTickerBySymbol(ctx, symbol)
-
-	// if not there, or more than 24 hours old, hit API
-	if err != nil || Over24HoursUTC(ticker.FetchDatetime) {
-		// get Ticker info
-		ticker, err = loadTicker(ctx, symbol)
+	// load ticker from yhfinance if we don't have it or what we have is > 24 hours old
+	ticker := Ticker{TickerSymbol: symbol}
+	err := ticker.getBySymbol(ctx)
+	if err != nil || !ticker.FetchDatetime.Valid || time.Now().Add(time.Hour).Before(ticker.FetchDatetime.Time) || !skipLocalTickerInfo {
+		ticker, err = fetchTickerInfo(ctx, symbol)
 		if err != nil {
-			logger.Error().Err(err).Str("ticker", symbol).Msg("Fatal: could not load ticker info. Redirect back to desktop?")
+			log.Error().Err(err).Str("ticker", symbol).Msg("Fatal: could not load ticker info from source. Redirect back to desktop?")
 			return Ticker{}, err
 		}
 		*messages = append(*messages, Message{"Company/Symbol data updated", "success"})
@@ -33,9 +29,10 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	tickerDescription, _ := getTickerDescriptionByTickerId(ctx, ticker.TickerId)
 
 	// get Exchange info
-	exchange, err := getExchangeById(ctx, ticker.ExchangeId)
+	exchange := Exchange{ExchangeId: uint64(ticker.ExchangeId)}
+	err = exchange.getById(ctx)
 	if err != nil {
-		logger.Error().Err(err).Str("ticker", symbol).Int64("exchange_id", ticker.ExchangeId).Msg("Fatal: could not load exchange info. Redirect back to desktop?")
+		log.Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("Fatal: could not load exchange info. Redirect back to desktop?")
 		return Ticker{}, err
 	}
 
@@ -91,13 +88,13 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
 			err = ticker.queueUpdateNews(ctx)
 			if err != nil {
-				logger.Error().Err(err).Str("ticker", symbol).Int64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
+				log.Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
 			}
 		}
 	} else {
 		err = ticker.queueUpdateNews(ctx)
 		if err != nil {
-			logger.Error().Err(err).Str("ticker", symbol).Int64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
+			log.Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
 		}
 	}
 
@@ -106,15 +103,15 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	err = lastdone.getByActivity(ctx)
 	if err == nil && lastdone.LastStatus == "success" {
 		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerFinancialsDelay).Before(time.Now()) {
-			err = ticker.queueUpdateNews(ctx)
+			err = ticker.queueUpdateFinancials(ctx)
 			if err != nil {
-				logger.Error().Err(err).Str("ticker", symbol).Int64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateFinancials")
+				log.Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateFinancials")
 			}
 		}
 	} else {
-		err = ticker.queueUpdateNews(ctx)
+		err = ticker.queueUpdateFinancials(ctx)
 		if err != nil {
-			logger.Error().Err(err).Str("ticker", symbol).Int64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateFinancials")
+			log.Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateFinancials")
 		}
 	}
 
@@ -123,10 +120,10 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	annualStrs, annBarValues, _ := ticker.GetFinancials(ctx, "bar", "annual")
 
 	// Build charts
-	var lineChartHTML = chartHandlerTickerDailyLine(ctx, ticker, exchange, ticker_dailies, webwatches)
-	var klineChartHTML = chartHandlerTickerDailyKLine(ctx, ticker, exchange, ticker_dailies, webwatches)
-	var qtrBarChartHTML = chartHandlerFinancialsBar(ctx, ticker, exchange, quarterStrs, qtrBarValues)
-	var annBarChartHTML = chartHandlerFinancialsBar(ctx, ticker, exchange, annualStrs, annBarValues)
+	var lineChartHTML = chartHandlerTickerDailyLine(ctx, ticker, &exchange, ticker_dailies, webwatches)
+	var klineChartHTML = chartHandlerTickerDailyKLine(ctx, ticker, &exchange, ticker_dailies, webwatches)
+	var qtrBarChartHTML = chartHandlerFinancialsBar(ctx, ticker, &exchange, quarterStrs, qtrBarValues)
+	var annBarChartHTML = chartHandlerFinancialsBar(ctx, ticker, &exchange, annualStrs, annBarValues)
 
 	webdata["ticker"] = ticker
 	webdata["ticker_description"] = tickerDescription
@@ -145,5 +142,5 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	webdata["qtrBarChart"] = qtrBarChartHTML
 	webdata["annBarChart"] = annBarChartHTML
 
-	return *ticker, nil
+	return ticker, nil
 }

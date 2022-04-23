@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"sort"
 
 	"github.com/jmoiron/sqlx"
@@ -9,17 +10,17 @@ import (
 )
 
 type Mover struct {
-	MoverId        int64   `db:"mover_id"`
-	SourceId       int64   `db:"source_id"`
-	TickerId       int64   `db:"ticker_id"`
-	MoverDate      string  `db:"mover_date"`
-	MoverType      string  `db:"mover_type"`
-	LastPrice      float64 `db:"last_price"`
-	PriceChange    float64 `db:"price_change"`
-	PriceChangePct float64 `db:"price_change_pct"`
-	Volume         float64 `db:"volume"`
-	CreateDatetime string  `db:"create_datetime"`
-	UpdateDatetime string  `db:"update_datetime"`
+	MoverId        uint64       `db:"mover_id"`
+	SourceId       uint64       `db:"source_id"`
+	TickerId       uint64       `db:"ticker_id"`
+	MoverDate      string       `db:"mover_date"`
+	MoverType      string       `db:"mover_type"`
+	LastPrice      float64      `db:"last_price"`
+	PriceChange    float64      `db:"price_change"`
+	PriceChangePct float64      `db:"price_change_pct"`
+	Volume         float64      `db:"volume"`
+	CreateDatetime sql.NullTime `db:"create_datetime"`
+	UpdateDatetime sql.NullTime `db:"update_datetime"`
 }
 
 type WebMover struct {
@@ -75,13 +76,12 @@ func (m Movers) SortActives() *[]WebMover {
 
 func getMovers(ctx context.Context) (*Movers, error) {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-	logger := log.Ctx(ctx)
 
 	var movers Movers
 
 	latestDateStr, err := getLatestMoversDate(ctx)
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to find most recent movers date")
+		log.Error().Err(err).Msg("Failed to find most recent movers date")
 		return &movers, err
 	}
 
@@ -92,7 +92,7 @@ func getMovers(ctx context.Context) (*Movers, error) {
 
 	rows, err := db.Queryx(`SELECT * FROM mover WHERE mover_date=?`, latestDateStr)
 	if err != nil {
-		logger.Error().Err(err).Str("mover_date", latestDateStr).Msg("Failed to load movers")
+		log.Error().Err(err).Str("mover_date", latestDateStr).Msg("Failed to load movers")
 		return &movers, err
 	}
 	defer rows.Close()
@@ -100,19 +100,18 @@ func getMovers(ctx context.Context) (*Movers, error) {
 	for rows.Next() {
 		err = rows.StructScan(&mover)
 		if err != nil {
-			logger.Warn().Err(err).
-				Str("table_name", "mover").
-				Msg("Error reading result rows")
+			log.Warn().Err(err).Str("table_name", "mover").Msg("Error reading result rows")
 		} else {
-			ticker, err := getTickerById(ctx, mover.TickerId)
+			ticker := Ticker{TickerId: mover.TickerId}
+			err := ticker.getById(ctx)
 			if err == nil {
 				switch mover.MoverType {
 				case "gainer":
-					gainers = append(gainers, WebMover{mover, *ticker})
+					gainers = append(gainers, WebMover{mover, ticker})
 				case "loser":
-					losers = append(losers, WebMover{mover, *ticker})
+					losers = append(losers, WebMover{mover, ticker})
 				case "active":
-					actives = append(actives, WebMover{mover, *ticker})
+					actives = append(actives, WebMover{mover, ticker})
 				}
 			}
 		}

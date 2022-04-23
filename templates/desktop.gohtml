@@ -44,11 +44,11 @@
                           {{- else if eq .LastDailyMove "down"}}<i id="quote_dailymove" class="text-danger fas fa-arrow-down"></i>
                           {{- else }}<i id="quote_dailymove" class="fa-solid fa-equals"></i>
                           {{- end}}<span class="text-info"> at close on </span>
-                          <span id="quote_asof" class="h6 text-light small">{{ FormatDatetimeStr .LastClose.PriceDate "Jan 2" }}</span>
+                          <span id="quote_asof" class="h6 text-light small">{{ .LastClose.PriceDate }}</span>
                         {{- end}}
                         <br/><br/>
                         Last Checked News:<br/>
-                        <span class="text-info">{{.NewsLastUpdated}}</span>
+                        <span class="text-info">{{if .NewsLastUpdated.Valid }}{{.NewsLastUpdated.Time.Format "Jan 02 15:04"}}{{ else }}-{{end}}</span>
                         {{- if .UpdatingNewsNow}}<i class="ms-2 mb-2 fad fa-sync fa-spin"></i>{{end}}
                       </div><!-- col-12 -->
                     </div><!-- row -->
@@ -103,7 +103,9 @@
                       {{- if .ArticleURL}}
                       <div class="text-light bg-dark row g-0 mx-2 pb-1 small" style="white-space:nowrap;text-overflow:ellipsis;overflow:hidden">
                         <div class="">
-                        {{FormatDatetimeStr .PublishedDatetime "Jan 2 15:04"}}
+                        {{- if .PublishedDatetime.Valid }}
+                        {{ .PublishedDatetime.Time.Format "Jan 2 15:04"}}
+                        {{- end}}
                         <a href="{{.ArticleURL}}" style="text-decoration: none; color: white;" target="_blank"> {{.Title}}</a> <i class="ps-2 fas fa-external-link-alt fa-xs"></i>
                         {{- if and .AuthorByline.Valid .AuthorByline.String }} <span class="small text-info">by {{.AuthorByline.String}}</span>{{end}}
                         </div>

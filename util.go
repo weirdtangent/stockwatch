@@ -45,43 +45,6 @@ func UnixToDatetimeStr(unixTime int64) string {
 	return dateTime.Format("2006-01-02 15:04:05")
 }
 
-func Over24Hours(dateStr string) bool {
-	var dateObj time.Time
-	if len(dateStr) == 10 {
-		dateObj, _ = time.Parse("2006-01-02", dateStr)
-	} else if len(dateStr) == 19 {
-		dateObj, _ = time.Parse("2006-01-02 15:04:05", dateStr)
-	} else if len(dateStr) == 20 {
-		dateObj, _ = time.Parse("2006-01-02T15:04:05Z", dateStr)
-	} else {
-		log.Fatal().Str("dateStr", dateStr).Msg("Unknown how to parse this datetime string")
-	}
-
-	EasternTZ, _ := time.LoadLocation("America/New_York")
-	currentDate := time.Now().In(EasternTZ)
-
-	dur := currentDate.Sub(dateObj)
-	return dur.Hours() >= 24.0
-}
-
-func Over24HoursUTC(dateStr string) bool {
-	var dateObj time.Time
-	if len(dateStr) == 10 {
-		dateObj, _ = time.Parse("2006-01-02", dateStr)
-	} else if len(dateStr) == 19 {
-		dateObj, _ = time.Parse("2006-01-02 15:04:05", dateStr)
-	} else if len(dateStr) == 20 {
-		dateObj, _ = time.Parse("2006-01-02T15:04:05Z", dateStr)
-	} else {
-		log.Fatal().Str("dateStr", dateStr).Msg("Unknown how to parse this datetime string")
-	}
-
-	currentDate := time.Now()
-
-	dur := currentDate.Sub(dateObj)
-	return dur.Hours() >= 24.0
-}
-
 func GradeColor(gradeStr string) string {
 	lcGradeStr := strings.ToLower(gradeStr)
 	switch lcGradeStr {

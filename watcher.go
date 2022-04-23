@@ -10,39 +10,38 @@ import (
 )
 
 type Watcher struct {
-	WatcherId       int64  `db:"watcher_id"`
-	WatcherSub      string `db:"watcher_sub"`
-	WatcherName     string `db:"watcher_name"`
-	WatcherStatus   string `db:"watcher_status"`
-	WatcherLevel    string `db:"watcher_level"`
-	WatcherTimezone string `db:"watcher_timezone"`
-	WatcherPicURL   string `db:"watcher_pic_url"`
-	SessionId       string `db:"session_id"`
-	CreateDatetime  string `db:"create_datetime"`
-	UpdateDatetime  string `db:"update_datetime"`
+	WatcherId       uint64       `db:"watcher_id"`
+	WatcherSub      string       `db:"watcher_sub"`
+	WatcherName     string       `db:"watcher_name"`
+	WatcherStatus   string       `db:"watcher_status"`
+	WatcherLevel    string       `db:"watcher_level"`
+	WatcherTimezone string       `db:"watcher_timezone"`
+	WatcherPicURL   string       `db:"watcher_pic_url"`
+	SessionId       string       `db:"session_id"`
+	CreateDatetime  sql.NullTime `db:"create_datetime"`
+	UpdateDatetime  sql.NullTime `db:"update_datetime"`
 }
 
 type WatcherEmail struct {
-	WatcherEmailId int64  `db:"watcher_email_id"`
-	WatcherId      int64  `db:"watcher_id"`
-	EmailAddress   string `db:"email_address"`
-	IsPrimary      bool   `db:"email_is_primary"`
-	CreateDatetime string `db:"create_datetime"`
-	UpdateDatetime string `db:"update_datetime"`
+	WatcherEmailId uint64       `db:"watcher_email_id"`
+	WatcherId      uint64       `db:"watcher_id"`
+	EmailAddress   string       `db:"email_address"`
+	IsPrimary      bool         `db:"email_is_primary"`
+	CreateDatetime sql.NullTime `db:"create_datetime"`
+	UpdateDatetime sql.NullTime `db:"update_datetime"`
 }
 
 func (w *Watcher) update(ctx context.Context, email string) error {
-	logger := log.Ctx(ctx)
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var update = "UPDATE watcher SET watcher_name=?, watcher_pic_url=?, session_id=? WHERE watcher_id=?"
 	_, err := db.Exec(update, w.WatcherName, w.WatcherPicURL, w.SessionId, w.WatcherId)
 	if err != nil {
-		logger.Warn().Err(err).Str("table_name", "watcher").Msg("Failed on UPDATE")
+		log.Warn().Err(err).Str("table_name", "watcher").Msg("Failed on UPDATE")
 	} else {
 		err = getWatcherById(ctx, w, w.WatcherId)
 		if err != nil {
-			logger.Warn().Err(err).Int64("watcher_id", w.WatcherId).Str("table_name", "watcher").Msg("Failed to retrieve record after UPDATE")
+			log.Warn().Err(err).Uint64("watcher_id", w.WatcherId).Str("table_name", "watcher").Msg("Failed to retrieve record after UPDATE")
 		}
 	}
 
@@ -50,7 +49,7 @@ func (w *Watcher) update(ctx context.Context, email string) error {
 		var update = "INSERT INTO watcher_email SET watcher_id=?, email_address=? ON DUPLICATE KEY UPDATE watcher_id=watcher_id"
 		_, err = db.Exec(update, w.WatcherId, email)
 		if err != nil {
-			logger.Warn().Err(err).Str("table_name", "watcher_email").Msg("Failed to store/ignore email address after UPDATE")
+			log.Warn().Err(err).Str("table_name", "watcher_email").Msg("Failed to store/ignore email address after UPDATE")
 		}
 	}
 	return err
@@ -111,40 +110,38 @@ func (w Watcher) IsRoot() bool {
 }
 
 // misc -----------------------------------------------------------------------
-func getWatcherById(ctx context.Context, w *Watcher, watcherId int64) error {
+func getWatcherById(ctx context.Context, w *Watcher, watcherId uint64) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	err := db.QueryRowx("SELECT * FROM watcher WHERE watcher_id=?", watcherId).StructScan(w)
 	return err
 }
 
-func getWatcherIdBySession(ctx context.Context, session string) (int64, error) {
-	logger := log.Ctx(ctx)
+func getWatcherIdBySession(ctx context.Context, session string) (uint64, error) {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	var watcherId int64
+	var watcherId uint64
 	err := db.QueryRowx("SELECT watcher_id FROM watcher WHERE session_id=?", session).Scan(&watcherId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
 		} else {
-			logger.Warn().Err(err).Str("table_name", "watcher").Msg("Failed to check for existing record")
+			log.Warn().Err(err).Str("table_name", "watcher").Msg("Failed to check for existing record")
 		}
 	}
 	return watcherId, err
 }
 
-func getWatcherIdByEmail(ctx context.Context, email string) (int64, error) {
-	logger := log.Ctx(ctx)
+func getWatcherIdByEmail(ctx context.Context, email string) (uint64, error) {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	var watcherId int64
+	var watcherId uint64
 	err := db.QueryRowx("SELECT watcher_id FROM watcher_email WHERE email_address=?", email).Scan(&watcherId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
 		} else {
-			logger.Warn().Err(err).Str("table_name", "watcher").Msg("Failed to check for existing record")
+			log.Warn().Err(err).Str("table_name", "watcher").Msg("Failed to check for existing record")
 		}
 	}
 	return watcherId, err

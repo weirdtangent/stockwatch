@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"time"
 
@@ -12,13 +13,13 @@ import (
 )
 
 type Recent struct {
-	TickerId         int64  `db:"ticker_id"`
-	MSPerformanceId  string `db:"ms_performance_id"`
-	LastSeenDatetime string `db:"lastseen_datetime"`
+	TickerId         uint64       `db:"ticker_id"`
+	MSPerformanceId  string       `db:"ms_performance_id"`
+	LastSeenDatetime sql.NullTime `db:"lastseen_datetime"`
 }
 
 type RecentPlus struct {
-	TickerId        int64
+	TickerId        uint64
 	TickerSymbol    string
 	Exchange        string
 	TickerName      string
@@ -26,7 +27,7 @@ type RecentPlus struct {
 	LiveQuote       yhfinance.YFQuote
 	LastClose       TickerDaily
 	LastDailyMove   string
-	NewsLastUpdated string
+	NewsLastUpdated sql.NullTime
 	UpdatingNewsNow bool
 }
 
@@ -49,25 +50,30 @@ func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, er
 	if session.Values["recents"] != nil {
 		recents = session.Values["recents"].([]string)
 		for _, symbol := range recents {
-			ticker, err := getTickerBySymbol(ctx, symbol)
+			ticker := Ticker{TickerSymbol: symbol}
+			err := ticker.getBySymbol(ctx)
 			if err != nil {
+				log.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load recent {symbol}")
 				continue
 			}
-			exchange, err := getExchangeById(ctx, ticker.ExchangeId)
+			exchange := Exchange{ExchangeId: uint64(ticker.ExchangeId)}
+			err = exchange.getById(ctx)
 			if err != nil {
+				log.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load exchange for recent {symbol}")
 				continue
 			}
 			quote := yhfinance.YFQuote{}
 			if isMarketOpen() {
 				quote, err = loadTickerQuote(ctx, ticker.TickerSymbol)
 				if err != nil {
+					log.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load quote for recent {symbol}")
 					continue
 				}
 			}
 			lastClose, _ := ticker.getLastAndPriorClose(ctx)
 			lastDailyMove, _ := getLastTickerDailyMove(ctx, ticker.TickerId)
 
-			newsLastUpdated := "-"
+			newsLastUpdated := sql.NullTime{Valid: false, Time: time.Time{}}
 			updatingNewsNow := false
 			lastdone := LastDone{Activity: "ticker_news", UniqueKey: ticker.TickerSymbol}
 			err = lastdone.getByActivity(ctx)
@@ -75,7 +81,7 @@ func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, er
 				log.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get LastDone activity for {symbol}")
 			}
 			if err == nil && lastdone.LastStatus == "success" {
-				newsLastUpdated = lastdone.LastDoneDatetime.Time.In(webdata["tzlocation"].(*time.Location)).Format("Jan 02 15:04 MST")
+				newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time.In(webdata["tzlocation"].(*time.Location))}
 				if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
 					err = ticker.queueUpdateNews(ctx)
 					updatingNewsNow = err == nil
@@ -85,6 +91,7 @@ func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, er
 				updatingNewsNow = err == nil
 			}
 
+			log.Info().Str("symbol", ticker.TickerSymbol).Msg("Adding {symbol} to recentPlus array")
 			recentPlus = append(recentPlus, RecentPlus{
 				TickerId:        ticker.TickerId,
 				TickerSymbol:    ticker.TickerSymbol,
@@ -132,7 +139,7 @@ func addTickerToRecents(ctx context.Context, r *http.Request, ticker Ticker) (*[
 	recent := &Recent{
 		ticker.TickerId,
 		ticker.MSPerformanceId,
-		"now()",
+		sql.NullTime{Valid: true, Time: time.Now()},
 	}
 	recent.createOrUpdate(ctx)
 
@@ -141,7 +148,6 @@ func addTickerToRecents(ctx context.Context, r *http.Request, ticker Ticker) (*[
 
 func (r *Recent) createOrUpdate(ctx context.Context) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-	logger := log.Ctx(ctx)
 
 	if r.TickerId == 0 {
 		return nil
@@ -150,9 +156,7 @@ func (r *Recent) createOrUpdate(ctx context.Context) error {
 	var insert_or_update = "INSERT INTO recent (ticker_id, ms_performance_id) VALUES(?, ?) ON DUPLICATE KEY UPDATE ms_performance_id=?, lastseen_datetime=now()"
 	_, err := db.Exec(insert_or_update, r.TickerId, r.MSPerformanceId, r.MSPerformanceId)
 	if err != nil {
-		logger.Warn().Err(err).
-			Str("table_name", "recent").
-			Msg("failed on INSERT OR UPDATE")
+		log.Warn().Err(err).Str("table_name", "recent").Msg("failed on INSERT OR UPDATE")
 		return err
 	}
 	return nil

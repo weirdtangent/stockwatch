@@ -4,7 +4,7 @@
                     <div class="mx-auto price-table">
                       <table class="table table-dark table-striped table-sm mb-0">
                         <tr class="text-info">
-                          <th scope="col" class="text-center">At End of Date</th>
+                          <th scope="col" class="text-center">On Date</th>
                           <th scope="col" class="pe-2 text-end">Open Price</th>
                           <th scope="col" class="pe-2 text-end">High Price</th>
                           <th scope="col" class="pe-2 text-end">Low Price</th>
@@ -13,7 +13,7 @@
                         </tr>
                       {{range .ticker_dailies.Reverse.Days}}
                        <tr>
-                         <td class="text-center">{{.PriceDate}} {{if .IsFinalPrice}}{{else}}<i class="fas fa-lock-open-alt"></i>{{end}}</td>
+                         <td class="text-center">{{printf "%10.10s" .PriceDate}} {{if .IsFinalPrice}}{{else}}<i class="fas fa-lock-open-alt"></i>{{end}}</td>
                          <td class="pe-2 text-end">{{printf "%.2f" .OpenPrice}}</td>
                          <td class="pe-2 text-end">{{printf "%.2f" .HighPrice}}</td>
                          <td class="pe-2 text-end">{{printf "%.2f" .LowPrice}}</td>

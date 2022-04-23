@@ -12,9 +12,10 @@ import (
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
+	"github.com/rs/zerolog/log"
 )
 
-func chartHandlerTickerDailyLine(ctx context.Context, ticker *Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
+func chartHandlerTickerDailyLine(ctx context.Context, ticker Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
 	mainX := "880px"
 	mainY := "280px"
 	smallX := "880px"
@@ -33,11 +34,14 @@ func chartHandlerTickerDailyLine(ctx context.Context, ticker *Ticker, exchange *
 	lineData := make([]opts.LineData, 0, days)
 	volumeData := make([]opts.BarData, 0, days)
 	for x := range dailies {
-		tickerDate, _ := time.Parse("2006-01-02", dailies[x].PriceDate)
+		tickerDate, err := time.Parse(sqlDateType, dailies[x].PriceDate[:10])
+		if err != nil {
+			log.Fatal().Err(err).Str("symbol", ticker.TickerSymbol).Str("bad_data", dailies[x].PriceDate).Msg("failed to parse price_date for {symbol}")
+		}
 
 		x_axis = append(x_axis, tickerDate.Format("Jan 02"))
 		lineData = append(lineData, opts.LineData{Value: dailies[x].ClosePrice})
-		volumeData = append(volumeData, opts.BarData{Value: dailies[x].Volume / 1000000})
+		volumeData = append(volumeData, opts.BarData{Value: dailies[x].Volume / volumeUnits})
 	}
 
 	// construct line chart

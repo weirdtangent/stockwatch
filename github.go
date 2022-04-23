@@ -38,8 +38,6 @@ type Commit struct {
 var convertURLs = regexp.MustCompile(`(<a href="[^"]+")>`)
 
 func getGithubCommits(ctx context.Context) (*string, *[]Commit, error) {
-	logger := log.Ctx(ctx)
-
 	var commitsResponse []Commit
 	var readmeResponse Contents
 	var readme string
@@ -54,10 +52,7 @@ func getGithubCommits(ctx context.Context) (*string, *[]Commit, error) {
 	res, _ := http.DefaultClient.Do(req)
 	if res.StatusCode != http.StatusOK {
 		err := "failed to receive 200 success code from HTTP request"
-		logger.Error().
-			Str("url", url).
-			Int("status_code", res.StatusCode).
-			Msg(err)
+		log.Error().Str("url", url).Int("status_code", res.StatusCode).Msg(err)
 		return &readme, &commitsResponse, fmt.Errorf(err)
 	}
 
@@ -66,10 +61,7 @@ func getGithubCommits(ctx context.Context) (*string, *[]Commit, error) {
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		logger.Error().
-			Err(err).
-			Int("status_code", res.StatusCode).
-			Msg("Failed to ready body of response")
+		log.Error().Err(err).Int("status_code", res.StatusCode).Msg("Failed to ready body of response")
 		return &readme, &commitsResponse, err
 	}
 
@@ -86,10 +78,7 @@ func getGithubCommits(ctx context.Context) (*string, *[]Commit, error) {
 	res, _ = http.DefaultClient.Do(req)
 	if res.StatusCode != http.StatusOK {
 		err := "failed to receive 200 success code from HTTP request"
-		logger.Error().
-			Str("url", url).
-			Int("status_code", res.StatusCode).
-			Msg(err)
+		log.Error().Str("url", url).Int("status_code", res.StatusCode).Msg(err)
 		return &readme, &commitsResponse, fmt.Errorf(err)
 	}
 
@@ -98,10 +87,7 @@ func getGithubCommits(ctx context.Context) (*string, *[]Commit, error) {
 
 	body, err = io.ReadAll(res.Body)
 	if err != nil {
-		logger.Error().
-			Err(err).
-			Int("status_code", res.StatusCode).
-			Msg("Failed to ready body of response")
+		log.Error().Err(err).Int("status_code", res.StatusCode).Msg("Failed to ready body of response")
 		return &readme, &commitsResponse, err
 	}
 

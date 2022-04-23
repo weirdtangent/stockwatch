@@ -25,7 +25,7 @@ func desktopHandler() http.HandlerFunc {
 		webdata["recentplus"] = recentPlus
 
 		webdata["announcement"] = []string{
-			"Moving things around alot, especially on the desktop. Trying to find what I like, but email me if you have ideas!",
+			"2022-04-22 Moving things around alot, especially on the desktop. Trying to find what I like, but email me if you have ideas!",
 		}
 
 		renderTemplateDefault(w, r, "desktop")

@@ -31,7 +31,9 @@
                 {{range .articles}}
                 <div class="text-white modal-link news-title" data-bs-toggle="modal" data-bs-target="#source{{.SourceId}}-id{{.ExternalId}}-modal">
                   <span class="small text-info">
-                    {{FormatDatetimeStr .PublishedDatetime "Jan 02"}}
+                  {{- if .PublishedDatetime.Valid -}}
+                  {{- .PublishedDatetime.Time.Format "Jan 02" -}}
+                  {{- end -}}
                   </span>
                   {{.Title}} <i class="far fa-window fa-xs"></i>
                   <span class="small text-info">

@@ -13,7 +13,6 @@ import (
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
-	//"github.com/markbates/goth/providers/twitter"
 )
 
 func authLoginHandler() http.HandlerFunc {
@@ -28,12 +27,9 @@ func authLoginHandler() http.HandlerFunc {
 
 func authCallbackHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		logger := log.Ctx(ctx)
-
 		user, err := gothic.CompleteUserAuth(w, r)
 		if err != nil {
-			logger.Error().Err(err).Msg("Failed to complete auth")
+			log.Error().Err(err).Msg("Failed to complete auth")
 			return
 		}
 		signinUser(w, r, user)
@@ -42,22 +38,21 @@ func authCallbackHandler() http.HandlerFunc {
 
 func signinUser(w http.ResponseWriter, r *http.Request, gothUser goth.User) {
 	ctx := r.Context()
-	logger := log.Ctx(ctx)
 	session := getSession(r)
 	sc := ctx.Value(ContextKey("sc")).(*securecookie.SecureCookie)
 
 	// get (or create) watcher account based on oauth properties
 	// specifically, based on the sub value, because email addresses can change
 	// and we want a watchers session and "account" to follow them even if they change
-	watcher := Watcher{0, gothUser.UserID, gothUser.Name, "active", "standard", "", gothUser.AvatarURL, session.ID, "", ""}
+	watcher := Watcher{0, gothUser.UserID, gothUser.Name, "active", "standard", "", gothUser.AvatarURL, session.ID, sql.NullTime{}, sql.NullTime{}}
 	err := watcher.createOrUpdate(ctx, gothUser.Email)
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to get/create watcher from one-tap")
+		log.Error().Err(err).Msg("Failed to get/create watcher from one-tap")
 		http.NotFound(w, r)
 		return
 	}
 	if watcher.WatcherId == 0 {
-		logger.Fatal().Msg("WatcherId should not be 0 here")
+		log.Fatal().Msg("WatcherId should not be 0 here")
 	}
 
 	// why does twitter send back a weird gothUser.ExpiresAt?
@@ -75,7 +70,7 @@ func signinUser(w http.ResponseWriter, r *http.Request, gothUser goth.User) {
 	}
 	err = oauth.createOrUpdate(ctx)
 	if err != nil {
-		logger.Error().Err(err).Msg("failed to create/update oauth record")
+		log.Error().Err(err).Msg("failed to create/update oauth record")
 		http.NotFound(w, r)
 		return
 	}
@@ -91,7 +86,7 @@ func signinUser(w http.ResponseWriter, r *http.Request, gothUser goth.User) {
 		}
 		http.SetCookie(w, cookie)
 	} else {
-		logger.Error().Err(err).Msg("Failed to encode cookie")
+		log.Error().Err(err).Msg("Failed to encode cookie")
 	}
 
 	session.Values["provider"] = gothUser.Provider
@@ -109,7 +104,6 @@ func signoutHandler() http.HandlerFunc {
 
 func deleteWIDCookie(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	logger := log.Ctx(ctx)
 	sc := ctx.Value(ContextKey("sc")).(*securecookie.SecureCookie)
 
 	if encoded, err := sc.Encode("WID", "invalid"); err == nil {
@@ -123,7 +117,7 @@ func deleteWIDCookie(w http.ResponseWriter, r *http.Request) {
 		}
 		http.SetCookie(w, cookie)
 	} else {
-		logger.Error().Err(err).Msg("Failed to encode cookie (for removal)")
+		log.Error().Err(err).Msg("Failed to encode cookie (for removal)")
 	}
 }
 
@@ -131,7 +125,6 @@ func deleteWIDCookie(w http.ResponseWriter, r *http.Request) {
 // plus set some standard webdata keys we'll need for all/most pages
 func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 	ctx := r.Context()
-	logger := log.Ctx(ctx)
 	sc := ctx.Value(ContextKey("sc")).(*securecookie.SecureCookie)
 	webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 	nonce := ctx.Value(ContextKey("nonce")).(string)
@@ -152,36 +145,36 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 		err = sc.Decode("WID", wid.Value, &WIDstr)
 		switch err {
 		case nil:
-			WIDvalue, err := strconv.ParseInt(WIDstr, 10, 64)
+			WIDvalue, err := strconv.ParseUint(WIDstr, 10, 64)
 			if err != nil {
-				logger.Error().Err(err).Str("wid", WIDstr).Msg("Failed to convert cookie value to id")
+				log.Error().Err(err).Str("wid", WIDstr).Msg("Failed to convert cookie value to id")
 				deleteWIDCookie(w, r)
 				break
 			}
 			var watcher Watcher
 			err = getWatcherById(ctx, &watcher, WIDvalue)
 			if err != nil {
-				logger.Error().Err(err).Int64("wid", WIDvalue).Msg("Failed to get watcher via cookie")
+				log.Error().Err(err).Uint64("wid", WIDvalue).Msg("Failed to get watcher via cookie")
 				deleteWIDCookie(w, r)
 				break
 			}
 			if watcher.WatcherStatus != "active" {
-				logger.Error().Err(err).Int64("watcher_id", WIDvalue).Str("watcher_status", watcher.WatcherStatus).Msg("Watcher record not marked 'active'")
+				log.Error().Err(err).Uint64("watcher_id", WIDvalue).Str("watcher_status", watcher.WatcherStatus).Msg("Watcher record not marked 'active'")
 				deleteWIDCookie(w, r)
 				break
 			}
 			//oauth, err := getOAuthBySub(ctx, watcher.WatcherSub)
 			//if err != nil {
-			//	logger.Error().Err(err).Int64("watcher_id", WIDvalue).Msg("Failed to get oauth record by sub")
+			//	log.Error().Err(err).Int64("watcher_id", WIDvalue).Msg("Failed to get oauth record by sub")
 			//	break
 			//}
 			//currentDateTime := time.Now()
 			//unixTimeNow := currentDateTime.Unix()
-			//logger.Info().Int64("unix_time", unixTimeNow).Int64("oath_expires", oauth.OAuthExpires).Msg("Checking oauth expiration")
+			//log.Info().Int64("unix_time", unixTimeNow).Int64("oath_expires", oauth.OAuthExpires).Msg("Checking oauth expiration")
 			//if unixTimeNow > oauth.OAuthExpires {
-			//	logger.Warn().Int64("watcher_id", WIDvalue).Msg("OAuth record has expired")
+			//	log.Warn().Int64("watcher_id", WIDvalue).Msg("OAuth record has expired")
 			//}
-			logger.Info().Int64("watcher_id", watcher.WatcherId).Str("watcher_status", watcher.WatcherStatus).Msg("authenticated visitor")
+			log.Info().Uint64("watcher_id", watcher.WatcherId).Str("watcher_status", watcher.WatcherStatus).Msg("authenticated visitor")
 			webdata["WID"] = wid
 			webdata["watcher"] = watcher
 
@@ -193,7 +186,7 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 			return true
 		}
 	}
-	logger.Info().Msg("Anonymous visitor found")
+	log.Info().Msg("Anonymous visitor found")
 	webdata["loggedout"] = 1
 
 	stateStr := session.Values["state"].(string)

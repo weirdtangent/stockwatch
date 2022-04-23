@@ -14,7 +14,6 @@ import (
 func viewTickerDailyHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		logger := log.Ctx(ctx)
 		messages := ctx.Value(ContextKey("messages")).(*[]Message)
 		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 
@@ -33,9 +32,9 @@ func viewTickerDailyHandler() http.HandlerFunc {
 			if tsValue, err := strconv.ParseInt(tsParam, 10, 32); err == nil {
 				timespan = int(mymath.MinMax(tsValue, 15, 1825))
 			} else if err != nil {
-				logger.Error().Err(err).Str("ts", tsParam).Msg("Failed to interpret timespan (ts) param")
+				log.Error().Err(err).Str("ts", tsParam).Msg("invalid timespan (ts) param")
 			}
-			logger.Info().Int("timespan", timespan).Msg("")
+			log.Info().Int("timespan", timespan).Msg("")
 		}
 
 		ticker, err := loadTickerDetails(ctx, symbol, timespan)
@@ -49,7 +48,7 @@ func viewTickerDailyHandler() http.HandlerFunc {
 		// Add this ticker to recents list
 		recents, err := addTickerToRecents(ctx, r, ticker)
 		if err != nil {
-			logger.Error().Err(err).Msg("failed to add ticker to recents list")
+			log.Error().Err(err).Msg("failed to add ticker to recents list")
 		}
 		webdata["recents"] = *recents
 

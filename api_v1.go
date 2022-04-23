@@ -19,7 +19,6 @@ type jsonResponseData struct {
 func apiV1Handler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		logger := log.Ctx(ctx)
 
 		checkAuthState(w, r)
 		// if ok := checkAuthState(w, r); !ok {
@@ -47,9 +46,10 @@ func apiV1Handler() http.HandlerFunc {
 		case "quote":
 			symbol := r.FormValue("symbol")
 
-			ticker, err := getTickerBySymbol(ctx, symbol)
+			ticker := Ticker{TickerSymbol: symbol}
+			err := ticker.getBySymbol(ctx)
 			if err != nil {
-				logger.Error().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", endpoint).Str("ticker", symbol).Msg("Failed to find ticker")
+				log.Error().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", endpoint).Str("ticker", symbol).Msg("Failed to find ticker")
 				jsonResponse.Success = false
 				jsonResponse.Message = "Failure: unknown symbol"
 			} else {
@@ -58,7 +58,7 @@ func apiV1Handler() http.HandlerFunc {
 					quote, err := loadTickerQuote(ctx, ticker.TickerSymbol)
 
 					if err != nil {
-						logger.Error().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", endpoint).Str("ticker", symbol).Msg("Failed to get live quote")
+						log.Error().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", endpoint).Str("ticker", symbol).Msg("Failed to get live quote")
 						jsonResponse.Success = false
 						jsonResponse.Message = "Failure: could not load quote"
 					} else {
@@ -94,7 +94,7 @@ func apiV1Handler() http.HandlerFunc {
 			}
 
 		default:
-			logger.Error().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", endpoint).Err(fmt.Errorf("failure: call to unknown api endpoint")).Msg("")
+			log.Error().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", endpoint).Err(fmt.Errorf("failure: call to unknown api endpoint")).Msg("")
 			jsonResponse.Success = false
 			jsonResponse.Message = "Failure: unknown endpoint"
 		}

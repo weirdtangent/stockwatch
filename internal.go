@@ -24,7 +24,6 @@ func pingHandler() http.HandlerFunc {
 func JSONReportHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		logger := log.Ctx(ctx)
 		awssess := ctx.Value(ContextKey("awssess")).(*session.Session)
 
 		s3svc := s3.New(awssess)
@@ -48,10 +47,7 @@ func JSONReportHandler() http.HandlerFunc {
 
 		_, err := s3svc.PutObject(inputPutObj)
 		if err != nil {
-			logger.Warn().Err(err).
-				Str("bucket", "stockwatch-graystorm").
-				Str("key", logKey).
-				Msg("Failed to upload to S3 bucket")
+			log.Warn().Err(err).Str("bucket", "stockwatch-graystorm").Str("key", logKey).Msg("Failed to upload to S3 bucket")
 		}
 	})
 }

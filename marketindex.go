@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"sort"
 
@@ -10,29 +11,29 @@ import (
 )
 
 type MarketIndex struct {
-	MarketIndexId     int64  `db:"marketindex_id"`
-	MarketIndexSymbol string `db:"marketindex_symbol"`
-	MarketIndexMic    string `db:"marketindex_mic"`
-	MarketIndexName   string `db:"marketindex_name"`
-	CountryId         int64  `db:"country_id"`
-	HasIntraday       bool   `db:"marketindex_has_intraday"`
-	HasEOD            bool   `db:"marketindex_has_eod"`
-	CurrencyId        int64  `db:"currency_id"`
-	CreateDatetime    string `db:"create_datetime"`
-	UpdateDatetime    string `db:"update_datetime"`
+	MarketIndexId     uint64       `db:"marketindex_id"`
+	MarketIndexSymbol string       `db:"marketindex_symbol"`
+	MarketIndexMic    string       `db:"marketindex_mic"`
+	MarketIndexName   string       `db:"marketindex_name"`
+	CountryId         uint64       `db:"country_id"`
+	HasIntraday       bool         `db:"marketindex_has_intraday"`
+	HasEOD            bool         `db:"marketindex_has_eod"`
+	CurrencyId        uint64       `db:"currency_id"`
+	CreateDatetime    sql.NullTime `db:"create_datetime"`
+	UpdateDatetime    sql.NullTime `db:"update_datetime"`
 }
 
 type MarketIndexDaily struct {
-	MarketIndexDailyId int64   `db:"marketindex_daily_id"`
-	MarketIndexId      int64   `db:"marketindex_id"`
-	PriceDate          string  `db:"price_date"`
-	OpenPrice          float64 `db:"open_price"`
-	HighPrice          float64 `db:"high_price"`
-	LowPrice           float64 `db:"low_price"`
-	ClosePrice         float64 `db:"close_price"`
-	Volume             float64 `db:"volume"`
-	CreateDatetime     string  `db:"create_datetime"`
-	UpdateDatetime     string  `db:"update_datetime"`
+	MarketIndexDailyId uint64       `db:"marketindex_daily_id"`
+	MarketIndexId      uint64       `db:"marketindex_id"`
+	PriceDate          string       `db:"price_date"`
+	OpenPrice          float64      `db:"open_price"`
+	HighPrice          float64      `db:"high_price"`
+	LowPrice           float64      `db:"low_price"`
+	ClosePrice         float64      `db:"close_price"`
+	Volume             float64      `db:"volume"`
+	CreateDatetime     sql.NullTime `db:"create_datetime"`
+	UpdateDatetime     sql.NullTime `db:"update_datetime"`
 }
 
 type MarketIndexDailies struct {
@@ -42,13 +43,13 @@ type MarketIndexDailies struct {
 type MarketIndexByPriceDate MarketIndexDailies
 
 type MarketIndexIntraday struct {
-	MarketIndexIntradayId int64   `db:"intraday_id"`
-	TickerId              int64   `db:"ticker_id"`
-	PriceDate             string  `db:"price_date"`
-	LastPrice             float64 `db:"last_price"`
-	Volume                float64 `db:"volume"`
-	CreateDatetime        string  `db:"create_datetime"`
-	UpdateDatetime        string  `db:"update_datetime"`
+	MarketIndexIntradayId uint64       `db:"intraday_id"`
+	TickerId              uint64       `db:"ticker_id"`
+	PriceDate             string       `db:"price_date"`
+	LastPrice             float64      `db:"last_price"`
+	Volume                float64      `db:"volume"`
+	CreateDatetime        sql.NullTime `db:"create_datetime"`
+	UpdateDatetime        sql.NullTime `db:"update_datetime"`
 }
 
 type MarketIndexIntradays struct {
@@ -110,7 +111,7 @@ func (mi MarketIndex) LoadMarketIndexIntraday(db *sqlx.DB, intradate string) ([]
 	}
 	preDaily, err := getMarketIndexDaily(db, mi.MarketIndexId, priorBusinessDay)
 	if err == nil {
-		marketindex_intradays = append(marketindex_intradays, MarketIndexIntraday{0, mi.MarketIndexId, priorBusinessDay, preDaily.ClosePrice, 0, "", ""})
+		marketindex_intradays = append(marketindex_intradays, MarketIndexIntraday{0, mi.MarketIndexId, priorBusinessDay, preDaily.ClosePrice, 0, sql.NullTime{}, sql.NullTime{}})
 	} else {
 		log.Info().Msg("PriorBusinessDay close price was NOT included")
 	}
@@ -137,7 +138,7 @@ func (mi MarketIndex) LoadMarketIndexIntraday(db *sqlx.DB, intradate string) ([]
 	}
 	postDaily, err := getMarketIndexDaily(db, mi.MarketIndexId, nextBusinessDay)
 	if err == nil {
-		marketindex_intradays = append(marketindex_intradays, MarketIndexIntraday{0, mi.MarketIndexId, nextBusinessDay, postDaily.OpenPrice, 0, "", ""})
+		marketindex_intradays = append(marketindex_intradays, MarketIndexIntraday{0, mi.MarketIndexId, nextBusinessDay, postDaily.OpenPrice, 0, sql.NullTime{}, sql.NullTime{}})
 	} else {
 		log.Info().Msg("NextBusinessDay open price was NOT included")
 	}
@@ -163,7 +164,7 @@ func (mi MarketIndexDailies) Count() int {
 	return len(mi.Days)
 }
 
-func getMarketIndexDaily(db *sqlx.DB, marketindex_id int64, daily_date string) (*MarketIndexDaily, error) {
+func getMarketIndexDaily(db *sqlx.DB, marketindex_id uint64, daily_date string) (*MarketIndexDaily, error) {
 	var marketindexdaily MarketIndexDaily
 	if len(daily_date) > 10 {
 		daily_date = daily_date[0:10]

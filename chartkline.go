@@ -10,9 +10,10 @@ import (
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
+	"github.com/rs/zerolog/log"
 )
 
-func chartHandlerTickerDailyKLine(ctx context.Context, ticker *Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
+func chartHandlerTickerDailyKLine(ctx context.Context, ticker Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
 	mainX := "880px"
 	mainY := "280px"
 	smallX := "880px"
@@ -30,12 +31,17 @@ func chartHandlerTickerDailyKLine(ctx context.Context, ticker *Ticker, exchange 
 	candleData := make([]opts.KlineData, 0, days)
 	volumeData := make([]opts.BarData, 0, days)
 	for x := range dailies {
-		tickerDate, _ := time.Parse("2006-01-02", dailies[x].PriceDate)
-		displayDate := tickerDate.Format("Jan 02")
-		x_axis = append(x_axis, displayDate)
+		// go or parseTime=true or something mysteriously turns the "string" PriceDate
+		// which is yyyy-mm-dd into a full RFC3339 date, so we only want to parse the
+		// first 10 characters
+		tickerDate, err := time.Parse(sqlDateType, dailies[x].PriceDate[:10])
+		if err != nil {
+			log.Fatal().Err(err).Str("symbol", ticker.TickerSymbol).Str("bad_data", dailies[x].PriceDate).Msg("failed to parse price_date for {symbol}")
+		}
 
+		x_axis = append(x_axis, tickerDate.Format("Jan 02"))
 		candleData = append(candleData, opts.KlineData{Value: [4]float64{dailies[x].OpenPrice, dailies[x].ClosePrice, dailies[x].LowPrice, dailies[x].HighPrice}})
-		volumeData = append(volumeData, opts.BarData{Value: dailies[x].Volume / 1000000})
+		volumeData = append(volumeData, opts.BarData{Value: dailies[x].Volume / volumeUnits})
 	}
 
 	// build charts

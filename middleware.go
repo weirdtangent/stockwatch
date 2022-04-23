@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -19,7 +20,7 @@ import (
 
 var (
 	forwardedRE      = regexp.MustCompile(`for=(.*)`)
-	skipLoggingPaths = regexp.MustCompile(`^/(ping|metrics|static)`)
+	skipLoggingPaths = regexp.MustCompile(`^/(ping|metrics|static|favicon.ico)`)
 	obfuscateParams  = regexp.MustCompile(`(token|verifier|pwd|password)=([^\&]+)`)
 )
 
@@ -64,7 +65,6 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, ridCookie)
 
-	// get the logger from the context and update it with the request_id
 	logger := zerolog.Ctx(ctx)
 	logger.UpdateContext(func(c zerolog.Context) zerolog.Context {
 		return c.Str("request_id", rid)
@@ -160,9 +160,6 @@ func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	l.handler.ServeHTTP(w, r)
 
-	// we've been around the block, grab that logger back from the context to log with
-	logger := log.Ctx(r.Context())
-
 	// don't logs these, no reason to
 	if !skipLoggingPaths.MatchString(r.URL.String()) {
 		ForwardedHdrs := r.Header["Forwarded"]
@@ -177,13 +174,7 @@ func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		cleanURL := r.URL.String()
 		cleanURL = obfuscateParams.ReplaceAllString(cleanURL, "$1=xxxxxx")
 
-		logger.Info().
-			Str("url", cleanURL).
-			Int("status_code", 200).
-			Str("method", r.Method).
-			Str("remote_ip_addr", remote_ip_addr).
-			Int64("response_time", time.Since(t).Nanoseconds()).
-			Msg("")
+		log.Info().Str("url", cleanURL).Int("status_code", 200).Str("method", r.Method).Str("remote_ip_addr", remote_ip_addr).Int64("response_time", time.Since(t).Nanoseconds()).Msg("")
 	}
 }
 func withLogging(h http.Handler) *Logger {
@@ -198,10 +189,9 @@ type Session struct {
 }
 
 func (s *Session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	logger := log.Ctx(r.Context())
 	session, err := s.store.Get(r, "SID")
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Failed to get/create session")
+		log.Fatal().Err(err).Msg("Failed to get/create session")
 	}
 	if session.IsNew {
 		state := RandStringMask(32)
@@ -210,7 +200,7 @@ func (s *Session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		session.Values["theme"] = "dark"
 		err := session.Save(r, w)
 		if err != nil {
-			logger.Fatal().Err(err).Msg("Failed to save session")
+			log.Fatal().Err(err).Msg("Failed to save session")
 		}
 	}
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("ddbs"), session))
@@ -224,10 +214,9 @@ func withSession(store *dynastore.Store, h http.Handler) *Session {
 }
 
 func getSession(r *http.Request) *sessions.Session {
-	logger := log.Ctx(r.Context())
 	session := r.Context().Value(ContextKey("ddbs")).(*sessions.Session)
 	if session == nil {
-		logger.Fatal().Err(errFailedToGetSessionFromContext).Msg("")
+		log.Fatal().Err(fmt.Errorf("failed to get session from context")).Msg("")
 	}
 	return session
 }
