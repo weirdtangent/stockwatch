@@ -31,7 +31,8 @@ func fetchTickerInfo(ctx context.Context, symbol string) (Ticker, error) {
 	} else {
 		var err error
 		summaryParams := map[string]string{"symbol": symbol}
-		response, err = yhfinance.GetFromYHFinance(&apiKey, &apiHost, "summary", summaryParams)
+		log.Info().Str("symbol", symbol).Msg("get {symbol} info from yhfinance api")
+		response, err = yhfinance.GetFromYHFinance(ctx, &apiKey, &apiHost, "summary", summaryParams)
 		if err != nil {
 			log.Warn().Err(err).Str("ticker", symbol).Msg("failed to retrieve ticker")
 			return Ticker{}, err
@@ -96,17 +97,16 @@ func fetchTickerInfo(ctx context.Context, symbol string) (Ticker, error) {
 	}
 
 	// create/update ticker_attributes
-	ticker.createOrUpdateAttribute(ctx, "sector", summaryResponse.SummaryProfile.Sector)
-	ticker.createOrUpdateAttribute(ctx, "industry", summaryResponse.SummaryProfile.Industry)
-	ticker.createOrUpdateAttribute(ctx, "short_ratio", summaryResponse.DefaultKeyStatistics.ShortRatio.Fmt)
-	ticker.createOrUpdateAttribute(ctx, "last_split_date", summaryResponse.DefaultKeyStatistics.LastSplitDate.Fmt)
-	ticker.createOrUpdateAttribute(ctx, "last_dividend_date", summaryResponse.DefaultKeyStatistics.LastDividendDate.Fmt)
-	ticker.createOrUpdateAttribute(ctx, "shares_short", summaryResponse.DefaultKeyStatistics.SharesShort.Fmt)
-	ticker.createOrUpdateAttribute(ctx, "float_shares", summaryResponse.DefaultKeyStatistics.FloatShares.Fmt)
-	ticker.createOrUpdateAttribute(ctx, "shares_outstanding", summaryResponse.DefaultKeyStatistics.SharesOutstanding.Fmt)
-	ticker.createOrUpdateAttribute(ctx, "forward_eps", summaryResponse.DefaultKeyStatistics.ForwardEPS.Fmt)
-	ticker.createOrUpdateAttribute(ctx, "enterprize_to_revenue", summaryResponse.DefaultKeyStatistics.EnterprizeToRevenue.Fmt)
-	ticker.createOrUpdateAttribute(ctx, "enterprize_to_ebita", summaryResponse.DefaultKeyStatistics.EnterprizeToEbita.Fmt)
+	ticker.createOrUpdateAttribute(ctx, "sector", "", summaryResponse.SummaryProfile.Sector)
+	ticker.createOrUpdateAttribute(ctx, "industry", "", summaryResponse.SummaryProfile.Industry)
+	ticker.createOrUpdateAttribute(ctx, "short_ratio", "", summaryResponse.DefaultKeyStatistics.ShortRatio.Fmt)
+	ticker.createOrUpdateAttribute(ctx, "last_split_date", "", summaryResponse.DefaultKeyStatistics.LastSplitDate.Fmt)
+	ticker.createOrUpdateAttribute(ctx, "last_dividend_date", "", summaryResponse.DefaultKeyStatistics.LastDividendDate.Fmt)
+	ticker.createOrUpdateAttribute(ctx, "shares_short", "", summaryResponse.DefaultKeyStatistics.SharesShort.Fmt)
+	ticker.createOrUpdateAttribute(ctx, "float_shares", "", summaryResponse.DefaultKeyStatistics.FloatShares.Fmt)
+	ticker.createOrUpdateAttribute(ctx, "forward_eps", "", summaryResponse.DefaultKeyStatistics.ForwardEPS.Fmt)
+	ticker.createOrUpdateAttribute(ctx, "enterprize_to_revenue", "", summaryResponse.DefaultKeyStatistics.EnterprizeToRevenue.Fmt)
+	ticker.createOrUpdateAttribute(ctx, "enterprize_to_ebita", "", summaryResponse.DefaultKeyStatistics.EnterprizeToEbita.Fmt)
 
 	return ticker, nil
 }
@@ -131,7 +131,7 @@ func loadTickerQuote(ctx context.Context, symbol string) (yhfinance.YFQuote, err
 	} else {
 		var err error
 		quoteParams := map[string]string{"symbols": symbol}
-		response, err = yhfinance.GetFromYHFinance(&apiKey, &apiHost, "quote", quoteParams)
+		response, err = yhfinance.GetFromYHFinance(ctx, &apiKey, &apiHost, "quote", quoteParams)
 		if err != nil {
 			log.Warn().Err(err).Str("ticker", symbol).Msg("Failed to retrieve quote")
 			return quote, err
@@ -161,7 +161,7 @@ func loadTickerEODs(ctx context.Context, ticker Ticker) error {
 	currentTimeStr := currentDate.Format("15:04:05")
 
 	historicalParams := map[string]string{"symbol": ticker.TickerSymbol}
-	response, err := yhfinance.GetFromYHFinance(&apiKey, &apiHost, "historical", historicalParams)
+	response, err := yhfinance.GetFromYHFinance(ctx, &apiKey, &apiHost, "historical", historicalParams)
 	if err != nil {
 		log.Warn().Err(err).Str("ticker", ticker.TickerSymbol).Msg("Failed to retrieve historical prices")
 		return err
@@ -235,7 +235,7 @@ func listSearch(ctx context.Context, searchString string, resultTypes string) ([
 	searchResults := make([]SearchResult, 100)
 
 	searchParams := map[string]string{"q": searchString}
-	response, err := yhfinance.GetFromYHFinance(&apiKey, &apiHost, "autocomplete", searchParams)
+	response, err := yhfinance.GetFromYHFinance(ctx, &apiKey, &apiHost, "autocomplete", searchParams)
 	if err != nil {
 		return searchResults, err
 	}

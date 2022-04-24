@@ -30,6 +30,8 @@ const (
 	sqlDateType = "2006-01-02"
 
 	volumeUnits = 1_000_000
+
+	debugging = true
 )
 
 func main() {
@@ -47,6 +49,13 @@ func main() {
 	logTag := "stockwatch"
 	if len(pgmPath) > 1 {
 		logTag = pgmPath[len(pgmPath)-1]
+	}
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	if debugging {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	} else {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
 	}
 	log.Logger = log.With().Str("@tag", logTag).Caller().Logger()
 

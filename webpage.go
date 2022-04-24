@@ -115,15 +115,25 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 		}
 	}
 
-	// get financials
-	quarterStrs, qtrBarValues, _ := ticker.GetFinancials(ctx, "bar", "quarterly")
-	annualStrs, annBarValues, _ := ticker.GetFinancials(ctx, "bar", "annual")
-
 	// Build charts
 	var lineChartHTML = chartHandlerTickerDailyLine(ctx, ticker, &exchange, ticker_dailies, webwatches)
 	var klineChartHTML = chartHandlerTickerDailyKLine(ctx, ticker, &exchange, ticker_dailies, webwatches)
-	var qtrBarChartHTML = chartHandlerFinancialsBar(ctx, ticker, &exchange, quarterStrs, qtrBarValues)
-	var annBarChartHTML = chartHandlerFinancialsBar(ctx, ticker, &exchange, annualStrs, annBarValues)
+
+	// get financials
+	qtrBarStrs, qtrBarValues, _ := ticker.GetFinancials(ctx, "Quarterly", "bar", 0)
+	annBarStrs, annBarValues, _ := ticker.GetFinancials(ctx, "Annual", "bar", 0)
+	var qtrBarChartHTML = chartHandlerFinancialsBar(ctx, ticker, &exchange, qtrBarStrs, qtrBarValues)
+	var annBarChartHTML = chartHandlerFinancialsBar(ctx, ticker, &exchange, annBarStrs, annBarValues)
+
+	qtrLineStrs, qtrLineValues, _ := ticker.GetFinancials(ctx, "Quarterly", "line", 0)
+	annLineStrs, annLineValues, _ := ticker.GetFinancials(ctx, "Annual", "line", 0)
+	var qtrLineChartHTML = chartHandlerFinancialsLine(ctx, ticker, &exchange, qtrLineStrs, qtrLineValues, 0)
+	var annLineChartHTML = chartHandlerFinancialsLine(ctx, ticker, &exchange, annLineStrs, annLineValues, 0)
+
+	qtrPLineStrs, qtrPLineValues, _ := ticker.GetFinancials(ctx, "Quarterly", "line", 1)
+	annPLineStrs, annPLineValues, _ := ticker.GetFinancials(ctx, "Annual", "line", 1)
+	var qtrPLineChartHTML = chartHandlerFinancialsLine(ctx, ticker, &exchange, qtrPLineStrs, qtrPLineValues, 1)
+	var annPLineChartHTML = chartHandlerFinancialsLine(ctx, ticker, &exchange, annPLineStrs, annPLineValues, 1)
 
 	webdata["ticker"] = ticker
 	webdata["ticker_description"] = tickerDescription
@@ -141,6 +151,10 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	webdata["klineChart"] = klineChartHTML
 	webdata["qtrBarChart"] = qtrBarChartHTML
 	webdata["annBarChart"] = annBarChartHTML
+	webdata["qtrLineChart"] = qtrLineChartHTML
+	webdata["annLineChart"] = annLineChartHTML
+	webdata["qtrPLineChart"] = qtrPLineChartHTML
+	webdata["annPLineChart"] = annPLineChartHTML
 
 	return ticker, nil
 }

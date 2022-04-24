@@ -54,6 +54,7 @@ type TickerAttribute struct {
 	TickerAttributeId uint64       `db:"attribute_id"`
 	TickerId          uint64       `db:"ticker_id"`
 	AttributeName     string       `db:"attribute_name"`
+	AttributeComment  string       `db:"attribute_comment"`
 	AttributeValue    string       `db:"attribute_value"`
 	CreateDatetime    sql.NullTime `db:"create_datetime"`
 	UpdateDatetime    sql.NullTime `db:"update_datetime"`
@@ -182,19 +183,19 @@ func (t *Ticker) createOrUpdate(ctx context.Context) error {
 	return t.getById(ctx)
 }
 
-func (t *Ticker) createOrUpdateAttribute(ctx context.Context, attributeName string, attributeValue string) error {
+func (t *Ticker) createOrUpdateAttribute(ctx context.Context, attributeName, attributeComment, attributeValue string) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	attribute := TickerAttribute{0, t.TickerId, attributeName, attributeValue, sql.NullTime{}, sql.NullTime{}}
+	attribute := TickerAttribute{0, t.TickerId, attributeName, attributeComment, attributeValue, sql.NullTime{}, sql.NullTime{}}
 	err := attribute.getByUniqueKey(ctx)
 	if err == nil {
-		var update = "UPDATE ticker_attribute SET attribute_value=? WHERE ticker_id=? AND attribute_name=?"
-		db.Exec(update, attributeValue, t.TickerId, attributeName)
+		var update = "UPDATE ticker_attribute SET attribute_value=? WHERE ticker_id=? AND attribute_name=? AND attribute_comment=?"
+		db.Exec(update, attributeValue, t.TickerId, attributeName, attributeComment)
 		return nil
 	}
 
-	var insert = "INSERT INTO ticker_attribute SET ticker_id=?, attribute_name=?, attribute_value=?"
-	db.Exec(insert, t.TickerId, attributeName, attributeValue)
+	var insert = "INSERT INTO ticker_attribute SET ticker_id=?, attribute_name=?, attribute_comment=?, attribute_value=?"
+	db.Exec(insert, t.TickerId, attributeName, attributeComment, attributeValue)
 	return nil
 }
 
@@ -737,26 +738,26 @@ func (ts *TickerSplit) createIfNew(ctx context.Context) error {
 	return err
 }
 
-func (t *Ticker) GetFinancials(ctx context.Context, chartType string, period string) ([]string, []map[string]float64, error) {
+func (t *Ticker) GetFinancials(ctx context.Context, period, chartType string, isPercentage int) ([]string, []map[string]float64, error) {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	var periodStrs = []string{}
 	var barValues = []map[string]float64{}
 
-	rows, err := db.Queryx(`SELECT chart_date_string, group_concat(chart_name) AS chart_names,
+	rows, err := db.Queryx(`SELECT chart_datetime,
+	                          group_concat(chart_name) AS chart_names,
 	                          group_concat(chart_value) AS chart_values
-						    FROM financials WHERE ticker_id=? and form_term_name=? and chart_type=?
-							GROUP BY 1`,
-		t.TickerId, period, chartType)
+						    FROM (SELECT * FROM financials WHERE ticker_id=? AND form_term_name=? AND chart_type=? AND is_percentage=? ORDER BY chart_datetime) t
+							GROUP BY 1`, t.TickerId, period, chartType, isPercentage)
 	if err != nil {
 		return periodStrs, barValues, err
 	}
 	defer rows.Close()
 
 	var financials struct {
-		ChartDateString string `db:"chart_date_string"`
-		ChartNames      string `db:"chart_names"`
-		ChartValues     string `db:"chart_values"`
+		ChartDatetime sql.NullTime `db:"chart_datetime"`
+		ChartNames    string       `db:"chart_names"`
+		ChartValues   string       `db:"chart_values"`
 	}
 	for rows.Next() {
 		err = rows.StructScan(&financials)
@@ -766,11 +767,10 @@ func (t *Ticker) GetFinancials(ctx context.Context, chartType string, period str
 				Msg("error reading result rows")
 		} else {
 			var barTime string
-			if period == "quarterly" {
-				quarterTime, _ := time.Parse("1/2006", financials.ChartDateString)
-				barTime = quarterTime.Format("2006-01")
+			if period == "Quarterly" {
+				barTime = financials.ChartDatetime.Time.Format("2006-01")
 			} else {
-				barTime = financials.ChartDateString
+				barTime = financials.ChartDatetime.Time.Format("2006")
 			}
 
 			periodStrs = append(periodStrs, barTime)

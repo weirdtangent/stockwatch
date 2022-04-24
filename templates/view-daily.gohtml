@@ -22,6 +22,10 @@
                 <div id="tickerChart2elem" class="doubleChart extraChart">{{.klineChart}}</div>
                 <div id="financialsChart1elem" class="extraChart">{{.qtrBarChart}}</div>
                 <div id="financialsChart2elem" class="extraChart">{{.annBarChart}}</div>
+                <div id="financialsChart3elem" class="extraChart">{{.qtrLineChart}}</div>
+                <div id="financialsChart4elem" class="extraChart">{{.annLineChart}}</div>
+                <div id="financialsChart5elem" class="extraChart">{{.qtrPLineChart}}</div>
+                <div id="financialsChart6elem" class="extraChart">{{.annPLineChart}}</div>
 
                 {{- template "_eod-table" . }}
               </div>
@@ -67,6 +71,9 @@
                 {{if .AttributeValue}}
                   <div class="list-group-item">
                     {{.AttributeName}} <span class="text-light">{{.AttributeValue}}</span>
+                    {{- if .AttributeComment}}
+                    <br><span class="small text-warning">{{.AttributeComment}}</span>
+                    {{- end}}
                   </div>
                 {{end}}
                 {{end}}

@@ -174,7 +174,7 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 			//if unixTimeNow > oauth.OAuthExpires {
 			//	log.Warn().Int64("watcher_id", WIDvalue).Msg("OAuth record has expired")
 			//}
-			log.Info().Uint64("watcher_id", watcher.WatcherId).Str("watcher_status", watcher.WatcherStatus).Msg("authenticated visitor")
+			// log.Info().Uint64("watcher_id", watcher.WatcherId).Str("watcher_status", watcher.WatcherStatus).Msg("authenticated visitor")
 			webdata["WID"] = wid
 			webdata["watcher"] = watcher
 
@@ -186,7 +186,7 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 			return true
 		}
 	}
-	log.Info().Msg("Anonymous visitor found")
+	// log.Info().Msg("Anonymous visitor found")
 	webdata["loggedout"] = 1
 
 	stateStr := session.Values["state"].(string)
