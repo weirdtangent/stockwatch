@@ -100,3 +100,7 @@ func PriceDiffAmt(a, b float64) string {
 func PriceDiffPerc(a, b float64) string {
 	return fmt.Sprintf("%.2f%%", (a-b)/a*100)
 }
+
+func PriceDiffPercAmt(a, b float64) float64 {
+	return (a - b) / a * 100
+}

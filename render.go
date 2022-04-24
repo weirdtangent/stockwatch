@@ -28,6 +28,7 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 		"SinceColor":        SinceColor,
 		"PriceDiffAmt":      PriceDiffAmt,
 		"PriceDiffPerc":     PriceDiffPerc,
+		"PriceDiffPercAmt":  PriceDiffPercAmt,
 		"ToUpper":           strings.ToUpper,
 		"ToLower":           strings.ToLower,
 	}

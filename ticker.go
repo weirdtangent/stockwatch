@@ -65,6 +65,7 @@ type TickerDaily struct {
 	TickerId       uint64       `db:"ticker_id"`
 	PriceDate      string       `db:"price_date"`
 	PriceTime      string       `db:"price_time"`
+	PriceDatetime  time.Time    `db:"price_datetime"`
 	OpenPrice      float64      `db:"open_price"`
 	HighPrice      float64      `db:"high_price"`
 	LowPrice       float64      `db:"low_price"`
@@ -245,13 +246,15 @@ func (t *Ticker) getLastAndPriorClose(ctx context.Context) (*TickerDaily, *Ticke
 
 	var lastClose TickerDaily
 	db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? AND price_date<=? ORDER BY price_date DESC LIMIT 1`, t.TickerId, lastCloseDateStr).StructScan(&lastClose)
+	lastClose.PriceDatetime, _ = time.Parse(sqlDatetimeType, lastClose.PriceDate[:11]+lastClose.PriceTime+"Z")
 
 	// ok and now get the prior day to that
-	lastCloseDate = mytime.PriorWorkDate(lastCloseDate)
-	lastCloseDateStr = lastCloseDate.Format("2006-01-02")
+	lastCloseDateStr = mytime.PriorWorkDate(lastCloseDate).Format(sqlDateType)
 
 	var priorClose TickerDaily
 	db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? AND price_date<=? ORDER BY price_date DESC LIMIT 1`, t.TickerId, lastCloseDateStr).StructScan(&priorClose)
+	priorClose.PriceDatetime, _ = time.Parse(sqlDatetimeType, priorClose.PriceDate[:11]+priorClose.PriceTime+"Z")
+
 	return &lastClose, &priorClose
 }
 
@@ -351,6 +354,7 @@ func (t Ticker) getTickerEODs(ctx context.Context, days int) ([]TickerDaily, err
 		if err != nil {
 			log.Warn().Err(err).Str("table_name", "ticker_daily").Msg("error reading result rows")
 		} else {
+			ticker_daily.PriceDatetime, _ = time.Parse(sqlDatetimeType, ticker_daily.PriceDate[:11]+ticker_daily.PriceTime+"Z")
 			dailies = append(dailies, ticker_daily)
 		}
 	}

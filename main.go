@@ -27,7 +27,8 @@ const (
 	skipRedisChecks     = true // always skip the redis cache info
 	skipLocalTickerInfo = true // always fetch ticker info from yhfinance
 
-	sqlDateType = "2006-01-02"
+	sqlDateType     = "2006-01-02"
+	sqlDatetimeType = "2006-01-02T15:04:05Z"
 
 	volumeUnits = 1_000_000
 

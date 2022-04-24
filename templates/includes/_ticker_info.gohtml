@@ -8,22 +8,29 @@
                     </span>
                     {{if .quote}}
                       {{- if ge .quote.QuoteChange 0.0 }}
-                        <span id="quote_dailymove_text" class="h5 text-success">
-                          <i id="quote_dailymove" class="fas fa-arrow-up"></i>
-                          <span id="quote_change">{{ printf "$%.2f" .quote.QuoteChange }}</span> (<span id="quote_change_pct">{{ printf "%.2f%%" .quote.QuoteChangePct }}</span>)
+                        <span id="quote_dailymove_text">
+                          <i id="quote_dailymove" class="h5 text-success fas fa-arrow-up"></i>
                         </span>
                       {{- else -}}
-                        <span id="quote_dailmove_text" class="h5 text-danger">
-                          <i id="quote_dailymove" class="fas fa-arrow-down"></i>
-                          <span id="quote_change">{{ printf "$%.2f" .quote.QuoteChange }}</span> (<span id="quote_change_pct">{{ printf "%.2f%%" .quote.QuoteChangePct }}</span>)
+                        <span id="quote_dailmove_text">
+                          <i id="quote_dailymove" class="h5 text-danger fas fa-arrow-down"></i>
                         </span>
                       {{- end -}}
+                      {{- if ge .quote.QuoteChangePct 5.0}}<span class="h5 text-success">
+                      {{- else if le .quote.QuoteChangePct -5.0}}<span class="h5 text-danger">
+                      {{- else }}<span class="h5 text-light">{{ end -}}
+                        <span id="quote_change">{{ printf "$%.2f" .quote.QuoteChange }}</span> (<span id="quote_change_pct">{{ printf "%.2f%%" .quote.QuoteChangePct }}</span></span>)
                     {{- else -}}
+                      {{- $diffperc := PriceDiffPercAmt .lastClose.ClosePrice .priorClose.ClosePrice -}}
                       {{- if eq .last_ticker_daily_move "up" }}
-                        <span class="h5 text-success"><i id="quote_dailymove" class="fas fa-arrow-up"></i> {{- PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }} ({{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }})</span>
+                        <i id="quote_dailymove" class="h5 text-success fas fa-arrow-up"></i>
                       {{- else if eq .last_ticker_daily_move "down" -}}
-                        <span class="h5 text-danger"><i id="quote_dailymove" class="fas fa-arrow-down"></i> {{- PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }} ({{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }})</span>
+                        <i id="quote_dailymove" class="h5 text-danger fas fa-arrow-down"></i>
                       {{- end -}}
+                      {{- if ge $diffperc 5.0}}<span class="h5 text-success">
+                      {{- else if le $diffperc -5.0}}<span class="h5 text-danger">
+                      {{- else }}<span class="h5 text-light">{{ end -}}
+                         &nbsp;{{- PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }} ({{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }})</span>
                     {{- end }}
                     <span class="text-info">
                     {{- if .quote}}as of </span><span id="quote_asof" class="text-light">{{ FormatUnixTime .quote.QuoteTime "Jan 2 15:04" }}</span>

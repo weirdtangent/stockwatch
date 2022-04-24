@@ -183,3 +183,9 @@ footer p {
   background: #303030;
   border: 2px solid #F5E239;
 }
+
+.nowrap {
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  overflow:hidden;
+}

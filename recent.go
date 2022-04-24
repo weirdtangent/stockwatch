@@ -26,6 +26,7 @@ type RecentPlus struct {
 	CompanyName     string
 	LiveQuote       yhfinance.YFQuote
 	LastClose       TickerDaily
+	PriorClose      TickerDaily
 	LastDailyMove   string
 	NewsLastUpdated sql.NullTime
 	UpdatingNewsNow bool
@@ -70,7 +71,7 @@ func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, er
 					continue
 				}
 			}
-			lastClose, _ := ticker.getLastAndPriorClose(ctx)
+			lastClose, priorClose := ticker.getLastAndPriorClose(ctx)
 			lastDailyMove, _ := getLastTickerDailyMove(ctx, ticker.TickerId)
 
 			newsLastUpdated := sql.NullTime{Valid: false, Time: time.Time{}}
@@ -91,7 +92,6 @@ func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, er
 				updatingNewsNow = err == nil
 			}
 
-			log.Info().Str("symbol", ticker.TickerSymbol).Msg("Adding {symbol} to recentPlus array")
 			recentPlus = append(recentPlus, RecentPlus{
 				TickerId:        ticker.TickerId,
 				TickerSymbol:    ticker.TickerSymbol,
@@ -100,6 +100,7 @@ func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, er
 				CompanyName:     ticker.CompanyName,
 				LiveQuote:       quote,
 				LastClose:       *lastClose,
+				PriorClose:      *priorClose,
 				LastDailyMove:   lastDailyMove,
 				NewsLastUpdated: newsLastUpdated,
 				UpdatingNewsNow: updatingNewsNow,

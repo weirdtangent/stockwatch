@@ -22,41 +22,7 @@
                 </div>
               {{- end }}
 
-              {{- if .recentplus}}
-                <div class="row g-0">
-                {{range .recentplus}}
-                <div class="col-1 mt-1 card me-2 ticker-card" style="width:13rem;">
-                  <div class="card-title bg-warning text-dark px-2 py-1">{{.TickerSymbol}}/{{.Exchange | ToLower}}</div>
-                  <div class="card-body small pt-0">
-                    <div class="row"><a href="/view/{{.TickerSymbol}}" class="hide-link stretched-link">{{.TickerName}}</a></div>
-                    <div class="row">
-                      <div class="col-12">
-                        {{if .LiveQuote.QuotePrice}}
-                          {{- printf "$%.2f" .LiveQuote.QuotePrice}}
-                          {{- if gt .LiveQuote.QuoteChange 0.0 }}<i id="quote_dailymove" class="text-success fas fa-arrow-up"></i>
-                          {{- else if lt .LiveQuote.QuoteChange 0.0 }}<i id="quote_dailymove" class="text-danger fas fa-arrow-down"></i>
-                          {{- else }}<i id="quote_dailymove" class="fa-solid fa-equals"></i>
-                          {{- end}}<span class="text-info"> as of </span>
-                          <span id="quote_asof" class="text-light small">{{ FormatUnixTime .LiveQuote.QuoteTime "Jan 2 15:04" }}</span>
-                        {{- else}}
-                          {{- printf "$%.2f" .LastClose.ClosePrice }}
-                          {{- if eq .LastDailyMove "up"}}<i id="quote_dailymove" class="text-success fas fa-arrow-up"></i>
-                          {{- else if eq .LastDailyMove "down"}}<i id="quote_dailymove" class="text-danger fas fa-arrow-down"></i>
-                          {{- else }}<i id="quote_dailymove" class="fa-solid fa-equals"></i>
-                          {{- end}}<span class="text-info"> at close on </span>
-                          <span id="quote_asof" class="h6 text-light small">{{ .LastClose.PriceDate }}</span>
-                        {{- end}}
-                        <br/><br/>
-                        Last Checked News:<br/>
-                        <span class="text-info">{{if .NewsLastUpdated.Valid }}{{.NewsLastUpdated.Time.Format "Jan 02 15:04"}}{{ else }}-{{end}}</span>
-                        {{- if .UpdatingNewsNow}}<i class="ms-2 mb-2 fad fa-sync fa-spin"></i>{{end}}
-                      </div><!-- col-12 -->
-                    </div><!-- row -->
-                  </div>
-                </div><!-- recentPlus card -->
-                {{- end }}
-                </div><!-- row -->
-              {{- end }}
+              {{template "_recent_plus" . }}
 
               <div class="row g-0 mt-3">
                 <div id="movers" class="mt-1 col-12 col-lg-4 bg-dark opacity-6 me-2">
@@ -101,7 +67,7 @@
                   <div class="">
                     {{range .articles}}
                       {{- if .ArticleURL}}
-                      <div class="text-light bg-dark row g-0 mx-2 pb-1 small" style="white-space:nowrap;text-overflow:ellipsis;overflow:hidden">
+                      <div class="text-light bg-dark row g-0 mx-2 pb-1 small nowrap">
                         <div class="">
                         {{- if .PublishedDatetime.Valid }}
                         {{ .PublishedDatetime.Time.Format "Jan 2 15:04"}}
