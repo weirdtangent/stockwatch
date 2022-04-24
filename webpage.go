@@ -130,10 +130,10 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	var qtrLineChartHTML = chartHandlerFinancialsLine(ctx, ticker, &exchange, qtrLineStrs, qtrLineValues, 0)
 	var annLineChartHTML = chartHandlerFinancialsLine(ctx, ticker, &exchange, annLineStrs, annLineValues, 0)
 
-	qtrPLineStrs, qtrPLineValues, _ := ticker.GetFinancials(ctx, "Quarterly", "line", 1)
-	annPLineStrs, annPLineValues, _ := ticker.GetFinancials(ctx, "Annual", "line", 1)
-	var qtrPLineChartHTML = chartHandlerFinancialsLine(ctx, ticker, &exchange, qtrPLineStrs, qtrPLineValues, 1)
-	var annPLineChartHTML = chartHandlerFinancialsLine(ctx, ticker, &exchange, annPLineStrs, annPLineValues, 1)
+	qtrPercStrs, qtrPercValues, _ := ticker.GetFinancials(ctx, "Quarterly", "line", 1)
+	annPercStrs, annPercValues, _ := ticker.GetFinancials(ctx, "Annual", "line", 1)
+	var qtrPercChartHTML = chartHandlerFinancialsLine(ctx, ticker, &exchange, qtrPercStrs, qtrPercValues, 1)
+	var annPercChartHTML = chartHandlerFinancialsLine(ctx, ticker, &exchange, annPercStrs, annPercValues, 1)
 
 	webdata["ticker"] = ticker
 	webdata["ticker_description"] = tickerDescription
@@ -153,8 +153,8 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	webdata["annBarChart"] = annBarChartHTML
 	webdata["qtrLineChart"] = qtrLineChartHTML
 	webdata["annLineChart"] = annLineChartHTML
-	webdata["qtrPLineChart"] = qtrPLineChartHTML
-	webdata["annPLineChart"] = annPLineChartHTML
+	webdata["qtrPercChart"] = qtrPercChartHTML
+	webdata["annPercChart"] = annPercChartHTML
 
 	return ticker, nil
 }

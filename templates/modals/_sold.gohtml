@@ -1,36 +1,36 @@
 {{ define "_sold" }}
-    <div class="modal fade" id="modalSold" tabindex="-1" aria-labelledby="modalSold" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content bg-primary">
-          <div class="modal-header">
-            <h5 class="modal-title" id="modalSoldLabel">Record Shares Sold of {{.ticker.TickerSymbol}} ({{.exchange.ExchangeMic}})</h5>
-            <button type="button" class="btn-close bg-danger" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <form method="POST" action="/sold/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeMic}}">
-            <div class="modal-body">
-              <div class="container-fluid">
-                <div class="row">
-                  <div class="col">
-                    <input type="number" class="form-control form-control-sm text-dark" id="SharesSold" name="Shares" min=1 max=999999 step=0.000001 size=12 required placeholder="100">
-                    <label class="form-label text-light" for="SharesSold">Quantity</label>
-                  </div>
-                  <div class="col">
-                    <input type="number" class="form-control form-control-sm text-dark" id="SharePriceSold" name="SharePrice" min=0 max=999999 step=0.000001 value="{{if .quote}}{{printf "%.2f" .quote.QuotePrice}}{{else}}{{printf "%.2f" .lastClose.ClosePrice}}{{end}}">
-                    <label class="form-label text-light" for="SharePriceSold">Share Price</label>
-                  </div>
-                  <div class="col">
-                    <input type="date" class="form-control form-control-sm text-dark" id="SoldDate" name="SoldDate" placeholder="03-01-2021">
-                    <label class="form-label text-light" for="SoldDate">Sold Date</label>
-                  </div>
-                </div>
+<div class="modal fade" id="modalSold" tabindex="-1" aria-labelledby="modalSold" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-primary">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalSoldLabel">Record Shares Sold of {{.ticker.TickerSymbol}} ({{.exchange.ExchangeMic}})</h5>
+        <button type="button" class="btn-close bg-danger" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="/sold/{{.ticker.TickerSymbol}}/{{.exchange.ExchangeMic}}">
+        <div class="modal-body">
+          <div class="container-fluid">
+            <div class="row">
+              <div class="col">
+                <input type="number" class="form-control form-control-sm text-dark" id="SharesSold" name="Shares" min=1 max=999999 step=0.000001 required placeholder="100"><!-- size=12 -->
+                <label class="form-label text-light" for="SharesSold">Quantity</label>
               </div>
-            </div><!-- modal-body -->
-            <div class="modal-footer">
-              <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Nevermind</button>
-              <input type="submit" class="btn btn-success" value="Save Changes">
-            </div><!--- modal-footer -->
-          </form>
-        </div><!-- modal-content -->
-      </div><!-- modal-dialog -->
-    </div><!-- modal -->
+              <div class="col">
+                <input type="number" class="form-control form-control-sm text-dark" id="SharePriceSold" name="SharePrice" min=0 max=999999 step=0.000001 value="{{if .quote}}{{printf "%.2f" .quote.QuotePrice}}{{else}}{{printf "%.2f" .lastClose.ClosePrice}}{{end}}">
+                <label class="form-label text-light" for="SharePriceSold">Share Price</label>
+              </div>
+              <div class="col">
+                <input type="date" class="form-control form-control-sm text-dark" id="SoldDate" name="SoldDate"><!-- placeholder="03-01-2021" -->
+                <label class="form-label text-light" for="SoldDate">Sold Date</label>
+              </div>
+            </div>
+          </div>
+        </div><!-- modal-body -->
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Nevermind</button>
+          <input type="submit" class="btn btn-success" value="Save Changes">
+        </div><!--- modal-footer -->
+      </form>
+    </div><!-- modal-content -->
+  </div><!-- modal-dialog -->
+</div><!-- modal -->
 {{ end }}

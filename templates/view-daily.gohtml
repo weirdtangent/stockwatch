@@ -18,37 +18,28 @@
               <div class="px-2 py-1 bg-warning text-dark">Chart/Table</div>
               <div class="px-2 py-3 bg-dark text-light minx-box">
                 {{ template "_chart_js" }}
-                <div id="tickerChart1elem" class="doubleChart">{{.lineChart}}</div>
+                <div id="tickerChart1elem" class="doubleChart">{{.lineChart}}
+                </div>
                 <div id="tickerChart2elem" class="doubleChart extraChart">{{.klineChart}}</div>
                 <div id="financialsChart1elem" class="extraChart">{{.qtrBarChart}}</div>
                 <div id="financialsChart2elem" class="extraChart">{{.annBarChart}}</div>
                 <div id="financialsChart3elem" class="extraChart">{{.qtrLineChart}}</div>
                 <div id="financialsChart4elem" class="extraChart">{{.annLineChart}}</div>
-                <div id="financialsChart5elem" class="extraChart">{{.qtrPLineChart}}</div>
-                <div id="financialsChart6elem" class="extraChart">{{.annPLineChart}}</div>
+                <div id="financialsChart5elem" class="extraChart">{{.qtrPercChart}}</div>
+                <div id="financialsChart6elem" class="extraChart">{{.annPercChart}}</div>
 
                 {{- template "_eod-table" . }}
               </div>
 
               <div class="mt-1 px-2 py-1 bg-warning text-dark">Related News and Stories</div>
               <div class="px-2 py-1 bg-dark small text-light min-box">
-                {{range .articles}}
+                {{- range .articles}}
                 <div class="text-white modal-link news-title" data-bs-toggle="modal" data-bs-target="#source{{.SourceId}}-id{{.ExternalId}}-modal">
-                  <span class="small text-info">
-                  {{- if .PublishedDatetime.Valid -}}
-                  {{- .PublishedDatetime.Time.Format "Jan 02" -}}
-                  {{- end -}}
-                  </span>
+                  <span class="small text-info">{{if .PublishedDatetime.Valid}}{{.PublishedDatetime.Time.Format "Jan 02"}}{{end}}</span>
                   {{.Title}} <i class="far fa-window fa-xs"></i>
-                  <span class="small text-info">
-                    {{if .AuthorByline.Valid}}
-                      by {{.AuthorByline.String}}
-                      {{else}}
-                      by {{.SourceName.String}}
-                    {{end}}
-                  </span>
+                  <span class="small text-info">{{if .AuthorByline.Valid}} by {{.AuthorByline.String}}{{else}} by {{.SourceName.String}}{{end}}</span>
                 </div>
-                {{end}}
+                {{- end}}
               </div>
 
               <div class="mt-1 px-2 py-1 bg-warning text-dark">Business Summary</div>
@@ -67,47 +58,49 @@
             <div class="col-12 col-xl-3">
               <div class="px-2 py-1 bg-warning text-dark">Financial Details</div>
               <div class="list-group list-group-flush bg-dark text-info min-box">
-                {{range .ticker_attributes}}
-                {{if .AttributeValue}}
+                {{- range .ticker_attributes}}
+                {{- if .AttributeValue}}
                   <div class="list-group-item">
-                    {{.AttributeName}} <span class="text-light">{{.AttributeValue}}</span>
-                    {{- if .AttributeComment}}
-                    <br><span class="small text-warning">{{.AttributeComment}}</span>
-                    {{- end}}
+                    <div class="d-flex">
+                      <div>{{.AttributeName -}}
+                        {{- if .AttributeComment -}}
+                        <span class="small text-warning"> {{.AttributeComment}}</span>
+                        {{- end -}}
+                      </div>
+                      <div class="ms-auto text-light">{{.AttributeValue}}</div>
+                    </div>
                   </div>
-                {{end}}
-                {{end}}
+                {{- end}}
+                {{- end}}
               </div>
 
               <div class="mt-1 px-2 py-1 bg-warning text-dark">Up/Downs (last 90 days)</div>
               <div class="list-group list-group-flush bg-dark min-box">
-                {{range .ticker_updowns}}
+                {{- range .ticker_updowns}}
                 <div class="list-group-item text-info">
                   <span class="text-light">{{FormatDatetimeStr .UpDownDate "Jan 02"}}</span> :
                   <span class="{{ GradeColor .UpDownToGrade}}">{{.UpDownToGrade}}</span>
                   <span class="text-light">by</span> {{.UpDownFirm}}{{if .UpDownFromGrade}}<span class="text-light">, previously</span> <span class="{{ GradeColor .UpDownFromGrade}}">{{.UpDownFromGrade}}</span>{{end}}
                   <span class="{{ SinceColor .UpDownSince}}">{{.UpDownSince}}</span>
                 </div>
-                {{end}}
+                {{- end}}
               </div>
 
               <div class="mt-1 px-2 py-1 bg-warning text-dark">Historical Splits</div>
               <div class="list-group list-group-flush bg-dark text-info min-box">
-                {{range .ticker_splits}}
+                {{- range .ticker_splits}}
                 <div class="list-group-item">
                   On <span class="text-light">{{FormatDatetimeStr .SplitDate "Jan 2 2006"}}</span>, split <span class="text-light">{{.SplitRatio}}</span>
                 </div>
-                {{end}}
+                {{- end}}
               </div>
             </div><!-- col-6/col-4 right column -->
-
           </div><!-- row -->
 
           <div class="row g-0 mb-5"></div>
-
-  {{ template "_footer" . }}
+  {{- template "_footer" . }}
   {{ template "_bought" . }}
-  {{ template "_sold" . }}
-  {{ template "_articles" . }}
-  {{ template "_end" . }}
+  {{- template "_sold" . }}
+  {{- template "_articles" . }}
+  {{- template "_end" . }}
 {{- end }}

@@ -1,14 +1,14 @@
-{{- define "_chart" -}}
-<div class="container">
-  <div class="item mx-auto" id="{{ .ChartID }}" style="width:{{ .Initialization.Width }};height:{{ .Initialization.Height }};"></div>
-</div>
-  <script nonce="{{.Title.Target}}"><!-- crazy hack to get nonce into scripts  -->
-    "use strict";
-    let goecharts_{{ .ChartID | safeJS }} = echarts.init(document.getElementById('{{ .ChartID | safeJS }}'), "{{ .Theme }}");
-    let option_{{ .ChartID | safeJS }} = {{ .JSON }};
-    goecharts_{{ .ChartID | safeJS }}.setOption(option_{{ .ChartID | safeJS }});
-    {{- range .JSFunctions.Fns }}
-    {{ . | safeJS }}
-    {{- end }}
-</script>
-{{end}}
+{{- define "_chart" }}
+                  <div class="container">
+                    <div class="item mx-auto" id="{{ .ChartID }}" style="width:{{ .Initialization.Width }};height:{{ .Initialization.Height }};"></div>
+                  </div>
+                  <script nonce="{{.Title.Target}}"><!-- crazy hack to get nonce into scripts  -->
+                    "use strict";
+                    let goecharts_{{ .ChartID | safeJS }} = echarts.init(document.getElementById('{{ .ChartID | safeJS }}'), "{{ .Theme }}");
+                    let option_{{ .ChartID | safeJS }} = {{ .JSON }};
+                    goecharts_{{ .ChartID | safeJS }}.setOption(option_{{ .ChartID | safeJS }});
+                    {{- range .JSFunctions.Fns }}
+                    {{ . | safeJS }}
+                    {{- end }}
+                  </script>
+{{- end}}

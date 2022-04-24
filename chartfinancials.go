@@ -147,7 +147,7 @@ func chartHandlerFinancialsLine(ctx context.Context, ticker Ticker, exchange *Ex
 				Type:      "value",
 				Name:      "%",
 				Scale:     true,
-				Min:       "0",
+				Min:       "-100",
 				Max:       "100",
 				AxisLabel: &opts.AxisLabel{Show: true, Interval: "0"},
 			}),

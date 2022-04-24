@@ -1,53 +1,47 @@
 {{ define "_articles" }}
-          {{range .articles}}
-          <div id="source{{.SourceId}}-id{{.ExternalId}}-modal" class="modal fade" aria-labelledby="source{{.SourceId}}-id{{.ExternalId}}-label" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-scrollable modal-xl news-detail">
-              <div class="modal-content h-100">
-                <div class="modal-header">
-                  <h5 class="modal-title" id="source{{.SourceId}}-id{{.ExternalId}}-label">{{.Title}}
-                    <div class="small text-info">
-                    {{- if .PublishedDatetime.Valid -}}
-                    {{- .PublishedDatetime.Time.Format "Jan 02" -}}
-                    {{- end -}}
-                    by
-                    {{if .AuthorByline.Valid}}
-                      by {{.AuthorByline.String}}
-                      {{else}}
-                      by {{.SourceName.String}}
-                    {{end}}
-                  </h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                  <iframe class="w-100 inline-article" srcdoc='
-                    <html>
-                      <head>
-                        <link rel="stylesheet" type="text/css" href="/static/css/morningstar.css">
-                        <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
-                        <script src="/static/js/morningstar.js"></script>
-                        <base target="_blank">
-                      </head>
-                      <body>
-                        {{.Body}}
-                        <div class="small text-info">Keywords: <span class="text-light italics">{{.Keywords.String}}</span></div>
-                        <div class="small text-info">Tags: <span class="text-light italics">{{.Tags.String}}</span></div>
-                        <div class="small text-info">Symbols: <span class="text-light italics">{{.Symbols.String}}</span></div>
-                        {{if .AuthorLongBio.Valid}}
-                        <div id="about-author">
-                          <img class="float-start" src="{{.AuthorImageURL.String}}">
-                          <p>{{.AuthorLongBio.String}}</p>
-                        </div>
-                        {{end}}
-                      </body>
-                    </html>
-                  '></iframe>
-                  <p class="pt-2 text-info small">- {{.SourceName.String}}</p>
-                </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-              </div><!-- modal-content -->
-            </div><!-- modal-dialogue -->
-          </div><!-- modal -->
-          {{end}}
+{{- range .articles}}
+<div id="source{{.SourceId}}-id{{.ExternalId}}-modal" class="modal fade" aria-labelledby="source{{.SourceId}}-id{{.ExternalId}}-label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-xl news-detail">
+    <div class="modal-content h-100">
+      <div class="modal-header">
+        <div class="modal-title" id="source{{.SourceId}}-id{{.ExternalId}}-label">{{.Title}}<br/>
+          <span class="small text-info">
+          {{- if .PublishedDatetime.Valid}}{{.PublishedDatetime.Time.Format "Jan 02"}}{{end}}
+          {{- if .AuthorByline.Valid}} by {{.AuthorByline.String}}{{else}} by {{.SourceName.String}}{{end -}}
+          </span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <iframe class="w-100 inline-article" srcdoc='
+          <html>
+            <head>
+              <link rel="stylesheet" type="text/css" href="/static/css/morningstar.css">
+              <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
+              <script src="/static/js/morningstar.js"></script>
+              <base target="_blank">
+            </head>
+            <body>
+{{.Body}}
+              <div class="small text-info">Keywords: <span class="text-light italics">{{.Keywords.String}}</span></div>
+              <div class="small text-info">Tags: <span class="text-light italics">{{.Tags.String}}</span></div>
+              <div class="small text-info">Symbols: <span class="text-light italics">{{.Symbols.String}}</span></div>
+              {{- if .AuthorLongBio.Valid}}
+              <div id="about-author">
+                <img class="float-start" src="{{.AuthorImageURL.String}}">
+                <p>{{.AuthorLongBio.String}}</p>
+              </div>
+              {{- end}}
+            </body>
+          </html>
+        '></iframe>
+        <p class="pt-2 text-info small">- {{.SourceName.String}}</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div><!-- modal-content -->
+  </div><!-- modal-dialogue -->
+</div><!-- modal -->
 {{end}}
+{{- end -}}

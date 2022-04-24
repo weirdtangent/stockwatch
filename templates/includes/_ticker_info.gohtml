@@ -1,36 +1,34 @@
-{{- define "_ticker_info" -}}
+{{- define "_ticker_info" }}
                   <div class="small text-info">
                     Share price:
                     <span id="quote_shareprice" class="h4 text-white">
-                      {{if .quote}}{{printf "$%.2f" .quote.QuotePrice}}
-                      {{else}}{{ printf "$%.2f" .lastClose.ClosePrice }}
-                      {{end}}
+                      {{- if .quote}}{{printf "$%.2f" .quote.QuotePrice -}}
+                      {{- else}}{{ printf "$%.2f" .lastClose.ClosePrice -}}
+                      {{- end -}}
                     </span>
                     {{if .quote}}
-                      {{if ge .quote.QuoteChange 0.0 }}
-                        <span id="quote_dailymove_text" class="h5 text-success"><i id="quote_dailymove" class="fas fa-arrow-up"></i>
+                      {{- if ge .quote.QuoteChange 0.0 }}
+                        <span id="quote_dailymove_text" class="h5 text-success">
+                          <i id="quote_dailymove" class="fas fa-arrow-up"></i>
                           <span id="quote_change">{{ printf "$%.2f" .quote.QuoteChange }}</span> (<span id="quote_change_pct">{{ printf "%.2f%%" .quote.QuoteChangePct }}</span>)
                         </span>
-                      {{else}}
-                        <span id="quote_dailmove_text" class="h5 text-danger"><i id="quote_dailymove" class="fas fa-arrow-down"></i>
+                      {{- else -}}
+                        <span id="quote_dailmove_text" class="h5 text-danger">
+                          <i id="quote_dailymove" class="fas fa-arrow-down"></i>
                           <span id="quote_change">{{ printf "$%.2f" .quote.QuoteChange }}</span> (<span id="quote_change_pct">{{ printf "%.2f%%" .quote.QuoteChangePct }}</span>)
                         </span>
-                      {{end}}
-                    {{else}}
-                      {{if eq .last_ticker_daily_move "up"}}
-                        <span class="h5 text-success"><i id="quote_dailymove" class="fas fa-arrow-up"></i>
-                        {{ PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }} ({{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }})
-                        </span>
-                      {{else if eq .last_ticker_daily_move "down"}}
-                        <span class="h5 text-danger"><i id="quote_dailymove" class="fas fa-arrow-down"></i>
-                        {{ PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }} ({{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }})
-                        </span>
-                      {{end}}
-                    {{end}}
+                      {{- end -}}
+                    {{- else -}}
+                      {{- if eq .last_ticker_daily_move "up" }}
+                        <span class="h5 text-success"><i id="quote_dailymove" class="fas fa-arrow-up"></i> {{- PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }} ({{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }})</span>
+                      {{- else if eq .last_ticker_daily_move "down" -}}
+                        <span class="h5 text-danger"><i id="quote_dailymove" class="fas fa-arrow-down"></i> {{- PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }} ({{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }})</span>
+                      {{- end -}}
+                    {{- end }}
                     <span class="text-info">
-                    {{if .quote}}as of </span><span id="quote_asof" class="text-light">{{ FormatUnixTime .quote.QuoteTime "Jan 2 15:04" }}</span>
-                    {{else}}at close on </span><span id="quote_asof" class="h6 text-light">{{ FormatDatetimeStr .lastClose.PriceDate "Jan 2" }}</span>
-                    {{end}}
+                    {{- if .quote}}as of </span><span id="quote_asof" class="text-light">{{ FormatUnixTime .quote.QuoteTime "Jan 2 15:04" }}</span>
+                    {{- else}}at close on </span><span id="quote_asof" class="h6 text-light">{{ FormatDatetimeStr .lastClose.PriceDate "Jan 2" }}</span>
+                    {{- end}}
                   </div>
                   <div class="small text-info">
                     <span id="ticker_quote_info" class="hide">
