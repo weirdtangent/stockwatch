@@ -58,6 +58,6 @@ func (o *OAuth) createOrUpdate(ctx context.Context) error {
 func (o *OAuth) getBySub(ctx context.Context) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	err := db.QueryRowx("SELECT * FROM oauth WHERE oauth_sub=?", o.OAuthSub).StructScan(&o)
+	err := db.QueryRowx("SELECT * FROM oauth WHERE oauth_sub=?", o.OAuthSub).StructScan(o)
 	return err
 }
