@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/weirdtangent/mytime"
 
@@ -151,12 +152,12 @@ func (t *Ticker) create(ctx context.Context) error {
 	}
 	res, err := db.Exec(insert, t.TickerSymbol, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry)
 	if err != nil {
-		log.Fatal().Err(err).Str("table_name", "ticker").Str("ticker", t.TickerSymbol).Msg("failed on INSERT")
+		zerolog.Ctx(ctx).Fatal().Err(err).Str("table_name", "ticker").Str("ticker", t.TickerSymbol).Msg("failed on INSERT")
 		return err
 	}
 	tickerId, err := res.LastInsertId()
 	if err != nil {
-		log.Fatal().Err(err).Str("table_name", "ticker").Str("symbol", t.TickerSymbol).Msg("failed on LAST_INSERTID")
+		zerolog.Ctx(ctx).Fatal().Err(err).Str("table_name", "ticker").Str("symbol", t.TickerSymbol).Msg("failed on LAST_INSERTID")
 		return err
 	}
 	t.TickerId = uint64(tickerId)
@@ -179,7 +180,7 @@ func (t *Ticker) createOrUpdate(ctx context.Context) error {
 	var update = "UPDATE ticker SET exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=?, fetch_datetime=now() WHERE ticker_id=?"
 	_, err = db.Exec(update, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry, t.TickerId)
 	if err != nil {
-		log.Error().Err(err).Str("table_name", "ticker").Str("symbol", t.TickerSymbol).Msg("failed on update")
+		zerolog.Ctx(ctx).Error().Err(err).Str("table_name", "ticker").Str("symbol", t.TickerSymbol).Msg("failed on update")
 	}
 	return t.getById(ctx)
 }
@@ -278,10 +279,12 @@ func (t Ticker) EarliestEOD(db *sqlx.DB) (string, float64, error) {
 	return earliest.date, earliest.price, err
 }
 
-func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) bool {
+func (t Ticker) ScheduleEODUpdate(ctx context.Context) bool {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+
 	earliest, _, err := t.EarliestEOD(db)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to find earliest EOD")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to find earliest EOD")
 	}
 
 	if len(earliest) > 0 {
@@ -295,17 +298,17 @@ func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) bool {
 	// submit task for 1000 EODs
 	taskVars := TickersEODTask{taskAction, t.TickerId, 1000, 0}
 	taskJSON, err := json.Marshal(taskVars)
-	log.Info().Msg(string(taskJSON))
+	zerolog.Ctx(ctx).Info().Msg(string(taskJSON))
 	if err != nil {
-		log.Error().Err(err).
+		zerolog.Ctx(ctx).Error().Err(err).
 			Uint64("ticker_id", t.TickerId).
 			Msg("failed to create task JSON for EOD update for ticker")
 		return false
 	}
 
-	_, err = sendNotification(awssess, "tickers", taskAction, string(taskJSON))
+	_, err = sendNotification(ctx, "tickers", taskAction, string(taskJSON))
 	if err == nil {
-		log.Info().
+		zerolog.Ctx(ctx).Info().
 			Uint64("ticker_id", t.TickerId).
 			Msg("sent task notification for EOD update for ticker")
 	}
@@ -313,17 +316,17 @@ func (t Ticker) ScheduleEODUpdate(awssess *session.Session, db *sqlx.DB) bool {
 	// submit task for 1000 more EODs
 	taskVars = TickersEODTask{taskAction, t.TickerId, 1000, 1000}
 	taskJSON, err = json.Marshal(taskVars)
-	log.Info().Msg(string(taskJSON))
+	zerolog.Ctx(ctx).Info().Msg(string(taskJSON))
 	if err != nil {
-		log.Error().Err(err).
+		zerolog.Ctx(ctx).Error().Err(err).
 			Uint64("ticker_id", t.TickerId).
 			Msg("failed to create task JSON for EOD update for ticker")
 		return true
 	}
 
-	_, err = sendNotification(awssess, "tickers", taskAction, string(taskJSON))
+	_, err = sendNotification(ctx, "tickers", taskAction, string(taskJSON))
 	if err == nil {
-		log.Info().
+		zerolog.Ctx(ctx).Info().
 			Uint64("ticker_id", t.TickerId).
 			Msg("sent task notification for EOD update for ticker")
 	}
@@ -578,7 +581,7 @@ func (td *TickerDaily) create(ctx context.Context) error {
 	var insert = "INSERT INTO ticker_daily SET ticker_id=?, price_date=?, price_time=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=?"
 	_, err := db.Exec(insert, td.TickerId, td.PriceDate, td.PriceTime, td.OpenPrice, td.HighPrice, td.LowPrice, td.ClosePrice, td.Volume)
 	if err != nil {
-		log.Fatal().Err(err).Str("table_name", "ticker_daily").Msg("Failed on INSERT")
+		zerolog.Ctx(ctx).Fatal().Err(err).Str("table_name", "ticker_daily").Msg("Failed on INSERT")
 	}
 	return err
 }
@@ -641,7 +644,7 @@ func (td *TickerDescription) createOrUpdate(ctx context.Context) error {
 		update := "UPDATE ticker_description SET business_summary=? WHERE ticker_description_id=?"
 		_, err = db.Exec(update, newBusinessSummary, td.TickerDescriptionId)
 		if err != nil {
-			log.Fatal().Err(err).Str("table_name", "ticker_description").Msg("failed on update")
+			zerolog.Ctx(ctx).Fatal().Err(err).Str("table_name", "ticker_description").Msg("failed on update")
 		}
 		return err
 	}
@@ -649,7 +652,7 @@ func (td *TickerDescription) createOrUpdate(ctx context.Context) error {
 	var insert = "INSERT INTO ticker_description SET ticker_id=?, business_summary=?"
 	_, err = db.Exec(insert, td.TickerId, td.BusinessSummary)
 	if err != nil {
-		log.Fatal().Err(err).Str("table_name", "ticker_description").Msg("failed on insert")
+		zerolog.Ctx(ctx).Fatal().Err(err).Str("table_name", "ticker_description").Msg("failed on insert")
 	}
 	return err
 }
@@ -709,7 +712,7 @@ func (tud *TickerUpDown) createIfNew(ctx context.Context) error {
 	var insert = "INSERT INTO ticker_updown SET ticker_id=?, updown_action=?, updown_fromgrade=?, updown_tograde=?, updown_date=?, updown_firm=?"
 	_, err = db.Exec(insert, tud.TickerId, tud.UpDownAction, tud.UpDownFromGrade, tud.UpDownToGrade, tud.UpDownDate, tud.UpDownFirm)
 	if err != nil {
-		log.Fatal().Err(err).Str("table_name", "ticker_updown").Msg("Failed on INSERT")
+		zerolog.Ctx(ctx).Fatal().Err(err).Str("table_name", "ticker_updown").Msg("Failed on INSERT")
 	}
 	return err
 }
@@ -737,7 +740,7 @@ func (ts *TickerSplit) createIfNew(ctx context.Context) error {
 	var insert = "INSERT INTO ticker_split SET ticker_id=?, split_date=?, split_ratio=?"
 	_, err = db.Exec(insert, ts.TickerId, ts.SplitDate, ts.SplitRatio)
 	if err != nil {
-		log.Fatal().Err(err).Str("table_name", "ticker_split").Msg("Failed on INSERT")
+		zerolog.Ctx(ctx).Fatal().Err(err).Str("table_name", "ticker_split").Msg("Failed on INSERT")
 	}
 	return err
 }

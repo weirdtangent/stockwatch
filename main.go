@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"strconv"
@@ -58,18 +59,19 @@ func main() {
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	}
-	log.Logger = log.With().Str("@tag", logTag).Caller().Logger()
+	log := log.With().Str("@tag", logTag).Caller().Logger()
+	ctx := log.WithContext(context.Background())
 
 	// grab config ---------------------------------------------------------------
 	awsConfig, err := myaws.AWSConfig("us-east-1")
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to find us-east-1 configuration")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to find us-east-1 configuration")
 	}
 
 	// connect to AWS
 	awssess, err := myaws.AWSConnect("us-east-1", "stockwatch")
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to connect to AWS")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to connect to AWS")
 	}
 
 	// connect to MySQL
@@ -77,13 +79,13 @@ func main() {
 
 	_, err = db.Exec("SET NAMES utf8mb4 COLLATE utf8mb4_general_ci")
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to switch RDS to UTF8")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to switch RDS to UTF8")
 	}
 
 	// connect to Dynamo
 	ddb, err := myaws.DDBConnect(awssess)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to connect to DDB")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to connect to DDB")
 	}
 
 	var secrets = make(map[string]string)
@@ -91,13 +93,13 @@ func main() {
 	// Cookie setup for sessionID ------------------------------------------------
 	cookieAuthKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "cookie_auth_key")
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to retrieve secret")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
 	}
 	secrets["cookie_auth_key"] = *cookieAuthKey
 
 	cookieEncryptionKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "cookie_encryption_key")
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to retrieve secret")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
 	}
 	secrets["cookie_encryption_key"] = *cookieEncryptionKey
 
@@ -110,14 +112,14 @@ func main() {
 	// get yhfinance api access key and host
 	yf_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "yhfinance_rapidapi_key")
 	if err != nil {
-		log.Fatal().Err(err).
+		zerolog.Ctx(ctx).Fatal().Err(err).
 			Msg("failed to get YHFinance API key")
 	}
 	secrets["yhfinance_rapidapi_key"] = *yf_api_access_key
 
 	yf_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "yhfinance_rapidapi_host")
 	if err != nil {
-		log.Fatal().Err(err).
+		zerolog.Ctx(ctx).Fatal().Err(err).
 			Msg("failed to get YHFinance API key")
 	}
 	secrets["yhfinance_rapidapi_host"] = *yf_api_access_host
@@ -125,14 +127,14 @@ func main() {
 	// get morningstar api access key and host
 	ms_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "msfinance_rapidapi_key")
 	if err != nil {
-		log.Fatal().Err(err).
+		zerolog.Ctx(ctx).Fatal().Err(err).
 			Msg("failed to get Morningstar API key")
 	}
 	secrets["msfinance_rapidapi_key"] = *ms_api_access_key
 
 	ms_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "msfinance_rapidapi_host")
 	if err != nil {
-		log.Fatal().Err(err).
+		zerolog.Ctx(ctx).Fatal().Err(err).
 			Msg("failed to get Morningstar API key")
 	}
 	secrets["msfinance_rapidapi_host"] = *ms_api_access_host
@@ -140,14 +142,14 @@ func main() {
 	// get bbfinance api access key and host
 	bb_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "bbfinance_rapidapi_key")
 	if err != nil {
-		log.Fatal().Err(err).
+		zerolog.Ctx(ctx).Fatal().Err(err).
 			Msg("failed to get bbfinance API key")
 	}
 	secrets["bbfinance_rapidapi_key"] = *bb_api_access_key
 
 	bb_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "bbfinance_rapidapi_host")
 	if err != nil {
-		log.Fatal().Err(err).
+		zerolog.Ctx(ctx).Fatal().Err(err).
 			Msg("failed to get bbfinance API key")
 	}
 	secrets["bbfinance_rapidapi_host"] = *bb_api_access_host
@@ -155,34 +157,34 @@ func main() {
 	// config Google OAuth
 	googleOAuthClientId, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "google_oauth_client_id")
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to retrieve secret")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
 	}
 	secrets["google_oauth_client_id"] = *googleOAuthClientId
 
 	googleOAuthSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "google_oauth_client_secret")
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to retrieve secret")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
 	}
 	secrets["google_oauth_secret"] = *googleOAuthSecret
 
 	// github OAuth key
 	githubOAuthKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "github_oauth_key")
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to retrieve secret")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
 	}
 	secrets["github_oauth_key"] = *githubOAuthKey
 
 	// google svc account
 	google_svc_acct, err := myaws.AWSGetSecretValue(awssess, "stockwatch_google_svc_acct")
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to retrieve secret")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
 	}
 	secrets["stockwatch_google_svc_acct"] = *google_svc_acct
 
 	// stockwatch next url encryption key
 	next_url_key, err := myaws.AWSGetSecretValue(awssess, "stockwatch_next_url_key")
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to retrieve secret")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
 	}
 	secrets["next_url_key"] = *next_url_key
 
@@ -199,31 +201,31 @@ func main() {
 		dynastore.Codecs(secureCookie),
 	)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to setup session management")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to setup session management")
 	}
 
 	// auth api setup ---------------------------------------------------------
 	twitterApiKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "twitter_api_key")
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to retrieve secret")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
 	}
 	secrets["twitter_api_key"] = *twitterApiKey
 
 	twitterApiSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "twitter_api_secret")
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to retrieve secret")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
 	}
 	secrets["twitter_api_secret"] = *twitterApiSecret
 
 	githubApiKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "github_api_key")
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to retrieve secret")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
 	}
 	secrets["github_api_key"] = *githubApiKey
 
 	githubApiSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "github_api_secret")
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to retrieve secret")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
 	}
 	secrets["github_api_secret"] = *githubApiSecret
 
@@ -235,7 +237,7 @@ func main() {
 	gothic.Store = store
 
 	// starting up web service ---------------------------------------------------
-	log.Info().Int("port", 3001).Msg("Started serving requests")
+	zerolog.Ctx(ctx).Info().Int("port", 3001).Msg("Started serving requests")
 
 	// setup middleware chain
 	router := mux.NewRouter()
@@ -279,7 +281,7 @@ func main() {
 	}
 
 	if err = server.ListenAndServe(); err != nil {
-		log.Fatal().Err(err).
+		zerolog.Ctx(ctx).Fatal().Err(err).
 			Msg("Stopped serving requests")
 	}
 }

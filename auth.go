@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/securecookie"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -27,9 +27,10 @@ func authLoginHandler() http.HandlerFunc {
 
 func authCallbackHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		user, err := gothic.CompleteUserAuth(w, r)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to complete auth")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to complete auth")
 			return
 		}
 		signinUser(w, r, user)
@@ -47,12 +48,12 @@ func signinUser(w http.ResponseWriter, r *http.Request, gothUser goth.User) {
 	watcher := Watcher{0, gothUser.UserID, gothUser.Name, "active", "standard", "", gothUser.AvatarURL, session.ID, sql.NullTime{}, sql.NullTime{}}
 	err := watcher.createOrUpdate(ctx, gothUser.Email)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get/create watcher from one-tap")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to get/create watcher from one-tap")
 		http.NotFound(w, r)
 		return
 	}
 	if watcher.WatcherId == 0 {
-		log.Fatal().Msg("WatcherId should not be 0 here")
+		zerolog.Ctx(ctx).Fatal().Msg("WatcherId should not be 0 here")
 	}
 
 	// why does twitter send back a weird gothUser.ExpiresAt?
@@ -70,7 +71,7 @@ func signinUser(w http.ResponseWriter, r *http.Request, gothUser goth.User) {
 	}
 	err = oauth.createOrUpdate(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to create/update oauth record")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to create/update oauth record")
 		http.NotFound(w, r)
 		return
 	}
@@ -86,7 +87,7 @@ func signinUser(w http.ResponseWriter, r *http.Request, gothUser goth.User) {
 		}
 		http.SetCookie(w, cookie)
 	} else {
-		log.Error().Err(err).Msg("Failed to encode cookie")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to encode cookie")
 	}
 
 	session.Values["provider"] = gothUser.Provider
@@ -117,7 +118,7 @@ func deleteWIDCookie(w http.ResponseWriter, r *http.Request) {
 		}
 		http.SetCookie(w, cookie)
 	} else {
-		log.Error().Err(err).Msg("Failed to encode cookie (for removal)")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to encode cookie (for removal)")
 	}
 }
 
@@ -147,25 +148,25 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 		case nil:
 			WIDvalue, err := strconv.ParseUint(WIDstr, 10, 64)
 			if err != nil {
-				log.Error().Err(err).Str("wid", WIDstr).Msg("Failed to convert cookie value to id")
+				zerolog.Ctx(ctx).Error().Err(err).Str("wid", WIDstr).Msg("Failed to convert cookie value to id")
 				deleteWIDCookie(w, r)
 				break
 			}
 			var watcher Watcher
 			err = getWatcherById(ctx, &watcher, WIDvalue)
 			if err != nil {
-				log.Error().Err(err).Uint64("wid", WIDvalue).Msg("Failed to get watcher via cookie")
+				zerolog.Ctx(ctx).Error().Err(err).Uint64("wid", WIDvalue).Msg("Failed to get watcher via cookie")
 				deleteWIDCookie(w, r)
 				break
 			}
 			if watcher.WatcherStatus != "active" {
-				log.Error().Err(err).Uint64("watcher_id", WIDvalue).Str("watcher_status", watcher.WatcherStatus).Msg("Watcher record not marked 'active'")
+				zerolog.Ctx(ctx).Error().Err(err).Uint64("watcher_id", WIDvalue).Str("watcher_status", watcher.WatcherStatus).Msg("Watcher record not marked 'active'")
 				deleteWIDCookie(w, r)
 				break
 			}
 			//oauth, err := getOAuthBySub(ctx, watcher.WatcherSub)
 			//if err != nil {
-			//	log.Error().Err(err).Int64("watcher_id", WIDvalue).Msg("Failed to get oauth record by sub")
+			//	zerolog.Ctx(ctx).Error().Err(err).Int64("watcher_id", WIDvalue).Msg("Failed to get oauth record by sub")
 			//	break
 			//}
 			//currentDateTime := time.Now()
@@ -174,7 +175,7 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 			//if unixTimeNow > oauth.OAuthExpires {
 			//	log.Warn().Int64("watcher_id", WIDvalue).Msg("OAuth record has expired")
 			//}
-			// log.Info().Uint64("watcher_id", watcher.WatcherId).Str("watcher_status", watcher.WatcherStatus).Msg("authenticated visitor")
+			// zerolog.Ctx(ctx).Info().Uint64("watcher_id", watcher.WatcherId).Str("watcher_status", watcher.WatcherStatus).Msg("authenticated visitor")
 			webdata["WID"] = wid
 			webdata["watcher"] = watcher
 
@@ -186,7 +187,7 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 			return true
 		}
 	}
-	// log.Info().Msg("Anonymous visitor found")
+	// zerolog.Ctx(ctx).Info().Msg("Anonymous visitor found")
 	webdata["loggedout"] = 1
 
 	stateStr := session.Values["state"].(string)

@@ -10,7 +10,7 @@ import (
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 func chartHandlerTickerDailyKLine(ctx context.Context, ticker Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
@@ -36,7 +36,7 @@ func chartHandlerTickerDailyKLine(ctx context.Context, ticker Ticker, exchange *
 		// first 10 characters
 		tickerDate, err := time.Parse(sqlDateType, dailies[x].PriceDate[:10])
 		if err != nil {
-			log.Fatal().Err(err).Str("symbol", ticker.TickerSymbol).Str("bad_data", dailies[x].PriceDate).Msg("failed to parse price_date for {symbol}")
+			zerolog.Ctx(ctx).Fatal().Err(err).Str("symbol", ticker.TickerSymbol).Str("bad_data", dailies[x].PriceDate).Msg("failed to parse price_date for {symbol}")
 		}
 
 		x_axis = append(x_axis, tickerDate.Format("Jan 02"))
@@ -126,5 +126,5 @@ func chartHandlerTickerDailyKLine(ctx context.Context, ticker Ticker, exchange *
 	prices.Renderer = newSnippetRenderer(prices, prices.Validate)
 	volume.Renderer = newSnippetRenderer(volume, volume.Validate)
 
-	return renderToHtml(prices) + renderToHtml(volume)
+	return renderToHtml(ctx, prices) + renderToHtml(ctx, volume)
 }

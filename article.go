@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -157,7 +158,7 @@ func getArticlesByKeyword(ctx context.Context, keyword string) (*[]WebArticle, e
 			if len(article.Body) > 0 {
 				sha := fmt.Sprintf("%x", sha256.Sum256([]byte(article.Body)))
 				if _, ok := bodySHA256[sha]; ok {
-					log.Info().Msg("Skipping, seen this article body already")
+					zerolog.Ctx(ctx).Info().Msg("Skipping, seen this article body already")
 				} else {
 					bodySHA256[sha] = true
 
@@ -235,7 +236,7 @@ func getArticlesByTicker(ctx context.Context, ticker_id uint64) (*[]WebArticle, 
 			if len(article.Body) > 0 {
 				sha := fmt.Sprintf("%x", sha256.Sum256([]byte(article.Body)))
 				if _, ok := bodySHA256[sha]; ok {
-					log.Info().Msg("Skipping, seen this article body already")
+					zerolog.Ctx(ctx).Info().Msg("Skipping, seen this article body already")
 				} else {
 					bodySHA256[sha] = true
 

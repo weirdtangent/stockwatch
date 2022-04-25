@@ -76,7 +76,7 @@ func chartHandlerFinancialsBar(ctx context.Context, ticker Ticker, exchange *Exc
 
 	barChart.Renderer = newSnippetRenderer(barChart, barChart.Validate)
 
-	return renderToHtml(barChart)
+	return renderToHtml(ctx, barChart)
 }
 
 func chartHandlerFinancialsLine(ctx context.Context, ticker Ticker, exchange *Exchange, periodStrs []string, lineValues []map[string]float64, isPercentage int) template.HTML {
@@ -162,5 +162,5 @@ func chartHandlerFinancialsLine(ctx context.Context, ticker Ticker, exchange *Ex
 
 	lineChart.Renderer = newSnippetRenderer(lineChart, lineChart.Validate)
 
-	return renderToHtml(lineChart)
+	return renderToHtml(ctx, lineChart)
 }

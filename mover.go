@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -81,7 +82,7 @@ func getMovers(ctx context.Context) (*Movers, error) {
 
 	latestDateStr, err := getLatestMoversDate(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to find most recent movers date")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to find most recent movers date")
 		return &movers, err
 	}
 
@@ -92,7 +93,7 @@ func getMovers(ctx context.Context) (*Movers, error) {
 
 	rows, err := db.Queryx(`SELECT * FROM mover WHERE mover_date=?`, latestDateStr)
 	if err != nil {
-		log.Error().Err(err).Str("mover_date", latestDateStr).Msg("Failed to load movers")
+		zerolog.Ctx(ctx).Error().Err(err).Str("mover_date", latestDateStr).Msg("Failed to load movers")
 		return &movers, err
 	}
 	defer rows.Close()

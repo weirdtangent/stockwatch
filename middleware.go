@@ -14,7 +14,6 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/savaki/dynastore"
 )
 
@@ -154,9 +153,10 @@ type Logger struct {
 func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t := time.Now()
 
-	lg := log.With().Logger()
+	ctx := r.Context()
+	log := zerolog.Ctx(ctx).With().Logger()
 	// set request's context with l.WithContext which returns a copy of the context with the log object associated
-	r = r.WithContext(lg.WithContext(r.Context()))
+	r = r.WithContext(log.WithContext(ctx))
 
 	l.handler.ServeHTTP(w, r)
 
@@ -174,7 +174,7 @@ func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		cleanURL := r.URL.String()
 		cleanURL = obfuscateParams.ReplaceAllString(cleanURL, "$1=xxxxxx")
 
-		log.Info().Str("url", cleanURL).Int("status_code", 200).Str("method", r.Method).Str("remote_ip_addr", remote_ip_addr).Int64("response_time", time.Since(t).Nanoseconds()).Msg("http/s server")
+		zerolog.Ctx(ctx).Info().Str("url", cleanURL).Int("status_code", 200).Str("method", r.Method).Str("remote_ip_addr", remote_ip_addr).Int64("response_time", time.Since(t).Nanoseconds()).Msg("http/s server")
 	}
 }
 func withLogging(h http.Handler) *Logger {
@@ -189,9 +189,10 @@ type Session struct {
 }
 
 func (s *Session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	session, err := s.store.Get(r, "SID")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to get/create session")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("Failed to get/create session")
 	}
 	if session.IsNew {
 		state := RandStringMask(32)
@@ -200,7 +201,7 @@ func (s *Session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		session.Values["theme"] = "dark"
 		err := session.Save(r, w)
 		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to save session")
+			zerolog.Ctx(ctx).Fatal().Err(err).Msg("Failed to save session")
 		}
 	}
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("ddbs"), session))
@@ -214,9 +215,10 @@ func withSession(store *dynastore.Store, h http.Handler) *Session {
 }
 
 func getSession(r *http.Request) *sessions.Session {
-	session := r.Context().Value(ContextKey("ddbs")).(*sessions.Session)
+	ctx := r.Context()
+	session := ctx.Value(ContextKey("ddbs")).(*sessions.Session)
 	if session == nil {
-		log.Fatal().Err(fmt.Errorf("failed to get session from context")).Msg("")
+		zerolog.Ctx(ctx).Fatal().Err(fmt.Errorf("failed to get session from context")).Msg("")
 	}
 	return session
 }

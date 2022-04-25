@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/gomarkdown/markdown"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 type Contents struct {
@@ -52,7 +52,7 @@ func getGithubCommits(ctx context.Context) (*string, *[]Commit, error) {
 	res, _ := http.DefaultClient.Do(req)
 	if res.StatusCode != http.StatusOK {
 		err := "failed to receive 200 success code from HTTP request"
-		log.Error().Str("url", url).Int("status_code", res.StatusCode).Msg(err)
+		zerolog.Ctx(ctx).Error().Str("url", url).Int("status_code", res.StatusCode).Msg(err)
 		return &readme, &commitsResponse, fmt.Errorf(err)
 	}
 
@@ -61,7 +61,7 @@ func getGithubCommits(ctx context.Context) (*string, *[]Commit, error) {
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		log.Error().Err(err).Int("status_code", res.StatusCode).Msg("Failed to ready body of response")
+		zerolog.Ctx(ctx).Error().Err(err).Int("status_code", res.StatusCode).Msg("Failed to ready body of response")
 		return &readme, &commitsResponse, err
 	}
 
@@ -78,7 +78,7 @@ func getGithubCommits(ctx context.Context) (*string, *[]Commit, error) {
 	res, _ = http.DefaultClient.Do(req)
 	if res.StatusCode != http.StatusOK {
 		err := "failed to receive 200 success code from HTTP request"
-		log.Error().Str("url", url).Int("status_code", res.StatusCode).Msg(err)
+		zerolog.Ctx(ctx).Error().Str("url", url).Int("status_code", res.StatusCode).Msg(err)
 		return &readme, &commitsResponse, fmt.Errorf(err)
 	}
 
@@ -87,7 +87,7 @@ func getGithubCommits(ctx context.Context) (*string, *[]Commit, error) {
 
 	body, err = io.ReadAll(res.Body)
 	if err != nil {
-		log.Error().Err(err).Int("status_code", res.StatusCode).Msg("Failed to ready body of response")
+		zerolog.Ctx(ctx).Error().Err(err).Int("status_code", res.StatusCode).Msg("Failed to ready body of response")
 		return &readme, &commitsResponse, err
 	}
 

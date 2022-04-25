@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -61,12 +62,12 @@ func (w *Watcher) create(ctx context.Context, email string) error {
 	insert := "INSERT INTO watcher SET watcher_sub=?, watcher_name=?, watcher_status=?, watcher_pic_url=?, session_id=?"
 	_, err := db.Exec(insert, w.WatcherSub, w.WatcherName, w.WatcherStatus, w.WatcherPicURL, w.SessionId)
 	if err != nil {
-		log.Error().Err(err).Str("table_name", "watcher").Msg("failed on INSERT")
+		zerolog.Ctx(ctx).Error().Err(err).Str("table_name", "watcher").Msg("failed on INSERT")
 		return err
 	}
 	w.WatcherId, err = getWatcherIdBySession(ctx, w.SessionId)
 	if err != nil || w.WatcherId == 0 {
-		log.Error().Err(err).Str("table_name", "watcher").Msg("failed on getting watcher_id of who we just inserted")
+		zerolog.Ctx(ctx).Error().Err(err).Str("table_name", "watcher").Msg("failed on getting watcher_id of who we just inserted")
 		return err
 	}
 	insert = "INSERT INTO watcher_email SET watcher_id=?, email_address=?, email_is_primary=1"
@@ -85,13 +86,13 @@ func (w *Watcher) createOrUpdate(ctx context.Context, email string) error {
 	}
 
 	if watcherId == 0 {
-		log.Info().Msg("did not connect to watcher via sessionId")
+		zerolog.Ctx(ctx).Info().Msg("did not connect to watcher via sessionId")
 		watcherId, err = getWatcherIdByEmail(ctx, email)
 		if err != nil {
 			return nil
 		}
 		if watcherId == 0 {
-			log.Info().Msg("did not connect to watcher via emailAddress")
+			zerolog.Ctx(ctx).Info().Msg("did not connect to watcher via emailAddress")
 			return w.create(ctx, email)
 		}
 	}

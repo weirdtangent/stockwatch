@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/weirdtangent/yhfinance"
 )
@@ -54,20 +55,20 @@ func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, er
 			ticker := Ticker{TickerSymbol: symbol}
 			err := ticker.getBySymbol(ctx)
 			if err != nil {
-				log.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load recent {symbol}")
+				zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load recent {symbol}")
 				continue
 			}
 			exchange := Exchange{ExchangeId: uint64(ticker.ExchangeId)}
 			err = exchange.getById(ctx)
 			if err != nil {
-				log.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load exchange for recent {symbol}")
+				zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load exchange for recent {symbol}")
 				continue
 			}
 			quote := yhfinance.YFQuote{}
 			if isMarketOpen() {
 				quote, err = loadTickerQuote(ctx, ticker.TickerSymbol)
 				if err != nil {
-					log.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load quote for recent {symbol}")
+					zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load quote for recent {symbol}")
 					continue
 				}
 			}
@@ -79,7 +80,7 @@ func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, er
 			lastdone := LastDone{Activity: "ticker_news", UniqueKey: ticker.TickerSymbol}
 			err = lastdone.getByActivity(ctx)
 			if err != nil {
-				log.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get LastDone activity for {symbol}")
+				zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get LastDone activity for {symbol}")
 			}
 			if err == nil && lastdone.LastStatus == "success" {
 				newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time.In(webdata["tzlocation"].(*time.Location))}

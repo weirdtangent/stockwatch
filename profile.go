@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 type ProfileEmail struct {
@@ -34,7 +34,7 @@ func profileHandler() http.HandlerFunc {
 
 		profile, err := getProfile(r)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to get profile info")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to get profile info")
 			*messages = append(*messages, Message{fmt.Sprintf("Sorry, error retrieving your profile: %s", err.Error()), "danger"})
 		}
 		webdata["profile"] = profile
@@ -51,13 +51,13 @@ func getProfile(r *http.Request) (*Profile, error) {
 
 	watcherId, err := getWatcherIdBySession(ctx, session.ID)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get profile from session")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to get profile from session")
 		return &profile, err
 	}
 	var watcher Watcher
 	err = getWatcherById(ctx, &watcher, watcherId)
 	if err != nil {
-		log.Error().Err(err).Uint64("watcher_id", watcherId).Msg("Failed to get profile from session")
+		zerolog.Ctx(ctx).Error().Err(err).Uint64("watcher_id", watcherId).Msg("Failed to get profile from session")
 		return &profile, err
 	}
 
@@ -67,7 +67,7 @@ func getProfile(r *http.Request) (*Profile, error) {
 
 	rows, err := db.Queryx("SELECT * FROM watcher_email WHERE watcher_id=? ORDER BY email_is_primary DESC, email_address", watcherId)
 	if err != nil {
-		log.Fatal().Err(err).Str("table_name", "watcher_email").Msg("Failed on SELECT")
+		zerolog.Ctx(ctx).Fatal().Err(err).Str("table_name", "watcher_email").Msg("Failed on SELECT")
 	}
 	defer rows.Close()
 
@@ -76,12 +76,12 @@ func getProfile(r *http.Request) (*Profile, error) {
 	for rows.Next() {
 		err = rows.StructScan(&watcherEmail)
 		if err != nil {
-			log.Fatal().Err(err).Str("table_name", "watcher_email").Msg("Error reading result rows")
+			zerolog.Ctx(ctx).Fatal().Err(err).Str("table_name", "watcher_email").Msg("Error reading result rows")
 		}
 		emails = append(emails, ProfileEmail{watcherEmail.EmailAddress, watcherEmail.IsPrimary})
 	}
 	if err := rows.Err(); err != nil {
-		log.Fatal().Err(err).Str("table_name", "watcher_email").Msg("Error reading result rows")
+		zerolog.Ctx(ctx).Fatal().Err(err).Str("table_name", "watcher_email").Msg("Error reading result rows")
 	}
 
 	profile.Emails = emails

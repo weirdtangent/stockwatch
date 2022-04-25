@@ -1,15 +1,18 @@
 package main
 
 import (
+	"context"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 
 	"github.com/weirdtangent/myaws"
 )
 
-func sendNotification(awssess *session.Session, topicName string, action string, notificationText string) (bool, error) {
+func sendNotification(ctx context.Context, topicName string, action string, notificationText string) (bool, error) {
+	awssess := ctx.Value(ContextKey("awssess")).(*session.Session)
 	awssvc := sns.New(awssess)
 
 	awsregion, awsaccount, err := myaws.AWSAccount(awssess)
@@ -31,7 +34,7 @@ func sendNotification(awssess *session.Session, topicName string, action string,
 		TopicArn:          aws.String(arn),
 	})
 	if err != nil {
-		log.Error().Err(err).
+		zerolog.Ctx(ctx).Error().Err(err).
 			Str("topic_name", topicName).
 			Str("arn", arn).
 			Str("message", notificationText).
@@ -39,7 +42,7 @@ func sendNotification(awssess *session.Session, topicName string, action string,
 		return false, err
 	}
 
-	log.Info().
+	zerolog.Ctx(ctx).Info().
 		Str("aws_message_id", *result.MessageId).
 		Str("topic_name", topicName).
 		Str("arn", arn).

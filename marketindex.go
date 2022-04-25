@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"sort"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/weirdtangent/mytime"
 )
@@ -90,7 +92,8 @@ func (mi MarketIndex) LoadDailies(db *sqlx.DB, days int) ([]MarketIndexDaily, er
 	return dailies, nil
 }
 
-func (mi MarketIndex) LoadMarketIndexIntraday(db *sqlx.DB, intradate string) ([]MarketIndexIntraday, error) {
+func (mi MarketIndex) LoadMarketIndexIntraday(ctx context.Context, intradate string) ([]MarketIndexIntraday, error) {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	var marketindex_intraday MarketIndexIntraday
 	marketindex_intradays := make([]MarketIndexIntraday, 0)
 
@@ -113,7 +116,7 @@ func (mi MarketIndex) LoadMarketIndexIntraday(db *sqlx.DB, intradate string) ([]
 	if err == nil {
 		marketindex_intradays = append(marketindex_intradays, MarketIndexIntraday{0, mi.MarketIndexId, priorBusinessDay, preDaily.ClosePrice, 0, sql.NullTime{}, sql.NullTime{}})
 	} else {
-		log.Info().Msg("PriorBusinessDay close price was NOT included")
+		zerolog.Ctx(ctx).Info().Msg("PriorBusinessDay close price was NOT included")
 	}
 
 	// add these marketindex intraday prices
@@ -140,7 +143,7 @@ func (mi MarketIndex) LoadMarketIndexIntraday(db *sqlx.DB, intradate string) ([]
 	if err == nil {
 		marketindex_intradays = append(marketindex_intradays, MarketIndexIntraday{0, mi.MarketIndexId, nextBusinessDay, postDaily.OpenPrice, 0, sql.NullTime{}, sql.NullTime{}})
 	} else {
-		log.Info().Msg("NextBusinessDay open price was NOT included")
+		zerolog.Ctx(ctx).Info().Msg("NextBusinessDay open price was NOT included")
 	}
 
 	return marketindex_intradays, nil

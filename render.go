@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -36,17 +37,17 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 	tmpl := template.New("blank").Funcs(funcMap)
 	tmpl, err := tmpl.ParseGlob("templates/includes/*.gohtml")
 	if err != nil {
-		log.Error().Err(err).Str("template_dir", "includes").Msg("Failed to parse template(s)")
+		zerolog.Ctx(ctx).Error().Err(err).Str("template_dir", "includes").Msg("Failed to parse template(s)")
 	}
 	tmpl, err = tmpl.ParseGlob("templates/modals/*.gohtml")
 	if err != nil {
-		log.Error().Err(err).Str("template_dir", "modals").Msg("Failed to parse template(s)")
+		zerolog.Ctx(ctx).Error().Err(err).Str("template_dir", "modals").Msg("Failed to parse template(s)")
 	}
 	// Parse variable "about" page into template
 	if val, ok := webdata["about-contents_template"]; ok {
 		tmpl, err = tmpl.Parse("{{ define \"about-contents\" }}" + *val.(*string) + "{{end}}")
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to parse 'about' page into template")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to parse 'about' page into template")
 		}
 	}
 	// Parse all internal articles as templates
@@ -58,12 +59,12 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 	}
 	tmpl, err = tmpl.ParseFiles("templates/" + tmplname + ".gohtml")
 	if err != nil {
-		log.Error().Err(err).Str("template", tmplname).Msg("Failed to parse template")
+		zerolog.Ctx(ctx).Error().Err(err).Str("template", tmplname).Msg("Failed to parse template")
 	}
 
 	err = tmpl.ExecuteTemplate(w, tmplname, webdata)
 	if err != nil {
-		log.Error().Err(err).Str("template", tmplname).Msg("Failed to execute template")
+		zerolog.Ctx(ctx).Error().Err(err).Str("template", tmplname).Msg("Failed to execute template")
 	}
 }
 

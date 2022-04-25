@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gomodule/redigo/redis"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/weirdtangent/yhfinance"
 )
@@ -27,11 +28,11 @@ func fetchTickerInfo(ctx context.Context, symbol string) (Ticker, error) {
 	redisKey := "yhfinance/summary/" + symbol
 	response, err := redis.String(redisConn.Do("GET", redisKey))
 	if err == nil && !skipRedisChecks {
-		log.Info().Str("redis_key", redisKey).Msg("redis cache hit")
+		zerolog.Ctx(ctx).Info().Str("redis_key", redisKey).Msg("redis cache hit")
 	} else {
 		var err error
 		summaryParams := map[string]string{"symbol": symbol}
-		log.Info().Str("symbol", symbol).Msg("get {symbol} info from yhfinance api")
+		zerolog.Ctx(ctx).Info().Str("symbol", symbol).Msg("get {symbol} info from yhfinance api")
 		response, err = yhfinance.GetFromYHFinance(ctx, &apiKey, &apiHost, "summary", summaryParams)
 		if err != nil {
 			log.Warn().Err(err).Str("ticker", symbol).Msg("failed to retrieve ticker")
@@ -39,7 +40,7 @@ func fetchTickerInfo(ctx context.Context, symbol string) (Ticker, error) {
 		}
 		_, err = redisConn.Do("SET", redisKey, response, "EX", 60*60*24)
 		if err != nil {
-			log.Error().Err(err).Str("ticker", symbol).Str("redis_key", redisKey).Msg("failed to save to redis")
+			zerolog.Ctx(ctx).Error().Err(err).Str("ticker", symbol).Str("redis_key", redisKey).Msg("failed to save to redis")
 		}
 	}
 
@@ -52,7 +53,7 @@ func fetchTickerInfo(ctx context.Context, symbol string) (Ticker, error) {
 	exchange := Exchange{ExchangeCode: summaryResponse.Price.ExchangeCode}
 	err = exchange.getByCode(ctx)
 	if err != nil {
-		log.Error().Err(err).Str("ticker", summaryResponse.QuoteType.Symbol).Str("exchange_code", summaryResponse.Price.ExchangeCode).Msg("failed to find exchange_code matched to exchange mic record")
+		zerolog.Ctx(ctx).Error().Err(err).Str("ticker", summaryResponse.QuoteType.Symbol).Str("exchange_code", summaryResponse.Price.ExchangeCode).Msg("failed to find exchange_code matched to exchange mic record")
 		return Ticker{}, err
 	}
 
@@ -79,14 +80,14 @@ func fetchTickerInfo(ctx context.Context, symbol string) (Ticker, error) {
 	}
 	err = ticker.createOrUpdate(ctx)
 	if err != nil {
-		log.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to create or update ticker")
+		zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to create or update ticker")
 		return Ticker{}, err
 	}
 
 	tickerDescription := TickerDescription{0, ticker.TickerId, summaryResponse.SummaryProfile.LongBusinessSummary, sql.NullTime{}, sql.NullTime{}}
 	err = tickerDescription.createOrUpdate(ctx)
 	if err != nil {
-		log.Error().Err(err).Str("ticker", ticker.TickerSymbol).Msg("Failed to create ticker description")
+		zerolog.Ctx(ctx).Error().Err(err).Str("ticker", ticker.TickerSymbol).Msg("Failed to create ticker description")
 	}
 
 	// create upgrade/downgrade recommendations
@@ -127,7 +128,7 @@ func loadTickerQuote(ctx context.Context, symbol string) (yhfinance.YFQuote, err
 	redisKey := "yhfinance/quote/" + symbol
 	response, err := redis.String(redisConn.Do("GET", redisKey))
 	if err == nil && !skipRedisChecks {
-		log.Info().Str("redis_key", redisKey).Msg("redis cache hit")
+		zerolog.Ctx(ctx).Info().Str("redis_key", redisKey).Msg("redis cache hit")
 	} else {
 		var err error
 		quoteParams := map[string]string{"symbols": symbol}
@@ -138,7 +139,7 @@ func loadTickerQuote(ctx context.Context, symbol string) (yhfinance.YFQuote, err
 		}
 		_, err = redisConn.Do("SET", redisKey, response, "EX", 20)
 		if err != nil {
-			log.Error().Err(err).Str("ticker", symbol).Str("redis_key", redisKey).Msg("Failed to save to redis")
+			zerolog.Ctx(ctx).Error().Err(err).Str("ticker", symbol).Str("redis_key", redisKey).Msg("Failed to save to redis")
 		}
 	}
 
@@ -291,7 +292,7 @@ func listSearch(ctx context.Context, searchString string, resultTypes string) ([
 		}
 	}
 
-	log.Info().Str("search_string", searchString).Int("results_count", len(searchResults)).Msg("Search returned results")
+	zerolog.Ctx(ctx).Info().Str("search_string", searchString).Int("results_count", len(searchResults)).Msg("Search returned results")
 
 	return searchResults, nil
 }

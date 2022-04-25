@@ -6,7 +6,7 @@ import (
 	"errors"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 type OAuth struct {
@@ -26,8 +26,8 @@ func (o *OAuth) create(ctx context.Context) error {
 		"INSERT INTO oauth SET oauth_issuer=?, oauth_sub=?, oauth_issued=?, oauth_expires=?",
 		o.OAuthIssuer, o.OAuthSub, o.OAuthIssued, o.OAuthExpires)
 	if err != nil {
-		log.Error().Err(err).Str("table_name", "oauth").Msg("failed on insert")
-		log.Debug().Interface("OAuth", o).Caller().Msg("failed on insert")
+		zerolog.Ctx(ctx).Error().Err(err).Str("table_name", "oauth").Msg("failed on insert")
+		zerolog.Ctx(ctx).Debug().Interface("OAuth", o).Caller().Msg("failed on insert")
 		return err
 	}
 
@@ -48,8 +48,8 @@ func (o *OAuth) createOrUpdate(ctx context.Context) error {
 		o.OAuthId,
 	)
 	if err != nil {
-		log.Error().Err(err).Str("table_name", "oauth").Msg("failed on update")
-		log.Debug().Interface("OAuth", o).Caller().Msg("failed on update")
+		zerolog.Ctx(ctx).Error().Err(err).Str("table_name", "oauth").Msg("failed on update")
+		zerolog.Ctx(ctx).Debug().Interface("OAuth", o).Caller().Msg("failed on update")
 	}
 
 	return o.getBySub(ctx)

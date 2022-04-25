@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -57,7 +58,7 @@ func searchHandler() http.HandlerFunc {
 			}
 			webdata["searchString"] = searchString
 
-			log.Info().Str("search_provider", "yhfinance").Str("search_type", searchType).Str("search_string", searchString).Msg("Search performed")
+			zerolog.Ctx(ctx).Info().Str("search_provider", "yhfinance").Str("search_type", searchType).Str("search_string", searchString).Msg("Search performed")
 
 			if searchType == "jump" {
 				searchResultTicker, err := jumpSearch(ctx, searchString)
@@ -69,7 +70,7 @@ func searchHandler() http.HandlerFunc {
 					*messages = append(*messages, Message{fmt.Sprintf("sorry, nothing found for '%s'", searchString), "warning"})
 					break
 				}
-				log.Info().
+				zerolog.Ctx(ctx).Info().
 					Str("search_provider", "yhfinance").
 					Str("search_type", searchType).
 					Str("search_string", searchString).
@@ -87,7 +88,7 @@ func searchHandler() http.HandlerFunc {
 					*messages = append(*messages, Message{fmt.Sprintf("sorry, nothing found for '%s'", searchString), "warning"})
 					break
 				}
-				log.Info().
+				zerolog.Ctx(ctx).Info().
 					Str("search_provider", "yhfinance").
 					Str("search_type", searchType).
 					Str("search_string", searchString).

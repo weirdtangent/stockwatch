@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker, error) {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 	messages := ctx.Value(ContextKey("messages")).(*[]Message)
 	webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 
@@ -20,7 +18,7 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	if err != nil || !ticker.FetchDatetime.Valid || time.Now().Add(time.Hour).Before(ticker.FetchDatetime.Time) || !skipLocalTickerInfo {
 		ticker, err = fetchTickerInfo(ctx, symbol)
 		if err != nil {
-			log.Error().Err(err).Str("ticker", symbol).Msg("Fatal: could not load ticker info from source. Redirect back to desktop?")
+			zerolog.Ctx(ctx).Error().Err(err).Str("ticker", symbol).Msg("Fatal: could not load ticker info from source. Redirect back to desktop?")
 			return Ticker{}, err
 		}
 		*messages = append(*messages, Message{"Company/Symbol data updated", "success"})
@@ -32,7 +30,7 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	exchange := Exchange{ExchangeId: uint64(ticker.ExchangeId)}
 	err = exchange.getById(ctx)
 	if err != nil {
-		log.Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("Fatal: could not load exchange info. Redirect back to desktop?")
+		zerolog.Ctx(ctx).Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("Fatal: could not load exchange info. Redirect back to desktop?")
 		return Ticker{}, err
 	}
 
@@ -69,7 +67,7 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	ticker_dailies, _ := ticker.getTickerEODs(ctx, timespan)
 
 	// load any active watches about this ticker
-	webwatches, _ := loadWebWatches(db, ticker.TickerId)
+	webwatches, _ := loadWebWatches(ctx, ticker.TickerId)
 
 	// load any recent news
 	articles, _ := getArticlesByTicker(ctx, ticker.TickerId)
@@ -88,13 +86,13 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
 			err = ticker.queueUpdateNews(ctx)
 			if err != nil {
-				log.Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
+				zerolog.Ctx(ctx).Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
 			}
 		}
 	} else {
 		err = ticker.queueUpdateNews(ctx)
 		if err != nil {
-			log.Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
+			zerolog.Ctx(ctx).Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
 		}
 	}
 
@@ -105,13 +103,13 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerFinancialsDelay).Before(time.Now()) {
 			err = ticker.queueUpdateFinancials(ctx)
 			if err != nil {
-				log.Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateFinancials")
+				zerolog.Ctx(ctx).Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateFinancials")
 			}
 		}
 	} else {
 		err = ticker.queueUpdateFinancials(ctx)
 		if err != nil {
-			log.Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateFinancials")
+			zerolog.Ctx(ctx).Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateFinancials")
 		}
 	}
 
