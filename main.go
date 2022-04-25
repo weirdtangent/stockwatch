@@ -28,8 +28,9 @@ const (
 	skipRedisChecks     = true // always skip the redis cache info
 	skipLocalTickerInfo = true // always fetch ticker info from yhfinance
 
-	sqlDateType     = "2006-01-02"
-	sqlDatetimeType = "2006-01-02T15:04:05Z"
+	sqlDateParseType      = "2006-01-02"
+	sqlDatetimeParseType  = "2006-01-02T15:04:05Z"
+	sqlDatetimeSearchType = "2006-01-02 15:04:05"
 
 	volumeUnits = 1_000_000
 
@@ -236,9 +237,6 @@ func main() {
 	)
 	gothic.Store = store
 
-	// starting up web service ---------------------------------------------------
-	zerolog.Ctx(ctx).Info().Int("port", 3001).Msg("Started serving requests")
-
 	// setup middleware chain
 	router := mux.NewRouter()
 
@@ -272,16 +270,20 @@ func main() {
 	chainedMux3 := withAddContext(chainedMux2, awssess, db, secureCookie, secrets)
 	chainedMux4 := withLogging(chainedMux3) // outer level, first to run
 
+	// starting up web service ---------------------------------------------------
+	zerolog.Ctx(ctx).Info().Int("port", 3001).Msg("started serving requests")
+
 	// starup or die
 	server := &http.Server{
 		Handler:      chainedMux4,
 		Addr:         ":3001",
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		ReadTimeout:  5 * time.Second,
 	}
 
 	if err = server.ListenAndServe(); err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).
-			Msg("Stopped serving requests")
+		zerolog.Ctx(ctx).Fatal().Err(err).Msg("ended abnormally")
+	} else {
+		zerolog.Ctx(ctx).Info().Msg("stopped serving requests")
 	}
 }

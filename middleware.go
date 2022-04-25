@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/savaki/dynastore"
 )
 
@@ -153,11 +154,13 @@ type Logger struct {
 func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t := time.Now()
 
+	// attach zerolog to request context
+	logTag := "stockwatch"
+	log := log.With().Str("@tag", logTag).Caller().Logger()
+	r = r.WithContext(log.WithContext(r.Context()))
 	ctx := r.Context()
-	log := zerolog.Ctx(ctx).With().Logger()
-	// set request's context with l.WithContext which returns a copy of the context with the log object associated
-	r = r.WithContext(log.WithContext(ctx))
 
+	// handle the HTTP request
 	l.handler.ServeHTTP(w, r)
 
 	// don't logs these, no reason to
@@ -174,11 +177,11 @@ func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		cleanURL := r.URL.String()
 		cleanURL = obfuscateParams.ReplaceAllString(cleanURL, "$1=xxxxxx")
 
-		zerolog.Ctx(ctx).Info().Str("url", cleanURL).Int("status_code", 200).Str("method", r.Method).Str("remote_ip_addr", remote_ip_addr).Int64("response_time", time.Since(t).Nanoseconds()).Msg("http/s server")
+		zerolog.Ctx(ctx).Info().Str("url", cleanURL).Int("status_code", 200).Str("method", r.Method).Str("remote_ip_addr", remote_ip_addr).Int64("response_time", time.Since(t).Nanoseconds()).Msg("request")
 	}
 }
 func withLogging(h http.Handler) *Logger {
-	return &Logger{h}
+	return &Logger{handler: h}
 }
 
 // Session management middleware ----------------------------------------------
