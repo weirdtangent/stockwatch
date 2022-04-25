@@ -30,7 +30,11 @@
                       {{- if ge $diffperc 5.0}}<span class="h5 text-success">
                       {{- else if le $diffperc -5.0}}<span class="h5 text-danger">
                       {{- else }}<span class="h5 text-light">{{ end -}}
-                         &nbsp;{{- PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }} ({{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }})</span>
+                        &nbsp;{{- PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }} ({{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }})
+                        {{- if ge $diffperc 5.0}} <i class="h5 text-warning fa-light fa-chart-line-up"></i>
+                        {{- else if le $diffperc -5.0}} <i class="h5 text-warning fa-light fa-chart-line-down"></i>
+                        {{- end}}
+                        </span>
                     {{- end }}
                     <span class="text-info">
                     {{- if .quote}}as of </span><span id="quote_asof" class="text-light">{{ FormatUnixTime .quote.QuoteTime "Jan 2 15:04" }}</span>

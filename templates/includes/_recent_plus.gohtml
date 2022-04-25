@@ -25,8 +25,8 @@
                           {{- if ge $diffperc 5.0}}<span class="text-success">{{end -}}
                           {{- if le $diffperc -5.0}}<span class="text-danger">{{end -}}
                           &nbsp;{{ PriceDiffAmt .LastClose.ClosePrice .PriorClose.ClosePrice }} ({{ PriceDiffPerc .LastClose.ClosePrice .PriorClose.ClosePrice }})
-                          {{- if ge $diffperc 5.0}}</span>{{end -}}
-                          {{- if le $diffperc -5.0}}</span>{{end -}}
+                          {{- if ge $diffperc 5.0}} <i class="text-warning fa-light fa-chart-line-up"></i></span>{{end -}}
+                          {{- if le $diffperc -5.0}} <i class="text-warning fa-light fa-chart-line-down"></i></span>{{end -}}
                           <br/>
                           <span class="text-info"> at close on </span>
                           <span id="quote_asof" class="h6 text-light small">{{ .LastClose.PriceDatetime.Format "Jan 2" }}</span>
