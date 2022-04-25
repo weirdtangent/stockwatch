@@ -98,13 +98,11 @@ func main() {
 	if err != nil {
 		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
 	}
-	secrets["cookie_auth_key"] = *cookieAuthKey
 
 	cookieEncryptionKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "cookie_encryption_key")
 	if err != nil {
 		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
 	}
-	secrets["cookie_encryption_key"] = *cookieEncryptionKey
 
 	var hashKey = []byte(*cookieAuthKey)
 	var blockKey = []byte(*cookieEncryptionKey)
@@ -127,7 +125,7 @@ func main() {
 	}
 	secrets["yhfinance_rapidapi_host"] = *yf_api_access_host
 
-	// get morningstar api access key and host
+	// get msfinance api access key and host
 	ms_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "msfinance_rapidapi_key")
 	if err != nil {
 		zerolog.Ctx(ctx).Fatal().Err(err).
@@ -249,10 +247,6 @@ func main() {
 	if err != nil {
 		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
 	}
-	// facebookApiToken, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "facebook_api_token")
-	// if err != nil {
-	// 	zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
-	// }
 
 	goth.UseProviders(
 		amazon.New(*amazonApiKey, *amazonApiSecret, "https://stockwatch.graystorm.com/auth/amazon/callback"),
@@ -263,10 +257,6 @@ func main() {
 	)
 
 	gothic.Store = store
-
-	// add dependencies to context
-	ctx = context.WithValue(ctx, ContextKey("awssess"), awssess)
-	ctx = context.WithValue(ctx, ContextKey("skip64_watcher"), *skip64_watcher)
 
 	// setup middleware chain
 	router := mux.NewRouter()
