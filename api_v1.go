@@ -21,7 +21,7 @@ func apiV1Handler() http.HandlerFunc {
 		ctx := r.Context()
 
 		checkAuthState(w, r)
-		// if ok := checkAuthState(w, r); !ok {
+		// if ctx, ok := checkAuthState(w, r); !ok {
 		// 	http.NotFound(w, r)
 		// 	return
 		// }

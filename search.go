@@ -40,7 +40,7 @@ func searchHandler() http.HandlerFunc {
 
 		checkAuthState(w, r)
 
-		// if ok := checkAuthState(w, r); !ok {
+		// if ctx, ok := checkAuthState(w, r); !ok {
 		// 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		// 	return
 		// }

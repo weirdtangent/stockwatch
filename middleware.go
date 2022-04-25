@@ -99,6 +99,7 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("msfinance_apihost"), ac.secrets["msfinance_rapidapi_host"]))
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("bbfinance_apikey"), ac.secrets["bbfinance_rapidapi_key"]))
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("bbfinance_apihost"), ac.secrets["bbfinance_rapidapi_host"]))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("skip64_watcher"), ac.secrets["skip64_watcher"]))
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("next_url_key"), ac.secrets["next_url_key"]))
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("config"), defaultConfig))
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("webdata"), make(map[string]interface{})))
@@ -125,12 +126,12 @@ func (ah *AddHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	resHeader := w.Header()
 	csp := []string{
 		"default-src 'self'",
-		"connect-src 'self' accounts.google.com www.google-analytics.com *.fontawesome.com",
+		"connect-src 'self' accounts.google.com www.google-analytics.com *.fontawesome.com api.amazon.com *.facebook.com",
 		"style-src 'self' fonts.googleapis.com accounts.google.com 'unsafe-inline'",
-		"script-src 'self' apis.google.com www.googletagmanager.com accounts.google.com kit.fontawesome.com 'nonce-" + nonce + "'",
+		"script-src 'self' 'unsafe-eval' apis.google.com www.googletagmanager.com accounts.google.com kit.fontawesome.com assets.loginwithamazon.com *.facebook.net 'nonce-" + nonce + "'",
 		"img-src * data:", // 'self' data: *.googleusercontent.com *.twimg.com avatars.githubusercontent.com assets.bwbx.io im.mstar.com im.morningstar.com mma.prnewswire.com",
 		"font-src 'self' fonts.gstatic.com *.fontawesome.com",
-		"frame-src 'self' accounts.google.com",
+		"frame-src 'self' accounts.google.com *.amazon.com *.facebook.com",
 		"report-uri /internal/cspviolations",
 		"report-to default",
 	}

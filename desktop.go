@@ -10,7 +10,8 @@ func desktopHandler() http.HandlerFunc {
 		//	messages := ctx.Value(ContextKey("messages")).(*[]Message)
 		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 
-		if ok := checkAuthState(w, r); !ok {
+		var ok bool
+		if ctx, ok = checkAuthState(w, r); !ok {
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}

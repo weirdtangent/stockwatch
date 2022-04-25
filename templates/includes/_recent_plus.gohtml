@@ -5,7 +5,7 @@
                 <div class="col-1 mt-1 card me-2 ticker-card" style="width:13rem;">
                   <div class="card-title bg-warning text-dark px-2 py-1">{{.TickerSymbol}}/{{.Exchange | ToLower}}</div>
                   <div class="card-body small pt-0 px-1">
-                    <div class="row nowrap"><a href="/view/{{.TickerSymbol}}" class="hide-link stretched-link">{{.TickerName}}&nbsp;</a></div>
+                    <div class="row nowrap me-0"><a href="/view/{{.TickerSymbol}}" class="hide-link stretched-link">{{.TickerName}}&nbsp;</a></div>
                     <div class="row">
                       <div class="col-12">
                         {{if .LiveQuote.QuotePrice}}

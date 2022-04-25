@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"math/rand"
@@ -8,11 +9,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/dgryski/go-skip32"
 	"github.com/gorilla/securecookie"
-	"github.com/rs/zerolog"
-
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
+	"github.com/rs/zerolog"
 )
 
 func authLoginHandler() http.HandlerFunc {
@@ -124,7 +125,7 @@ func deleteWIDCookie(w http.ResponseWriter, r *http.Request) {
 
 // check for WID cookie, set above when authenticated with Google 1-Tap
 // plus set some standard webdata keys we'll need for all/most pages
-func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
+func checkAuthState(w http.ResponseWriter, r *http.Request) (context.Context, bool) {
 	ctx := r.Context()
 	sc := ctx.Value(ContextKey("sc")).(*securecookie.SecureCookie)
 	webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
@@ -164,18 +165,10 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 				deleteWIDCookie(w, r)
 				break
 			}
-			//oauth, err := getOAuthBySub(ctx, watcher.WatcherSub)
-			//if err != nil {
-			//	zerolog.Ctx(ctx).Error().Err(err).Int64("watcher_id", WIDvalue).Msg("Failed to get oauth record by sub")
-			//	break
-			//}
-			//currentDateTime := time.Now()
-			//unixTimeNow := currentDateTime.Unix()
-			//log.Info().Int64("unix_time", unixTimeNow).Int64("oath_expires", oauth.OAuthExpires).Msg("Checking oauth expiration")
-			//if unixTimeNow > oauth.OAuthExpires {
-			//	log.Warn().Int64("watcher_id", WIDvalue).Msg("OAuth record has expired")
-			//}
-			// zerolog.Ctx(ctx).Info().Uint64("watcher_id", watcher.WatcherId).Str("watcher_status", watcher.WatcherStatus).Msg("authenticated visitor")
+			log := zerolog.Ctx(ctx).With().Str("watcher", encryptId(ctx, "watcher", watcher.WatcherId)).Logger()
+			ctx = log.WithContext(ctx)
+
+			zerolog.Ctx(ctx).Info().Str("watcher_status", watcher.WatcherStatus).Msg("authenticated visitor")
 			webdata["WID"] = wid
 			webdata["watcher"] = watcher
 
@@ -184,7 +177,7 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 				webdata["tzlocation"] = location
 			}
 
-			return true
+			return ctx, true
 		}
 	}
 	// zerolog.Ctx(ctx).Info().Msg("Anonymous visitor found")
@@ -196,7 +189,7 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) bool {
 	webdata["scope"] = "openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
 	webdata["redirectTo"] = "https://stockwatch.graystorm.com/callback"
 
-	return false
+	return ctx, false
 }
 
 // random string of bytes, use in nonce values, for example
@@ -263,3 +256,57 @@ func RandStringMask(n int) string {
 // 	}
 // 	return data, nil
 // }
+
+// split uint64 into high/low uint32s and skip32 them and return as 8 hex chars
+func encryptId(ctx context.Context, objectType string, id uint64) string {
+	skip64Key := fmt.Sprintf("skip64_%s", objectType)
+	key := ctx.Value(ContextKey(skip64Key))
+	if key == nil {
+		err := fmt.Errorf("key not found")
+		zerolog.Ctx(ctx).Fatal().Str("object", objectType).Err(err).Msg("encryption key not found for {object}")
+		return ""
+	}
+	cipher, err := skip32.New([]byte(key.(string)))
+	if err != nil {
+		zerolog.Ctx(ctx).Fatal().Int("length", len(key.(string))).Str("object", objectType).Err(err).Msg("encryption failed for {object}")
+		return ""
+	}
+
+	obfuscated := fmt.Sprintf("%x%x", cipher.Obfus(uint32(id>>32)), cipher.Obfus(uint32(id&0xFFFFFFFF)))
+	return obfuscated
+}
+
+// break 8 hex chars into high/low uint32s and un-skip32 them and combine to single uint64
+func decryptedId(ctx context.Context, objectType string, obfuscated string) uint64 {
+	if len(obfuscated) != 16 {
+		err := fmt.Errorf("invalid encrypted id")
+		zerolog.Ctx(ctx).Fatal().Str("object", objectType).Err(err).Msg("decryption failed for {object}")
+		return 0
+	}
+	skip64Key := fmt.Sprintf("skip64_%s", objectType)
+	key := ctx.Value(ContextKey(skip64Key))
+	if key == nil {
+		err := fmt.Errorf("key not found")
+		zerolog.Ctx(ctx).Fatal().Str("object", objectType).Err(err).Msg("decryption key not found for {object}")
+		return 0
+	}
+	cipher, err := skip32.New([]byte(key.(string)))
+	if err != nil {
+		zerolog.Ctx(ctx).Fatal().Str("object", objectType).Err(err).Msg("decryption failed for {object}")
+		return 0
+	}
+
+	left, err := strconv.ParseUint(obfuscated[:8], 16, 32)
+	if err != nil {
+		zerolog.Ctx(ctx).Fatal().Str("object", objectType).Err(err).Msg("decryption failed for {object}")
+		return 0
+	}
+	right, err := strconv.ParseUint(obfuscated[8:16], 16, 32)
+	if err != nil {
+		zerolog.Ctx(ctx).Fatal().Str("object", objectType).Err(err).Msg("decryption failed for {object}")
+		return 0
+	}
+
+	id := uint64(cipher.Unobfus(uint32(left)))<<32 | uint64(cipher.Unobfus(uint32(right)))
+	return id
+}

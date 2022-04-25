@@ -131,10 +131,6 @@ li.signout {
   display: none;
 }
 
-.login {
-  height: 50px;
-}
-
 .signout {
   cursor: pointer;
 }
