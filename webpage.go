@@ -71,9 +71,9 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 
 	// load any recent news
 	articles, _ := getArticlesByTicker(ctx, ticker.TickerId)
-	if len(*articles) > 0 {
+	if len(articles) > 0 {
 		webdata["articles"] = articles
-		for _, article := range *articles {
+		for _, article := range articles {
 			key := fmt.Sprintf("_source%d-id%s-body_template", article.SourceId, article.ExternalId)
 			webdata[key] = article
 		}

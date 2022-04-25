@@ -129,9 +129,9 @@ func addTickerToRecents(ctx context.Context, r *http.Request, ticker Ticker) (*[
 		}
 	}
 
-	// keep only the 4 most recent
-	if len(recents) >= 5 {
-		recents = recents[:4]
+	// keep only the 5 most recent
+	if len(recents) >= 6 {
+		recents = recents[:5]
 	}
 	// prepend latest symbol to front of recents slice
 	recents = append([]string{ticker.TickerSymbol}, recents...)

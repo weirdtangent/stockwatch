@@ -28,7 +28,7 @@ func FormatDatetimeStr(dateStr string, formatStr string) string {
 	if len(dateStr) == 10 {
 		dateObj, _ = time.Parse("2006-01-02", dateStr)
 	} else if len(dateStr) == 19 {
-		dateObj, _ = time.Parse("2006-01-02 15:04:05", dateStr)
+		dateObj, _ = time.Parse(sqlDatetimeSearchType, dateStr)
 	} else if len(dateStr) == 20 {
 		dateObj, _ = time.Parse("2006-01-02T15:04:05Z", dateStr)
 	}
@@ -38,7 +38,7 @@ func FormatDatetimeStr(dateStr string, formatStr string) string {
 
 func UnixToDatetimeStr(unixTime int64) string {
 	dateTime := time.Unix(unixTime, 0)
-	return dateTime.Format("2006-01-02 15:04:05")
+	return dateTime.Format(sqlDatetimeSearchType)
 }
 
 func GradeColor(gradeStr string) string {

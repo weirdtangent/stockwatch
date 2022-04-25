@@ -37,7 +37,7 @@
                 <div class="text-white modal-link news-title" data-bs-toggle="modal" data-bs-target="#source{{.SourceId}}-id{{.ExternalId}}-modal">
                   <span class="small text-info">{{if .PublishedDatetime.Valid}}{{.PublishedDatetime.Time.Format "Jan 02"}}{{end}}</span>
                   {{.Title}} <i class="far fa-window fa-xs"></i>
-                  <span class="small text-info">{{if .AuthorByline.Valid}} by {{.AuthorByline.String}}{{else}} by {{.SourceName.String}}{{end}}</span>
+                  <span class="small text-info">{{if .AuthorByline.Valid}} by {{.AuthorByline.String}}{{else if .SourceName.Valid}} from {{.SourceName.String}}{{end}}</span>
                 </div>
                 {{- end}}
               </div>

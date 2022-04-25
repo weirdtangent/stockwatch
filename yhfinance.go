@@ -180,7 +180,7 @@ func loadTickerEODs(ctx context.Context, ticker Ticker) error {
 		if priceDate == currentDateStr {
 			priceTime = currentTimeStr
 		}
-		priceDatetime, _ := time.Parse(sqlDatetimeType, priceDate+" "+priceTime)
+		priceDatetime, _ := time.Parse(sqlDatetimeParseType, priceDate+" "+priceTime)
 		tickerDaily := TickerDaily{0, ticker.TickerId, priceDate, priceTime, priceDatetime, price.Open, price.High, price.Low, price.Close, price.Volume, sql.NullTime{}, sql.NullTime{}}
 		err = tickerDaily.createOrUpdate(ctx)
 		if err != nil {

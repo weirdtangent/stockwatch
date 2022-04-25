@@ -247,14 +247,14 @@ func (t *Ticker) getLastAndPriorClose(ctx context.Context) (*TickerDaily, *Ticke
 
 	var lastClose TickerDaily
 	db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? AND price_date<=? ORDER BY price_date DESC LIMIT 1`, t.TickerId, lastCloseDateStr).StructScan(&lastClose)
-	lastClose.PriceDatetime, _ = time.Parse(sqlDatetimeType, lastClose.PriceDate[:11]+lastClose.PriceTime+"Z")
+	lastClose.PriceDatetime, _ = time.Parse(sqlDatetimeParseType, lastClose.PriceDate[:11]+lastClose.PriceTime+"Z")
 
 	// ok and now get the prior day to that
-	lastCloseDateStr = mytime.PriorWorkDate(lastCloseDate).Format(sqlDateType)
+	lastCloseDateStr = mytime.PriorWorkDate(lastCloseDate).Format(sqlDateParseType)
 
 	var priorClose TickerDaily
 	db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? AND price_date<=? ORDER BY price_date DESC LIMIT 1`, t.TickerId, lastCloseDateStr).StructScan(&priorClose)
-	priorClose.PriceDatetime, _ = time.Parse(sqlDatetimeType, priorClose.PriceDate[:11]+priorClose.PriceTime+"Z")
+	priorClose.PriceDatetime, _ = time.Parse(sqlDatetimeParseType, priorClose.PriceDate[:11]+priorClose.PriceTime+"Z")
 
 	return &lastClose, &priorClose
 }
@@ -357,7 +357,7 @@ func (t Ticker) getTickerEODs(ctx context.Context, days int) ([]TickerDaily, err
 		if err != nil {
 			log.Warn().Err(err).Str("table_name", "ticker_daily").Msg("error reading result rows")
 		} else {
-			ticker_daily.PriceDatetime, _ = time.Parse(sqlDatetimeType, ticker_daily.PriceDate[:11]+ticker_daily.PriceTime+"Z")
+			ticker_daily.PriceDatetime, _ = time.Parse(sqlDatetimeParseType, ticker_daily.PriceDate[:11]+ticker_daily.PriceTime+"Z")
 			dailies = append(dailies, ticker_daily)
 		}
 	}

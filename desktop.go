@@ -18,7 +18,7 @@ func desktopHandler() http.HandlerFunc {
 		movers, _ := getMovers(ctx)
 		webdata["movers"] = movers
 
-		articles, _ := getArticlesByKeyword(ctx, "")
+		articles, _ := getRecentArticles(ctx)
 		webdata["articles"] = articles
 
 		recentPlus, _ := getRecentsPlusInfo(ctx, r)

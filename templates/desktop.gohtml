@@ -73,7 +73,9 @@
                         {{ .PublishedDatetime.Time.Format "Jan 2 15:04"}}
                         {{- end}}
                         <a href="{{.ArticleURL}}" style="text-decoration: none; color: white;" target="_blank"> {{.Title}}</a> <i class="ps-2 fas fa-external-link-alt fa-xs"></i>
-                        {{- if and .AuthorByline.Valid .AuthorByline.String }} <span class="small text-info">by {{.AuthorByline.String}}</span>{{end}}
+                        {{- if and .AuthorByline.Valid .AuthorByline.String }} <span class="small text-info">by {{.AuthorByline.String}}</span>
+                        {{- else if and .SourceName.Valid .SourceName.String }} <span class="small text-info">from {{.SourceName.String}}</span>
+                        {{- end}}
                         </div>
                       </div>
                       {{- end}}
