@@ -17,7 +17,7 @@ type LastDone struct {
 }
 
 const (
-	minTickerNewsDelay       = 60
+	minTickerNewsDelay       = 60 * 4
 	minTickerFinancialsDelay = 60 * 24
 )
 

@@ -27,8 +27,8 @@ import (
 )
 
 const (
-	skipRedisChecks     = true // always skip the redis cache info
-	skipLocalTickerInfo = true // always fetch ticker info from yhfinance
+	skipRedisChecks     = false // always skip the redis cache info
+	skipLocalTickerInfo = false // always fetch ticker info from yhfinance
 
 	sqlDateParseType      = "2006-01-02"
 	sqlDatetimeParseType  = "2006-01-02T15:04:05Z"
@@ -299,8 +299,8 @@ func main() {
 	server := &http.Server{
 		Handler:      chainedMux4,
 		Addr:         ":3001",
-		WriteTimeout: 5 * time.Second,
-		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		ReadTimeout:  10 * time.Second,
 	}
 
 	if err = server.ListenAndServe(); err != nil {

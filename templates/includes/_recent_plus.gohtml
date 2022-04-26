@@ -8,12 +8,20 @@
                     <div class="row nowrap me-0"><a href="/view/{{.TickerSymbol}}" class="hide-link stretched-link">{{.TickerName}}&nbsp;</a></div>
                     <div class="row">
                       <div class="col-12">
-                        {{if .LiveQuote.QuotePrice}}
+                        {{if .LiveQuote.QuotePrice }}
                           {{- printf "$%.2f" .LiveQuote.QuotePrice}}
                           {{- if gt .LiveQuote.QuoteChange 0.0 }} <i id="quote_dailymove" class="text-success fas fa-arrow-up"></i>
                           {{- else if lt .LiveQuote.QuoteChange 0.0 }} <i id="quote_dailymove" class="text-danger fas fa-arrow-down"></i>
                           {{- else }}<i id="quote_dailymove" class="fa-solid fa-equals"></i>
-                          {{- end}}<span id="quote_change">{{ printf " $%.2f" .LiveQuote.QuoteChange }}</span> (<span id="quote_change_pct">{{ printf "%.2f%%" .LiveQuote.QuoteChangePct }}</span>)<br/>
+                          {{- end }}
+                          {{- if gt .LiveQuote.QuoteChangePct 5.0 }}<span class="text-success">
+                          {{- else if lt .LiveQuote.QuoteChangePct -5.0 }}<span class="text-danger">
+                          {{- end }}
+                          <span id="quote_change">{{- printf " $%.2f" .LiveQuote.QuoteChange }}</span> (<span id="quote_change_pct">{{ printf "%.2f%%" .LiveQuote.QuoteChangePct }}</span>)
+                          {{- if gt .LiveQuote.QuoteChangePct 5.0 }} <i class="h5 text-warning fa-light fa-chart-line-up"></i></span>
+                          {{- else if lt .LiveQuote.QuoteChangePct -5.0 }} <i class="h5 text-warning fa-light fa-chart-line-down"></i></span>
+                          {{- end }}
+                          </span><br/>
                           <span class="text-info"> as of </span><span id="quote_asof" class="text-light small">{{ FormatUnixTime .LiveQuote.QuoteTime "Jan 2 15:04" }}</span>
                         {{- else}}
                           {{- $diffperc := PriceDiffPercAmt .LastClose.ClosePrice .PriorClose.ClosePrice -}}

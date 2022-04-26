@@ -229,9 +229,10 @@ func (t *Ticker) needEODs(ctx context.Context) bool {
 // on a weekday during market hours, or after close, we need the live quote and the prior work day
 func (t *Ticker) getLastAndPriorClose(ctx context.Context) (*TickerDaily, *TickerDaily) {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+	webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 
-	EasternTZ, _ := time.LoadLocation("America/New_York")
-	currentDate := time.Now().In(EasternTZ)
+	location := webdata["tzlocation"].(*time.Location)
+	currentDate := time.Now().In(location)
 	currentWeekday := currentDate.Weekday()
 	timeStr := currentDate.Format("1505")
 
@@ -612,13 +613,15 @@ func getLastTickerDailyMove(ctx context.Context, ticker_id uint64) (string, erro
 
 	var lastTickerDailyMove string
 	row := db.QueryRowx(
-		`SELECT IF(ticker_daily.close_price >= prev.close_price,"up",IF(ticker_daily.close_price < prev.close_price,"down","unknown")) AS lastTickerDailyMove
+		`SELECT IF(ticker_daily.close_price >= prev_daily.close_price,"up",IF(ticker_daily.close_price < prev_daily.close_price,"down","unknown")) AS lastTickerDailyMove
 		 FROM ticker_daily
 		 LEFT JOIN (
 		   SELECT ticker_id, close_price FROM ticker_daily AS prev_ticker_daily
 			 WHERE ticker_id=? ORDER by price_date DESC LIMIT 1,1
-		 ) AS prev ON (ticker_daily.ticker_id = prev.ticker_id)
-		 WHERE ticker_daily.ticker_id=? ORDER BY price_date DESC LIMIT 1`,
+		 ) AS prev_daily ON (ticker_daily.ticker_id = prev_daily.ticker_id)
+		 WHERE ticker_daily.ticker_id=?
+		 ORDER BY price_date DESC
+		 LIMIT 1`,
 		ticker_id, ticker_id)
 	err := row.Scan(&lastTickerDailyMove)
 	return lastTickerDailyMove, err
@@ -641,7 +644,7 @@ func (td *TickerDescription) createOrUpdate(ctx context.Context) error {
 	newBusinessSummary := td.BusinessSummary
 	err := td.getByUniqueKey(ctx)
 	if err == nil {
-		update := "UPDATE ticker_description SET business_summary=? WHERE ticker_description_id=?"
+		update := "UPDATE ticker_description SET business_summary=? WHERE description_id=?"
 		_, err = db.Exec(update, newBusinessSummary, td.TickerDescriptionId)
 		if err != nil {
 			zerolog.Ctx(ctx).Fatal().Err(err).Str("table_name", "ticker_description").Msg("failed on update")

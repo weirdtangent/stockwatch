@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	cloud.google.com/go/compute v1.6.1 // indirect
-	github.com/aws/aws-sdk-go v1.43.45
+	github.com/aws/aws-sdk-go v1.44.0
 	github.com/dgryski/go-skip32 v0.0.0-20151116144831-0e0460d2a555
 	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/gomarkdown/markdown v0.0.0-20220419181919-412bcf14cd2e
@@ -24,7 +24,7 @@ require (
 	github.com/weirdtangent/mymath v0.1.0
 	github.com/weirdtangent/mytime v0.1.1
 	github.com/weirdtangent/yhfinance v0.2.4
-	golang.org/x/net v0.0.0-20220421235706-1d1ef9303861 // indirect
+	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
 	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150 // indirect
 	golang.org/x/text v0.3.7
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect

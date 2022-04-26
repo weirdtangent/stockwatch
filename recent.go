@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/sessions"
@@ -46,11 +47,18 @@ func getRecents(session *sessions.Session, r *http.Request) (*[]string, error) {
 func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, error) {
 	webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 	session := getSession(r)
-	var recents []string
 	var recentPlus []RecentPlus
 
 	if session.Values["recents"] != nil {
-		recents = session.Values["recents"].([]string)
+		recents := session.Values["recents"].([]string)
+		if len(recents) == 0 {
+			return &recentPlus, nil
+		}
+		symbols := []string{}
+		tickers := []Ticker{}
+		exchanges := []Exchange{}
+		quotes := map[string]yhfinance.YFQuote{}
+		// Load up all the tickers and exchanges and fill arrays
 		for _, symbol := range recents {
 			ticker := Ticker{TickerSymbol: symbol}
 			err := ticker.getBySymbol(ctx)
@@ -58,27 +66,54 @@ func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, er
 				zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load recent {symbol}")
 				continue
 			}
+			tickers = append(tickers, ticker)
+			symbols = append(symbols, ticker.TickerSymbol)
+
 			exchange := Exchange{ExchangeId: uint64(ticker.ExchangeId)}
 			err = exchange.getById(ctx)
 			if err != nil {
 				zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load exchange for recent {symbol}")
 				continue
 			}
-			quote := yhfinance.YFQuote{}
-			if isMarketOpen() {
-				quote, err = loadTickerQuote(ctx, ticker.TickerSymbol)
-				if err != nil {
-					zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load quote for recent {symbol}")
-					continue
+			exchanges = append(exchanges, exchange)
+
+			quotes[ticker.TickerSymbol] = yhfinance.YFQuote{}
+		}
+
+		// if market open, get all quotes in one call
+		if isMarketOpen() {
+			var err error
+			quotes, err = loadMultiTickerQuotes(ctx, symbols)
+			if err != nil {
+				zerolog.Ctx(ctx).Error().Err(err).Str("symbols", strings.Join(symbols, ",")).Msg("failed to load quote for recent {symbol}")
+				return &recentPlus, err
+			}
+		} else {
+			// if it is a workday after 4 and we don't have the EOD (or not an EOD from
+			// AFTER 4pm) or we don't have the prior workday EOD, get them
+			for _, ticker := range tickers {
+				if ticker.needEODs(ctx) {
+					loadTickerEODs(ctx, ticker)
 				}
 			}
+		}
+
+		// build recentPlus array
+		for n, symbol := range symbols {
+			quote, ok := quotes[symbol]
+			if !ok {
+				continue
+			}
+			ticker := tickers[n]
+			exchange := exchanges[n]
+
 			lastClose, priorClose := ticker.getLastAndPriorClose(ctx)
 			lastDailyMove, _ := getLastTickerDailyMove(ctx, ticker.TickerId)
 
 			newsLastUpdated := sql.NullTime{Valid: false, Time: time.Time{}}
 			updatingNewsNow := false
 			lastdone := LastDone{Activity: "ticker_news", UniqueKey: ticker.TickerSymbol}
-			err = lastdone.getByActivity(ctx)
+			err := lastdone.getByActivity(ctx)
 			if err != nil {
 				zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get LastDone activity for {symbol}")
 			}

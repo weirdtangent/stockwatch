@@ -151,6 +151,43 @@ func loadTickerQuote(ctx context.Context, symbol string) (yhfinance.YFQuote, err
 	return quote, nil
 }
 
+func loadMultiTickerQuotes(ctx context.Context, symbols []string) (map[string]yhfinance.YFQuote, error) {
+	redisPool := ctx.Value(ContextKey("redisPool")).(*redis.Pool)
+
+	redisConn := redisPool.Get()
+	defer redisConn.Close()
+
+	apiKey := ctx.Value(ContextKey("yhfinance_apikey")).(string)
+	apiHost := ctx.Value(ContextKey("yhfinance_apihost")).(string)
+
+	quotes := map[string]yhfinance.YFQuote{}
+
+	var err error
+	quoteParams := map[string]string{"symbols": strings.Join(symbols, ",")}
+	zerolog.Ctx(ctx).Info().Str("symbols", strings.Join(symbols, ",")).Msg("getting multi-symbol quote from yhfinance")
+	fullResponse, err := yhfinance.GetFromYHFinance(ctx, &apiKey, &apiHost, "quote", quoteParams)
+	if err != nil {
+		log.Warn().Err(err).Str("symbols", strings.Join(symbols, ",")).Msg("Failed to retrieve quote")
+		return quotes, err
+	}
+	var quoteResponse yhfinance.YFGetQuotesResponse
+	json.NewDecoder(strings.NewReader(fullResponse)).Decode(&quoteResponse)
+
+	for n, response := range quoteResponse.QuoteResponse.Quotes {
+		symbol := quoteResponse.QuoteResponse.Quotes[n].Symbol
+		redisKey := "yhfinance/quote/" + symbol
+		_, err = redisConn.Do("SET", redisKey, response, "EX", 20)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Str("ticker", symbol).Str("redis_key", redisKey).Msg("Failed to save to redis")
+		}
+
+		zerolog.Ctx(ctx).Info().Str("symbol", symbol).Msg("found yhfinance quote response for {symbol}")
+		quotes[symbol] = quoteResponse.QuoteResponse.Quotes[n]
+	}
+
+	return quotes, nil
+}
+
 // load ticker historical prices
 func loadTickerEODs(ctx context.Context, ticker Ticker) error {
 	apiKey := ctx.Value(ContextKey("yhfinance_apikey")).(string)

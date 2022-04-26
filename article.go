@@ -228,7 +228,7 @@ func getArticlesByTicker(ctx context.Context, ticker_id uint64) ([]WebArticle, e
 func getRecentArticles(ctx context.Context) ([]WebArticle, error) {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	// go back as far as 30 days but limited to 50 articles
+	// go back as far as 30 days but limited to 30 articles
 	fromDate := time.Now().Add(-1 * 30 * 24 * time.Hour).Format(sqlDatetimeSearchType)
 	zerolog.Ctx(ctx).Info().Str("from_date", fromDate).Msg("checking for recent news since {from_date}")
 
