@@ -115,6 +115,7 @@ func fetchTickerInfo(ctx context.Context, symbol string) (Ticker, error) {
 // load ticker up-to-date quote
 func loadTickerQuote(ctx context.Context, symbol string) (yhfinance.YFQuote, error) {
 	redisPool := ctx.Value(ContextKey("redisPool")).(*redis.Pool)
+	zerolog.Ctx(ctx).With().Str("symbol", symbol)
 
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
@@ -127,25 +128,32 @@ func loadTickerQuote(ctx context.Context, symbol string) (yhfinance.YFQuote, err
 	// pull recent response from redis (20 sec expire), or go get from YF
 	redisKey := "yhfinance/quote/" + symbol
 	response, err := redis.String(redisConn.Do("GET", redisKey))
-	if err == nil && !skipRedisChecks {
+	if err == nil && response != "" && !skipRedisChecks {
 		zerolog.Ctx(ctx).Info().Str("redis_key", redisKey).Msg("redis cache hit")
 	} else {
 		var err error
 		quoteParams := map[string]string{"symbols": symbol}
 		response, err = yhfinance.GetFromYHFinance(ctx, &apiKey, &apiHost, "quote", quoteParams)
 		if err != nil {
-			log.Warn().Err(err).Str("ticker", symbol).Msg("Failed to retrieve quote")
+			log.Warn().Err(err).Msg("Failed to retrieve quote")
 			return quote, err
 		}
-		_, err = redisConn.Do("SET", redisKey, response, "EX", 20)
-		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Str("ticker", symbol).Str("redis_key", redisKey).Msg("Failed to save to redis")
+		if response != "" {
+			_, err = redisConn.Do("SET", redisKey, response, "EX", 20)
+			if err != nil {
+				zerolog.Ctx(ctx).Error().Err(err).Str("redis_key", redisKey).Msg("Failed to save to redis")
+			}
 		}
 	}
 
 	var quoteResponse yhfinance.YFGetQuotesResponse
 	json.NewDecoder(strings.NewReader(response)).Decode(&quoteResponse)
 
+	if len(quoteResponse.QuoteResponse.Quotes) == 0 {
+		zerolog.Ctx(ctx).Warn().Msg(fmt.Sprintf("%#v", strings.NewReader(response)))
+		zerolog.Ctx(ctx).Warn().Msg("failed to get quote response back from yhfinance")
+		return quote, nil
+	}
 	quote = quoteResponse.QuoteResponse.Quotes[0]
 
 	return quote, nil
