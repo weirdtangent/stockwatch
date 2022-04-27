@@ -8,7 +8,13 @@ var exchange = scriptName.getAttribute('data-exchange');
 var is_market_open = scriptName.getAttribute('data-is-market-open') === "true";
 var quote_refresh = scriptName.getAttribute('data-quote-refresh');
 
+// every 20 sec for 1 hour = 180 refreshes
+var update_count = 180
+
 function update_quote() {
+  if (update_count <= 0) {
+    return;
+  }
   $('#auto_refresh_working').removeClass('hide');
   var response = $.ajax({
       type: 'GET',
@@ -55,75 +61,76 @@ function update_quote() {
               $("#ticker_eod_info").show();
               $('#is_market_open_color').animate({opacity: 0}, 400, function() { ($('#is_market_open_color').removeClass("text-success").addClass("text-danger").animate({opacity: 1}, 400)) });
               $('#is_market_open').animate({opacity: 0}, 400, function() { $('#is_market_open').text("CLOSED").animate({opacity: 1}, 400) });
-              // $('#auto_refresh').html('<i class="ms-2 mb-2 far fa-pause-circle"></i> paused');
           }
-          // if (is_market_open && $('#market_spinner').hasClass("fa-pause-circle")) {
-          //   $('#auto_refresh').html('<i id="market_spinner" class="ms-2 mb-2 fad fa-sync fa-spin"></i> ' + quote_refresh + ' sec');
-          // } else if (!is_market_open && ('#market_spinner').hasClass("fa-spin")) {
-          //   $('#auto_refresh').html('<i id="market_spinner" class="ms-2 mb-2 far fa-pause-circle"></i> paused');
-          // }
       },
       complete: function() {
-        setTimeout(function() { $('#auto_refresh_working').addClass('hide'); }, 1000);
-        setTimeout(function() { update_quote(); }, quote_refresh * 1000);
+          setTimeout(function() { $('#auto_refresh_working').addClass('hide'); }, 1000);
+          if (update_count > 0) {
+              update_count--;
+              setTimeout(function() { update_quotes(); }, quote_refresh * 1000);
+          }
       }
   });
 }
 
 $(document).ready(function() {
-  setTimeout(function() {
-    update_quote();
-  }, quote_refresh * 1000);
+    setTimeout(function() {
+        update_quote();
+    }, quote_refresh * 1000);
 
-  $('.inline-article').find('.CMS__Security').each(function (index) {
-    symbol = this.text();
-    console.log("Turning "+symbol+" into a link");
-    this.innerHTML = '<a href="/view/' + symbol + '">' + symbol + '</a>';
-  });
-
-  if (is_market_open) {
-    $("#ticker_quote_info").show();
-    $("#auto_refresh").show();
-  } else {
-    $("#ticker_eod_info").show();
-  }
-
-  $('#auto_refresh').on('click', function() {
-    $('#auto_refresh').animate({opacity: 0}, 400, function() { ($('#auto_refresh').html('<i class="ms-2 mb-2 fad fa-sync fa-spin"></i> ' + quote_refresh + ' sec</span>').animate({opacity: 1}, 400)) });
-    update_quote(3);
-  })
-
-  $('input[name=pickChart]').each(function (e) {
-    elem = $('#' + this.id + 'elem');
-    if (elem.length == 0) {
-      this.remove()
-    }
-  });
-
-
-  $('input[name=pickChart]').on('change', function() {
-    clicked = $('input[name=pickChart]:checked').attr('id');
-
-    $('#' + showing + 'elem').fadeOut('fast', function() {
-      $('#' + clicked + 'elem').fadeIn('fast');
+    $('.inline-article').find('.CMS__Security').each(function (index) {
+        symbol = this.text();
+        this.innerHTML = '<a href="/view/' + symbol + '">' + symbol + '</a>';
     });
 
-    showing = clicked;
-  });
+    if (is_market_open) {
+        $("#ticker_quote_info").show();
+    } else {
+        $("#ticker_eod_info").show();
+    }
+
+    $('#auto_refresh').on('click', function() {
+        if ($('#auto_refresh > i').hasClass("fa-spin")) {
+            $('#auto_refresh > i').animate({opacity: 0}, 400, function() { ($('#auto_refresh > i').removeClass("fa-spin").addClass("fa-pause-circle").animate({opacity: 1}, 400)) });
+            $('#auto_refresh_time').animate({opacity: 0}, 400, function() { ($('#auto_refresh_time').text("paused").animate({opacity: 1}, 400)) });
+            update_count = 0;
+        } else {
+            $('#auto_refresh > i').animate({opacity: 0}, 400, function() { ($('#auto_refresh > i').removeClass("fa-pause-circle").addClass("fa-spin").animate({opacity: 1}, 400)) });
+            $('#auto_refresh_time').animate({opacity: 0}, 400, function() { ($('#auto_refresh_time').text("20 sec").animate({opacity: 1}, 400)) });
+            update_count = 180;
+            update_quote();
+        }
+    })
+
+    $('input[name=pickChart]').each(function (e) {
+        elem = $('#' + this.id + 'elem');
+        if (elem.length == 0) {
+            this.remove()
+        }
+    });
 
 
-  $('input[name=pickTimespan]').on('change', function() {
-    console.log('radio button clicked')
-    href = $('input[name=pickTimespan]:checked').data('href')
-    console.log(href)
-    window.document.location = href;
-  });
+    $('input[name=pickChart]').on('change', function() {
+        clicked = $('input[name=pickChart]:checked').attr('id');
+        $('#' + showing + 'elem').fadeOut('fast', function() {
+            $('#' + clicked + 'elem').fadeIn('fast');
+        });
+        showing = clicked;
+    });
 
-  Date.prototype.toDateInputValue = (function() {
-    var local = new Date(this);
-    local.setMinutes(this.getMinutes() - this.getTimezoneOffset());
-    return local.toJSON().slice(0,10);
-  });
 
-  $('#PurchaseDate').val(new Date().toDateInputValue());
+    $('input[name=pickTimespan]').on('change', function() {
+        console.log('radio button clicked')
+        href = $('input[name=pickTimespan]:checked').data('href')
+        console.log(href)
+        window.document.location = href;
+    });
+
+    Date.prototype.toDateInputValue = (function() {
+        var local = new Date(this);
+        local.setMinutes(this.getMinutes() - this.getTimezoneOffset());
+        return local.toJSON().slice(0,10);
+    });
+
+    $('#PurchaseDate').val(new Date().toDateInputValue());
 });

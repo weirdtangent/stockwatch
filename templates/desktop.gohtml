@@ -11,7 +11,8 @@
               <div class="bg-light float-middle">
                 <h3 class="py-2 my-0 text-center text-dark">Stockwatch Desktop</h3>
                 <div class="bg-dark px-1 py-1">
-                  <span class="small text-info">Info refresh: </span><span id="auto_refresh"><i class="ms-2 mb-2 fad fa-sync fa-spin"></i> {{.config.quote_refresh }} sec</span>
+                  <span class="small text-info">Info refresh: </span>
+                  <span id="auto_refresh"><i class="ms-2 mb-2 fad fa-sync fa-spin"></i> <span id="auto_refresh_time">{{.config.quote_refresh }} sec</span></span>
                   <i id="auto_refresh_working" class="ms-2 mb-2 myyellow fad fa-pulse fa-signal-stream hide"></i>
                 </div>
               </div>
