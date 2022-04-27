@@ -5,6 +5,8 @@ import (
 )
 
 const (
+	httpPort = 3001
+
 	skipRedisChecks     = false // always skip the redis cache info
 	skipLocalTickerInfo = false // always fetch ticker info from yhfinance
 

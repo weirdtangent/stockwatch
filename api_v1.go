@@ -182,7 +182,7 @@ func apiQuotes(r *http.Request, jsonResponse *jsonResponseData) {
 				jsonResponse.Data[symbol+"|quote_change"] = fmt.Sprintf("$%.2f", quote.QuoteChange)
 				jsonResponse.Data[symbol+"|quote_change_pct"] = fmt.Sprintf("%.2f%%", quote.QuoteChangePct)
 				jsonResponse.Data[symbol+"|quote_volume"] = quote.QuoteVolume
-				jsonResponse.Data[symbol+"|quote_asof"] = FormatUnixTime(quote.QuoteTime, "Jan 2 15:04")
+				jsonResponse.Data[symbol+"|quote_asof"] = FormatUnixTime(quote.QuoteTime, "Jan 2 15:04:05")
 				jsonResponse.Data[symbol+"|quote_dailyrange"] = fmt.Sprintf("$%.2f - $%.2f", quote.QuoteLow, quote.QuoteHigh)
 			}
 		}

@@ -23,6 +23,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/savaki/dynastore"
+
 	"github.com/weirdtangent/myaws"
 )
 
@@ -273,12 +274,12 @@ func startHTTPServer(ctx context.Context, awssess *session.Session, db *sqlx.DB,
 	chainedMux4 := withLogging(chainedMux3) // outer level, first to run
 
 	// starting up web service ---------------------------------------------------
-	zerolog.Ctx(ctx).Info().Int("port", 3001).Msg("started serving requests")
+	zerolog.Ctx(ctx).Info().Int("port", httpPort).Msg("started serving requests")
 
 	// starup or die
 	server := &http.Server{
 		Handler:      chainedMux4,
-		Addr:         ":3001",
+		Addr:         ":" + strconv.Itoa(httpPort),
 		WriteTimeout: 10 * time.Second,
 		ReadTimeout:  10 * time.Second,
 	}

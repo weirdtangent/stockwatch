@@ -17,13 +17,13 @@
                           {{- if gt .LiveQuote.QuoteChangePct 5.0 }}<span class="text-success">
                           {{- else if lt .LiveQuote.QuoteChangePct -5.0 }}<span class="text-danger">
                           {{- end }}
-                          <span id="quote_change">{{- printf " $%.2f" .LiveQuote.QuoteChange }}</span>
-                          (<span id="quote_change_pct">{{ printf "%.2f%%" .LiveQuote.QuoteChangePct }}</span>)
+                          <span id="{{.TickerSymbol}}_quote_change">{{- printf " $%.2f" .LiveQuote.QuoteChange }}</span>
+                          (<span id="{{.TickerSymbol}}_quote_change_pct">{{ printf "%.2f%%" .LiveQuote.QuoteChangePct }}</span>)
                           {{- if gt .LiveQuote.QuoteChangePct 5.0 }} <i class="h5 text-warning fa-light fa-chart-line-up"></i></span>
                           {{- else if lt .LiveQuote.QuoteChangePct -5.0 }} <i class="h5 text-warning fa-light fa-chart-line-down"></i></span>
                           {{- end }}
                           </span><br/>
-                          <span class="text-info"> as of </span><span id="quote_asof" class="text-light small">{{ FormatUnixTime .LiveQuote.QuoteTime "Jan 2 15:04" }}</span>
+                          <span class="text-info"> as of </span><span id="{{.TickerSymbol}}_quote_asof" class="text-light small">{{ FormatUnixTime .LiveQuote.QuoteTime "Jan 2 15:04:05" }}</span>
                         {{- else}}
                           {{- $diffperc := PriceDiffPercAmt .LastClose.ClosePrice .PriorClose.ClosePrice -}}
                           <span id="{{.TickerSymbol}}_quote_shareprice">{{- printf "$%.2f" .LastClose.ClosePrice }}</span>
@@ -33,13 +33,13 @@
                           {{- end}}
                           {{- if ge $diffperc 5.0}}<span class="text-success">{{end -}}
                           {{- if le $diffperc -5.0}}<span class="text-danger">{{end -}}
-                          &nbsp;<span id="quote_change">{{ PriceDiffAmt .LastClose.ClosePrice .PriorClose.ClosePrice }}</span>
-                          (<span id="quote_change_pct">{{ PriceDiffPerc .LastClose.ClosePrice .PriorClose.ClosePrice }}</span>)
+                          &nbsp;<span id="{{.TickerSymbol}}_quote_change">{{ PriceDiffAmt .LastClose.ClosePrice .PriorClose.ClosePrice }}</span>
+                          (<span id="{{.TickerSymbol}}_quote_change_pct">{{ PriceDiffPerc .LastClose.ClosePrice .PriorClose.ClosePrice }}</span>)
                           {{- if ge $diffperc 5.0}} <i class="text-warning fa-light fa-chart-line-up"></i></span>{{end -}}
                           {{- if le $diffperc -5.0}} <i class="text-warning fa-light fa-chart-line-down"></i></span>{{end -}}
                           <br/>
                           <span class="text-info"> at close on </span>
-                          <span id="quote_asof" class="h6 text-light small">{{ .LastClose.PriceDatetime.Format "Jan 2" }}</span>
+                          <span id="{{.TickerSymbol}}_quote_asof" class="h6 text-light small">{{ .LastClose.PriceDatetime.Format "Jan 2" }}</span>
                         {{- end}}
                         <br/><br/>
                         Last Checked News:<br/>
