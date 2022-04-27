@@ -67,6 +67,8 @@ github.com/aws/aws-sdk-go v1.43.45 h1:2708Bj4uV+ym62MOtBnErm/CDX61C4mFe9V2gXy1ca
 github.com/aws/aws-sdk-go v1.43.45/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
 github.com/aws/aws-sdk-go v1.44.0 h1:jwtHuNqfnJxL4DKHBUVUmQlfueQqBW7oXP6yebZR/R0=
 github.com/aws/aws-sdk-go v1.44.0/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
+github.com/aws/aws-sdk-go v1.44.1 h1:w34ZmPT6K4NTd7Yap1P7SLXPTii0ABmBz3KEh4KJdKc=
+github.com/aws/aws-sdk-go v1.44.1/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
@@ -338,6 +340,8 @@ github.com/weirdtangent/mytime v0.1.1 h1:QOHeGWqDx+3795L2iTlIO0maAi35Jg9rkp50Cqt
 github.com/weirdtangent/mytime v0.1.1/go.mod h1:UqDaTF+gcU1lEZ3GQZaS0sGjmYuYiGwcVVoaNXd9V0w=
 github.com/weirdtangent/yhfinance v0.2.4 h1:rjOyWTUz6Kv6KCSaSsRk98lu6Xe94Uyiz6UUJRyPl7Y=
 github.com/weirdtangent/yhfinance v0.2.4/go.mod h1:mAm3L9uJCuirdUfgKR+CGv8HOn+tA8X3QzkG8PVDLxY=
+github.com/weirdtangent/yhfinance v1.0.0 h1:d/r/Uvsz0dRgTDChgpGdTJbVPnsgVoita75OAvDViO8=
+github.com/weirdtangent/yhfinance v1.0.0/go.mod h1:mAm3L9uJCuirdUfgKR+CGv8HOn+tA8X3QzkG8PVDLxY=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
