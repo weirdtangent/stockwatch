@@ -8,13 +8,9 @@
                     </span>
                     {{if .quote}}
                       {{- if ge .quote.QuoteChange 0.0 }}
-                        <span id="quote_dailymove_text">
-                          <i id="quote_dailymove" class="h5 text-success fas fa-arrow-up"></i>
-                        </span>
+                        <span id="quote_dailymove_text"><i id="quote_dailymove" class="h5 text-success fas fa-arrow-up"></i></span>
                       {{- else -}}
-                        <span id="quote_dailmove_text">
-                          <i id="quote_dailymove" class="h5 text-danger fas fa-arrow-down"></i>
-                        </span>
+                        <span id="quote_dailymove_text"><i id="quote_dailymove" class="h5 text-danger fas fa-arrow-down"></i></span>
                       {{- end -}}
                       {{- if ge .quote.QuoteChangePct 5.0}}<span class="h5 text-success">
                       {{- else if le .quote.QuoteChangePct -5.0}}<span class="h5 text-danger">
@@ -51,9 +47,10 @@
                       Open: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.OpenPrice }}</span>
                       High: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.HighPrice }}</span>
                       Low: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.LowPrice }}</span>
-                      Close: <span class="text-light">{{ printf "$%.2f" .lastClose.ClosePrice }}</span>
+                      Close: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.ClosePrice }}</span>
                     </span>
-                    <span id="auto_refresh" class="hide">{{if .config.is_market_open}}<i class="ms-2 mb-2 fad fa-sync fa-spin"></i> {{.config.quote_refresh }} sec{{end}}</span><span id="auto_refresh_working"></span>
+                    <span class="small text-info">Info refresh: </span><span id="auto_refresh"><i class="ms-2 mb-2 fad fa-sync fa-spin"></i> {{.config.quote_refresh }} sec</span>
+                    <i id="auto_refresh_working" class="ms-2 mb-2 myyellow fad fa-pulse fa-signal-stream hide"></i>
                     <span id="ticker_info_type">&nbsp;</span>
                   </div>
 {{- end}}

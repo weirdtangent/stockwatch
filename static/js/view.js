@@ -8,67 +8,71 @@ var exchange = scriptName.getAttribute('data-exchange');
 var is_market_open = scriptName.getAttribute('data-is-market-open') === "true";
 var quote_refresh = scriptName.getAttribute('data-quote-refresh');
 
-function update_quote(count) {
-
+function update_quote() {
+  $('#auto_refresh_working').removeClass('hide');
   var response = $.ajax({
-    type: 'GET',
-    url: '/api/v1/quote?symbol=' + ticker,
-    async: true,
-    success: function(response) {
-      ['quote_shareprice', 'quote_ask', 'quote_asksize', 'quote_bid', 'quote_bidsize', 'quote_asof', 'quote_change', 'quote_change_pct'].forEach(function(item) {
-        if ($('#' + item).text() != response['data'][item]) {
-          $('#' + item).animate({opacity: 0}, 400, function() { $('#' + item).text(response['data'][item]).animate({opacity: 1}, 400) });
-        }
-      });
-      if (response.data.quote_dailymove === 'down' && $('#quote_dailymove').hasClass("fa-arrow-up")) {
-        $('#quote_dailymove_text').animate({opacity: 0}, 400, function() { $('#quote_dailymove_text').removeClass("text-success").addClass("text-danger").animate({opacity: 1}, 400) });
-        $('#quote_dailymove').animate({opacity: 0}, 400, function() { $('#quote_dailymove').removeClass("fa-arrow-up").addClass("fa-arrow-down").animate({opacity: 1}, 400) });
-      } else if (response.data.quote_dailymove === 'up' && $('#quote_dailymove').hasClass("fa-arrow-down")) {
-        $('#quote_dailymove_text').animate({opacity: 0}, 400, function() { $('#quote_dailymove_text').removeClass("text-danger").addClass("text-success").animate({opacity: 1}, 400) });
-        $('#quote_dailymove').animate({opacity: 0}, 400, function() { $('#quote_dailymove').removeClass("fa-arrow-down text-danger").addClass("fa-arrow-up text-success").animate({opacity: 1}, 400) });
+      type: 'GET',
+      url: '/api/v1/quote?symbol=' + ticker,
+      async: true,
+      success: function(response) {
+          is_market_open = response.data.is_market_open === true;
+          if (is_market_open) {
+              ['quote_shareprice', 'quote_ask', 'quote_asksize', 'quote_bid', 'quote_bidsize', 'quote_asof', 'quote_change', 'quote_change_pct'].forEach(function(item) {
+                  htmlId = '#' + item;
+                  dataId = item;
+                  if ($(htmlId).length && $(htmlId).text() != response['data'][dataId]) {
+                      $(htmlId).animate({opacity: 0}, 400, function() {
+                          $(htmlId).text(response['data'][dataId]).animate({opacity: 1}, 400) });
+                  }
+              });
+              if (response.data.quote_dailymove === 'down' && !$('#quote_dailymove').hasClass("fa-arrow-down")) {
+                  $('#quote_dailymove_text').animate({opacity: 0}, 400, function() { $('#quote_dailymove_text').removeClass("text-success").addClass("text-danger").animate({opacity: 1}, 400) });
+                  $('#quote_dailymove').animate({opacity: 0}, 400, function() { $('#quote_dailymove').removeClass("fa-arrow-up text-success").addClass("fa-arrow-down").animate({opacity: 1}, 400) });
+              } else if (response.data.quote_dailymove === 'up' && !$('#quote_dailymove').hasClass("fa-arrow-up")) {
+                  $('#quote_dailymove_text').animate({opacity: 0}, 400, function() { $('#quote_dailymove_text').removeClass("text-danger").addClass("text-success").animate({opacity: 1}, 400) });
+                  $('#quote_dailymove').animate({opacity: 0}, 400, function() { $('#quote_dailymove').removeClass("fa-arrow-down text-danger").addClass("fa-arrow-up text-success").animate({opacity: 1}, 400) });
+              } else if (response.data.quote_dailymove === 'unchanged' && !$('#quote_dailymove').hasClass("fa-equals")) {
+                  $('#quote_dailymove_text').animate({opacity: 0}, 400, function() { $('#quote_dailymove_text').removeClass("text-danger").removeClass("text-success").animate({opacity: 1}, 400) });
+                  $('#quote_dailymove').animate({opacity: 0}, 400, function() { $('#quote_dailymove').removeClass("fa-arrow-down text-danger").removeClass("fa-arrot-up text-success").addClass("fa-equals").animate({opacity: 1}, 400) });
+              }
+          }
+          if (response.data.last_updated_news != $('#last_updated_news').text()) {
+            $('#last_updated_news').animate({opacity: 0}, 400, function() { $('#last_updated_news').text(response.data.last_updated_news).animate({opacity: 1}, 400) });
+          }
+          if (response.data.updating_news_now && $('#updating_news_now').hasClass('hide')) {
+            $('#updating_news_now').removeClass('hide');
+          }
+          if (!response.data.updating_news_now && !$('#updating_news_now').hasClass('hide')) {
+            $('#updating_news_now').addClass('hide');
+          }
+          if (is_market_open && $('#is_market_open_color').hasClass("text-danger")) {
+              $("#ticker_quote_info").show();
+              $("#ticker_eod_info").hide();
+              $('#is_market_open_color').animate({opacity: 0}, 400, function() { $('#is_market_open_color').removeClass("text-danger").addClass("text-success").animate({opacity: 1}, 400) });
+              $('#is_market_open').animate({opacity: 0}, 400, function() { $('#is_market_open').text("TRADING").animate({opacity: 1}, 400) });
+          } else if (!is_market_open && $('#is_market_open_color').hasClass("text-success")) {
+              $("#ticker_quote_info").hide();
+              $("#ticker_eod_info").show();
+              $('#is_market_open_color').animate({opacity: 0}, 400, function() { ($('#is_market_open_color').removeClass("text-success").addClass("text-danger").animate({opacity: 1}, 400)) });
+              $('#is_market_open').animate({opacity: 0}, 400, function() { $('#is_market_open').text("CLOSED").animate({opacity: 1}, 400) });
+              // $('#auto_refresh').html('<i class="ms-2 mb-2 far fa-pause-circle"></i> paused');
+          }
+          // if (is_market_open && $('#market_spinner').hasClass("fa-pause-circle")) {
+          //   $('#auto_refresh').html('<i id="market_spinner" class="ms-2 mb-2 fad fa-sync fa-spin"></i> ' + quote_refresh + ' sec');
+          // } else if (!is_market_open && ('#market_spinner').hasClass("fa-spin")) {
+          //   $('#auto_refresh').html('<i id="market_spinner" class="ms-2 mb-2 far fa-pause-circle"></i> paused');
+          // }
+      },
+      complete: function() {
+        setTimeout(function() { $('#auto_refresh_working').addClass('hide'); }, 1000);
+        setTimeout(function() { update_quote(); }, quote_refresh * 1000);
       }
-      is_market_open = response.data.is_market_open === true;
-      if (is_market_open && $('#is_market_open_color').hasClass("text-danger")) {
-        $("#ticker_quote_info").show();
-        $("#ticker_eod_info").hide();
-        $('#is_market_open_color').animate({opacity: 0}, 400, function() { $('#is_market_open_color').removeClass("text-danger").addClass("text-success").animate({opacity: 1}, 400) });
-        $('#is_market_open').animate({opacity: 0}, 400, function() { $('#is_market_open').text("TRADING").animate({opacity: 1}, 400) });
-        $('#auto_refresh_working').html('<i class="ms-2 mb-2 myyellow fad fa-pulse fa-signal-stream"></i>')
-      } else if (!is_market_open && $('#is_market_open_color').hasClass("text-success")) {
-        $("#ticker_quote_info").hide();
-        $("#ticker_eod_info").show();
-        $('#is_market_open_color').animate({opacity: 0}, 400, function() { ($('#is_market_open_color').removeClass("text-success").addClass("text-danger").animate({opacity: 1}, 400)) });
-        $('#is_market_open').animate({opacity: 0}, 400, function() { $('#is_market_open').text("CLOSED").animate({opacity: 1}, 400) });
-        $('#auto_refresh').html('<i class="ms-2 mb-2 far fa-pause-circle"></i> paused');
-      }
-      if (count == 0) {
-        $('#auto_refresh').html('<i class="ms-2 mb-2 far fa-pause-circle"></i> paused');
-      } else if ($('#auto_refresh').html() == "") {
-        $('#auto_refresh').html('<i class="ms-2 mb-2 fad fa-sync fa-spin"></i> ' + quote_refresh + 'sec');
-      }
-    },
-    complete: function() {
-      $('#auto_refresh_working').html('')
-      if (count > 0) {
-        if (is_market_open) {
-          setTimeout(function() {
-            update_quote(count-1);
-          }, quote_refresh * 1000);
-        } else {
-          setTimeout(function() {
-            update_quote(count-1);
-          }, 15 * 60 * 1000);
-        }
-      }
-    }
   });
 }
 
-$(document).ready(function() { 
-
-  // at most, 30 updates: 10 min during open, 7.5 hours while closed
+$(document).ready(function() {
   setTimeout(function() {
-    update_quote(30);
+    update_quote();
   }, quote_refresh * 1000);
 
   $('.inline-article').find('.CMS__Security').each(function (index) {

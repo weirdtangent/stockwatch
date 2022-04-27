@@ -45,6 +45,8 @@ func viewTickerDailyHandler() http.HandlerFunc {
 			return
 		}
 
+		getNewsLastUpdated(ctx, ticker)
+
 		// Add this ticker to recents list
 		recents, err := addTickerToRecents(ctx, r, ticker)
 		if err != nil {

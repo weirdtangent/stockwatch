@@ -45,7 +45,6 @@ func getRecents(session *sessions.Session, r *http.Request) (*[]string, error) {
 }
 
 func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, error) {
-	webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 	session := getSession(r)
 	var recentPlus []RecentPlus
 
@@ -110,23 +109,7 @@ func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, er
 			lastClose, priorClose := ticker.getLastAndPriorClose(ctx)
 			lastDailyMove, _ := getLastTickerDailyMove(ctx, ticker.TickerId)
 
-			newsLastUpdated := sql.NullTime{Valid: false, Time: time.Time{}}
-			updatingNewsNow := false
-			lastdone := LastDone{Activity: "ticker_news", UniqueKey: ticker.TickerSymbol}
-			err := lastdone.getByActivity(ctx)
-			if err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get LastDone activity for {symbol}")
-			}
-			if err == nil && lastdone.LastStatus == "success" {
-				newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time.In(webdata["tzlocation"].(*time.Location))}
-				if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
-					err = ticker.queueUpdateNews(ctx)
-					updatingNewsNow = err == nil
-				}
-			} else {
-				err = ticker.queueUpdateNews(ctx)
-				updatingNewsNow = err == nil
-			}
+			newsLastUpdated, updatingNewsNow := getNewsLastUpdated(ctx, ticker)
 
 			recentPlus = append(recentPlus, RecentPlus{
 				TickerId:        ticker.TickerId,

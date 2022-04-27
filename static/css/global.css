@@ -128,7 +128,7 @@ li.signout {
 }
 
 .hide {
-  display: none;
+  display: none !important;
 }
 
 .signout {

@@ -31,10 +31,16 @@
                 {{- template "_eod-table" . }}
               </div>
 
-              <div class="mt-1 px-2 py-1 bg-warning text-dark">Related News and Stories</div>
+              <div class="mt-1 px-2 py-1 bg-warning text-dark d-flex">
+                <div class="flex-grow-1">Related News and Stories</div>
+                <div>Last Checked News:
+                  <span id="last_checked_news">{{if .NewsLastUpdated.Valid }}{{.NewsLastUpdated.Time.Format "Jan 02 15:04"}}{{ else }}-{{end}}</span>
+                  <i id="updating_news_now" class="ms-2 mb-2 fad fa-sync fa-spin{{if .UpdatingNewsNow}}{{else}} hide{{end}}"></i>
+                </div>
+              </div>
               <div class="px-2 py-1 bg-dark small text-light min-box">
                 {{- range .articles}}
-                <div class="text-white modal-link news-title" data-bs-toggle="modal" data-bs-target="#source{{.SourceId}}-id{{.ExternalId}}-modal">
+                <div class="text-white modal-link news-title text-truncate" data-bs-toggle="modal" data-bs-target="#source{{.SourceId}}-id{{.ExternalId}}-modal">
                   <span class="small text-info">{{if .PublishedDatetime.Valid}}{{.PublishedDatetime.Time.Format "Jan 02"}}{{end}}</span>
                   {{.Title}} <i class="far fa-window fa-xs"></i>
                   <span class="small text-info">{{if .AuthorByline.Valid}} by {{.AuthorByline.String}}{{else if .SourceName.Valid}} from {{.SourceName.String}}{{end}}</span>

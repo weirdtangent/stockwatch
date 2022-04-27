@@ -82,7 +82,7 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defaultConfig := make(map[string]interface{})
-	defaultConfig["is_market_open"] = isMarketOpen()
+	defaultConfig["is_market_open"] = true // isMarketOpen()
 	defaultConfig["quote_refresh"] = 20
 
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("awssess"), ac.awssess))
