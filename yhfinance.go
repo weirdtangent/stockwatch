@@ -281,12 +281,13 @@ func listSearch(ctx context.Context, searchString string, resultTypes string) ([
 
 	searchResults := make([]SearchResult, 100)
 
-	searchParams := map[string]string{"q": searchString}
+	searchParams := map[string]string{"q": searchString, "region": "US"}
 	response, err := yhfinance.GetFromYHFinance(ctx, &apiKey, &apiHost, "autocomplete", searchParams)
 	if err != nil {
 		return searchResults, err
 	}
 
+	searchCount := 0
 	var searchResponse yhfinance.YFAutoCompleteResponse
 	json.NewDecoder(strings.NewReader(response)).Decode(&searchResponse)
 
@@ -302,6 +303,7 @@ func listSearch(ctx context.Context, searchString string, resultTypes string) ([
 
 	if resultTypes == "news" || resultTypes == "both" {
 		for _, newsResult := range searchResponse.News {
+			searchCount++
 			searchResults = append(searchResults, SearchResult{
 				ResultType: "news",
 				News: SearchResultNews{
@@ -318,9 +320,17 @@ func listSearch(ctx context.Context, searchString string, resultTypes string) ([
 
 	if resultTypes == "ticker" || resultTypes == "both" {
 		for _, quoteResult := range searchResponse.Quotes {
+			if quoteResult.Type == "Option" {
+				continue
+			}
 			exchange := Exchange{ExchangeCode: quoteResult.ExchangeCode}
 			err := exchange.getByCode(ctx)
-			if err == nil && exchange.ExchangeId > 0 {
+			if err != nil {
+				zerolog.Ctx(ctx).Error().Err(err).Str("exchange_code", quoteResult.ExchangeCode).Msg("failed to get exchange by code")
+				continue
+			}
+			if exchange.ExchangeId > 0 {
+				searchCount++
 				searchResults = append(searchResults, SearchResult{
 					ResultType: "ticker",
 					News:       SearchResultNews{},
@@ -337,7 +347,7 @@ func listSearch(ctx context.Context, searchString string, resultTypes string) ([
 		}
 	}
 
-	zerolog.Ctx(ctx).Info().Str("search_string", searchString).Int("results_count", len(searchResults)).Msg("Search returned results")
+	zerolog.Ctx(ctx).Info().Str("search_string", searchString).Int("results_count", searchCount).Msg("Search returned results")
 
 	return searchResults, nil
 }

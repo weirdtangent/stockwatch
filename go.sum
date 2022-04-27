@@ -342,6 +342,8 @@ github.com/weirdtangent/yhfinance v0.2.4 h1:rjOyWTUz6Kv6KCSaSsRk98lu6Xe94Uyiz6UU
 github.com/weirdtangent/yhfinance v0.2.4/go.mod h1:mAm3L9uJCuirdUfgKR+CGv8HOn+tA8X3QzkG8PVDLxY=
 github.com/weirdtangent/yhfinance v1.0.0 h1:d/r/Uvsz0dRgTDChgpGdTJbVPnsgVoita75OAvDViO8=
 github.com/weirdtangent/yhfinance v1.0.0/go.mod h1:mAm3L9uJCuirdUfgKR+CGv8HOn+tA8X3QzkG8PVDLxY=
+github.com/weirdtangent/yhfinance v1.0.1 h1:h7bhajWyRFFI963tphb+dQBDAxRiy5j8wooMYHudLNE=
+github.com/weirdtangent/yhfinance v1.0.1/go.mod h1:mAm3L9uJCuirdUfgKR+CGv8HOn+tA8X3QzkG8PVDLxY=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

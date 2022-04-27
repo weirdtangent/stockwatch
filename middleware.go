@@ -82,15 +82,15 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defaultConfig := make(map[string]interface{})
-	defaultConfig["is_market_open"] = true // isMarketOpen()
+	defaultConfig["is_market_open"] = isMarketOpen()
 	defaultConfig["quote_refresh"] = 20
 
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("awssess"), ac.awssess))
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("db"), ac.db))
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("sc"), ac.sc))
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("redisPool"), redisPool))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("google_oauth_client_id"), ac.secrets["google_oauth_client_id"]))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("google_oauth_client_secret"), ac.secrets["google_oauth_secret"]))
+	// r = r.Clone(context.WithValue(r.Context(), ContextKey("google_oauth_client_id"), ac.secrets["google_oauth_client_id"]))
+	// r = r.Clone(context.WithValue(r.Context(), ContextKey("google_oauth_client_secret"), ac.secrets["google_oauth_secret"]))
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("github_oauth_key"), ac.secrets["github_oauth_key"]))
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("google_svc_acct"), ac.secrets["stockwatch_google_svc_acct"]))
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("yhfinance_apikey"), ac.secrets["yhfinance_rapidapi_key"]))
