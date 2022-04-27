@@ -63,13 +63,7 @@ function update_quotes() {
                 $("#ticker_eod_info").show();
                 $('#is_market_open_color').animate({opacity: 0}, 400, function() { ($('#is_market_open_color').removeClass("text-success").addClass("text-danger").animate({opacity: 1}, 400)) });
                 $('#is_market_open').animate({opacity: 0}, 400, function() { $('#is_market_open').text("CLOSED").animate({opacity: 1}, 400) });
-                // $('#auto_refresh').html('<i class="ms-2 mb-2 far fa-pause-circle"></i> paused');
             }
-            // if (is_market_open && $('#market_spinner').hasClass("fa-pause-circle")) {
-            //     $('#auto_refresh').html('<i id="market_spinner" class="ms-2 mb-2 fad fa-sync fa-spin"></i> ' + quote_refresh + ' sec');
-            // } else if (!is_market_open && $('#market_spinner').hasClass("fa-spin")) {
-            //     $('#auto_refresh').html('<i id="market_spinner" class="ms-2 mb-2 far fa-pause-circle"></i> paused');
-            // }
         },
         complete: function() {
             setTimeout(function() { $('#auto_refresh_working').addClass('hide'); }, 1000);
