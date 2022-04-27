@@ -1,8 +1,6 @@
 package main
 
 import (
-	"github.com/rs/zerolog"
-
 	"github.com/weirdtangent/myaws"
 )
 
@@ -21,21 +19,10 @@ const (
 
 func main() {
 	ctx := setupLogging()
-	// connect to AWS
-	awssess, err := myaws.AWSConnect("us-east-1", "stockwatch")
-	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to connect to AWS")
-	}
 
-	// connect to MySQL
+	awssess := myaws.AWSMustConnect("us-east-1", "stockwatch")
 	db := myaws.DBMustConnect(awssess, "stockwatch")
 
-	_, err = db.Exec("SET NAMES utf8mb4 COLLATE utf8mb4_general_ci")
-	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to switch RDS to UTF8")
-	}
-
-	// Setup secrets, sessions, oauth, and start HTTP server
 	secrets := getSecrets(ctx, awssess)
 	secureCookie, store := setupSessionsStore(ctx, awssess)
 	setupOAuth(ctx, awssess, store)

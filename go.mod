@@ -20,7 +20,7 @@ require (
 	github.com/prometheus/common v0.34.0 // indirect
 	github.com/rs/zerolog v1.26.1
 	github.com/savaki/dynastore v0.0.0-20171109173440-28d8558bb429
-	github.com/weirdtangent/myaws v1.0.2
+	github.com/weirdtangent/myaws v1.0.4
 	github.com/weirdtangent/mymath v0.1.0
 	github.com/weirdtangent/mytime v0.1.1
 	github.com/weirdtangent/yhfinance v1.0.1

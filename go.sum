@@ -334,6 +334,8 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/weirdtangent/myaws v1.0.1/go.mod h1:/PEPza3XdSYhWrVnDaIdw6I+9nmQEn0MPfa0IAcoP3I=
 github.com/weirdtangent/myaws v1.0.2 h1:hPk5CRAg8CSbI9u9x5o9MsypaB39RTNGFVzCDDRtFtc=
 github.com/weirdtangent/myaws v1.0.2/go.mod h1:XmAqF4PxJOpxu4NBYmJ48RfjOJWYBVhWkQhEd9RIdYE=
+github.com/weirdtangent/myaws v1.0.4 h1:mmQ+o2ZXR7x3VfzqU4jUTuFyWU9soVR0eAuU6ipJOKo=
+github.com/weirdtangent/myaws v1.0.4/go.mod h1:MC2509LaSbOwrSW9SuxKFPsbaa4VjQ0qjautf/xGlJI=
 github.com/weirdtangent/mymath v0.1.0 h1:oFYr1tzTbEbueqx/AWVFziDhueRbqZbmTR5v7HxY5xc=
 github.com/weirdtangent/mymath v0.1.0/go.mod h1:wkMYAvjtjbEuuvX/fes61TQYmYpFcyqebwfF9blhqgo=
 github.com/weirdtangent/mytime v0.1.1 h1:QOHeGWqDx+3795L2iTlIO0maAi35Jg9rkp50Cqt9dLU=
