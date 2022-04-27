@@ -27,7 +27,7 @@ func main() {
 
 	secrets := getSecrets(ctx, awssess)
 	secureCookie, store := setupSessionsStore(ctx, awssess)
-	setupOAuth(ctx, awssess, store)
+	setupOAuth(ctx, awssess, store, &secrets)
 
 	startHTTPServer(ctx, awssess, db, secrets, store, secureCookie)
 }

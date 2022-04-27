@@ -55,16 +55,18 @@ func setupLogging() context.Context {
 	return ctx
 }
 
-func setupOAuth(ctx context.Context, awssess *session.Session, store *dynastore.Store) {
+func setupOAuth(ctx context.Context, awssess *session.Session, store *dynastore.Store, secrets *map[string]string) {
 	googleOAuthClientId, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "google_oauth_client_id")
 	if err != nil {
 		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
 	}
+	(*secrets)["google_oauth_client_id"] = *googleOAuthClientId
 
 	googleOAuthSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "google_oauth_client_secret")
 	if err != nil {
 		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
 	}
+	(*secrets)["google_oauth_secret"] = *googleOAuthSecret
 
 	twitterApiKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "twitter_api_key")
 	if err != nil {

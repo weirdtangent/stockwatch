@@ -89,8 +89,8 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("db"), ac.db))
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("sc"), ac.sc))
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("redisPool"), redisPool))
-	// r = r.Clone(context.WithValue(r.Context(), ContextKey("google_oauth_client_id"), ac.secrets["google_oauth_client_id"]))
-	// r = r.Clone(context.WithValue(r.Context(), ContextKey("google_oauth_client_secret"), ac.secrets["google_oauth_secret"]))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("google_oauth_client_id"), ac.secrets["google_oauth_client_id"]))
+	r = r.Clone(context.WithValue(r.Context(), ContextKey("google_oauth_client_secret"), ac.secrets["google_oauth_secret"]))
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("github_oauth_key"), ac.secrets["github_oauth_key"]))
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("google_svc_acct"), ac.secrets["stockwatch_google_svc_acct"]))
 	r = r.Clone(context.WithValue(r.Context(), ContextKey("yhfinance_apikey"), ac.secrets["yhfinance_rapidapi_key"]))
@@ -124,18 +124,24 @@ func (ah *AddHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	nonce := ctx.Value(ContextKey("nonce")).(string)
 
 	resHeader := w.Header()
-	csp := []string{
-		"default-src 'self'",
-		"connect-src 'self' accounts.google.com www.google-analytics.com *.fontawesome.com api.amazon.com *.facebook.com",
-		"style-src 'self' fonts.googleapis.com accounts.google.com 'unsafe-inline'",
-		"script-src 'self' 'unsafe-eval' apis.google.com www.googletagmanager.com accounts.google.com kit.fontawesome.com assets.loginwithamazon.com *.facebook.net 'nonce-" + nonce + "'",
-		"img-src * data:", // 'self' data: *.googleusercontent.com *.twimg.com avatars.githubusercontent.com assets.bwbx.io im.mstar.com im.morningstar.com mma.prnewswire.com",
-		"font-src 'self' fonts.gstatic.com *.fontawesome.com",
-		"frame-src 'self' accounts.google.com *.amazon.com *.facebook.com",
-		"report-uri /internal/cspviolations",
-		"report-to default",
+	csp := map[string][]string{
+		"base-uri":    {"'self'"},
+		"default-src": {"'self'"},
+		"connect-src": {"'self'", "accounts.google.com", "www.google-analytics.com", "*.fontawesome.com", "api.amazon.com", "*.facebook.com"},
+		"style-src":   {"'self'", "fonts.googleapis.com", "accounts.google.com", "'unsafe-inline'"},
+		"script-src":  {"'self'", "apis.google.com", "www.googletagmanager.com", "accounts.google.com", "kit.fontawesome.com", "assets.loginwithamazon.com", "*.facebook.net", "'nonce-" + nonce + "'"},
+		"img-src":     {"* data:"}, // 'self' data: *.googleusercontent.com *.twimg.com avatars.githubusercontent.com assets.bwbx.io im.mstar.com im.morningstar.com mma.prnewswire.com",
+		"font-src":    {"'self'", "fonts.gstatic.com", "*.fontawesome.com"},
+		"frame-src":   {"'self'", "accounts.google.com", "*.amazon.com", "*.facebook.com"},
+		"object-src":  {"'none'"},
+		"report-uri":  {"/internal/cspviolations"},
+		"report-to":   {"default"},
 	}
-	resHeader.Set("Content-Security-Policy", strings.Join(csp, "; "))
+	cspString := ""
+	for category := range csp {
+		cspString += fmt.Sprintf("%s %s;\n", category, strings.Join(csp[category], " "))
+	}
+	resHeader.Set("Content-Security-Policy", cspString)
 
 	reportTo := `{"group":"default","max-age":1800,"endpoints":[{"url":"https://stockwatch.graystorm.com/internal/cspviolations"}],"include_subdomains":true}`
 	resHeader.Set("Report-To", reportTo)

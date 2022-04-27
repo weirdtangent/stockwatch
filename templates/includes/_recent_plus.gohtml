@@ -23,7 +23,7 @@
                           {{- else if lt .LiveQuote.QuoteChangePct -5.0 }} <i class="h5 text-warning fa-light fa-chart-line-down"></i></span>
                           {{- end }}
                           </span><br/>
-                          <span class="text-info"> as of </span><span id="{{.TickerSymbol}}_quote_asof" class="text-light small">{{ FormatUnixTime .LiveQuote.QuoteTime "Jan 2 15:04:05" }}</span>
+                          <span class="text-info"> as of </span><span class="text-light small"><span id="{{.TickerSymbol}}_quote_asof">{{ FormatUnixTime .LiveQuote.QuoteTime "Jan 2 15:04:05" }}</span></span>
                         {{- else}}
                           {{- $diffperc := PriceDiffPercAmt .LastClose.ClosePrice .PriorClose.ClosePrice -}}
                           <span id="{{.TickerSymbol}}_quote_shareprice">{{- printf "$%.2f" .LastClose.ClosePrice }}</span>
