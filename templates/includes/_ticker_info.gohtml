@@ -17,7 +17,7 @@
                       {{- if ge .quote.QuoteChangePct 5.0}}<span class="h5 text-success">
                       {{- else if le .quote.QuoteChangePct -5.0}}<span class="h5 text-danger">
                       {{- else }}<span class="h5 text-light">{{ end -}}
-                        <span id="{{.TickerSymbol}}_quote_change">{{ printf "$%.2f" .quote.QuoteChange }}</span>
+                        &nbsp;<span id="{{.TickerSymbol}}_quote_change">{{ printf "$%.2f" .quote.QuoteChange }}</span>
                         (<span id="{{.TickerSymbol}}_quote_change_pct">{{ printf "%.2f%%" .quote.QuoteChangePct }}</span></span>)
                     {{- else -}}
                       {{- $diffperc := PriceDiffPercAmt .priorClose.ClosePrice .lastClose.ClosePrice -}}

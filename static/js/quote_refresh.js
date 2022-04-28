@@ -53,8 +53,8 @@ function quoteRefresh() {
                 phaseChange(response, symbol, 'last_checked_news')
                 if (response.data.symbol+':updating_news_now'=='true' && $('#'+symbol+'_updating_news_now').hasClass('hide')) {
                     $('#'+symbol+'_updating_news_now').removeClass('hide');
-                } else if (response.data.symbol+':updating_news_now'=='false' && !$('#'+symbol+'updating_news_now').hasClass('hide')) {
-                    $('#'+symbol+'updating_news_now').addClass('hide');
+                } else if (response.data.symbol+':updating_news_now'=='false' && !$('#'+symbol+'_updating_news_now').hasClass('hide')) {
+                    $('#'+symbol+'_updating_news_now').addClass('hide');
                 }
             });
 

@@ -21,17 +21,18 @@ type Recent struct {
 }
 
 type RecentPlus struct {
-	TickerId        uint64
-	TickerSymbol    string
-	Exchange        string
-	TickerName      string
-	CompanyName     string
-	LiveQuote       yhfinance.YFQuote
-	LastClose       TickerDaily
-	PriorClose      TickerDaily
-	LastDailyMove   string
-	NewsLastUpdated sql.NullTime
-	UpdatingNewsNow bool
+	TickerId           uint64
+	TickerSymbol       string
+	TickerFavIconCDATA string
+	Exchange           string
+	TickerName         string
+	CompanyName        string
+	LiveQuote          yhfinance.YFQuote
+	LastClose          TickerDaily
+	PriorClose         TickerDaily
+	LastDailyMove      string
+	LastCheckedNews    sql.NullTime
+	UpdatingNewsNow    bool
 }
 
 func getRecents(session *sessions.Session, r *http.Request) (*[]string, error) {
@@ -67,6 +68,13 @@ func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, er
 			}
 			tickers = append(tickers, ticker)
 			symbols = append(symbols, ticker.TickerSymbol)
+
+			if ticker.FavIconS3Key == "" {
+				err := ticker.saveFavIcon(ctx)
+				if err != nil {
+					zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to save favicon for recent {symbol}")
+				}
+			}
 
 			exchange := Exchange{ExchangeId: uint64(ticker.ExchangeId)}
 			err = exchange.getById(ctx)
@@ -109,20 +117,21 @@ func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, er
 			lastTickerDaily, _ := getLastTickerDaily(ctx, ticker.TickerId)
 			lastDailyMove, _ := getLastTickerDailyMove(ctx, ticker.TickerId)
 
-			newsLastUpdated, updatingNewsNow := getNewsLastUpdated(ctx, ticker)
+			lastCheckedNews, updatingNewsNow := getNewsLastUpdated(ctx, ticker)
 
 			recentPlus = append(recentPlus, RecentPlus{
-				TickerId:        ticker.TickerId,
-				TickerSymbol:    ticker.TickerSymbol,
-				Exchange:        exchange.ExchangeAcronym,
-				TickerName:      ticker.TickerName,
-				CompanyName:     ticker.CompanyName,
-				LiveQuote:       quote,
-				LastClose:       lastTickerDaily[0],
-				PriorClose:      lastTickerDaily[1],
-				LastDailyMove:   lastDailyMove,
-				NewsLastUpdated: newsLastUpdated,
-				UpdatingNewsNow: updatingNewsNow,
+				TickerId:           ticker.TickerId,
+				TickerSymbol:       ticker.TickerSymbol,
+				TickerFavIconCDATA: ticker.getFavIconCDATA(ctx),
+				Exchange:           exchange.ExchangeAcronym,
+				TickerName:         ticker.TickerName,
+				CompanyName:        ticker.CompanyName,
+				LiveQuote:          quote,
+				LastClose:          lastTickerDaily[0],
+				PriorClose:         lastTickerDaily[1],
+				LastDailyMove:      lastDailyMove,
+				LastCheckedNews:    lastCheckedNews,
+				UpdatingNewsNow:    updatingNewsNow,
 			})
 		}
 	}

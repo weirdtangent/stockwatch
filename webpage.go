@@ -53,15 +53,11 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 
 	// get Ticker_UpDowns
 	tickerUpDowns, _ := ticker.getUpDowns(ctx, 90)
-
-	// get Ticker_Attributes
 	tickerAttributes, _ := ticker.getAttributes(ctx)
-
-	// get Ticker_Splits
 	tickerSplits, _ := ticker.getSplits(ctx)
-
 	lastTickerDaily, _ := getLastTickerDaily(ctx, ticker.TickerId)
 	lastTickerDailyMove, _ := getLastTickerDailyMove(ctx, ticker.TickerId)
+	lastCheckedNews, updatingNewsNow := getNewsLastUpdated(ctx, ticker)
 
 	// load up to last 100 days of EOD data
 	ticker_dailies, _ := ticker.getTickerEODs(ctx, timespan)
@@ -145,6 +141,8 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	webdata["ticker_splits"] = tickerSplits
 	webdata["last_ticker_daily_move"] = lastTickerDailyMove
 	webdata["ticker_dailies"] = TickerDailies{ticker_dailies}
+	webdata["LastCheckedNews"] = lastCheckedNews
+	webdata["UpdatingNewsNow"] = updatingNewsNow
 	webdata["watches"] = webwatches
 	webdata["lineChart"] = lineChartHTML
 	webdata["klineChart"] = klineChartHTML

@@ -1,10 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha1"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
@@ -13,7 +20,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/gomodule/redigo/redis"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -38,6 +47,7 @@ type Ticker struct {
 	Phone           string       `db:"phone"`
 	Sector          string       `db:"sector"`
 	Industry        string       `db:"industry"`
+	FavIconS3Key    string       `db:"favicon_s3key"`
 	FetchDatetime   sql.NullTime `db:"fetch_datetime"`
 	MSPerformanceId string       `db:"ms_performance_id"`
 	CreateDatetime  sql.NullTime `db:"create_datetime"`
@@ -172,13 +182,15 @@ func (t *Ticker) createOrUpdate(ctx context.Context) error {
 		return nil
 	}
 
-	err := t.getBySymbol(ctx)
-	if errors.Is(err, sql.ErrNoRows) || t.TickerId == 0 {
-		return t.create(ctx)
+	if t.TickerId == 0 {
+		err := t.getBySymbol(ctx)
+		if errors.Is(err, sql.ErrNoRows) || t.TickerId == 0 {
+			return t.create(ctx)
+		}
 	}
 
-	var update = "UPDATE ticker SET exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=?, fetch_datetime=now() WHERE ticker_id=?"
-	_, err = db.Exec(update, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry, t.TickerId)
+	var update = "UPDATE ticker SET exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=?, favicon_s3key=?, fetch_datetime=now() WHERE ticker_id=?"
+	_, err := db.Exec(update, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry, t.FavIconS3Key, t.TickerId)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Str("table_name", "ticker").Str("symbol", t.TickerSymbol).Msg("failed on update")
 	}
@@ -800,3 +812,97 @@ func (t *Ticker) GetFinancials(ctx context.Context, period, chartType string, is
 // 	sort.Sort(ByTickerPriceDate(td))
 // 	return &td
 // }
+
+func (t *Ticker) saveFavIcon(ctx context.Context) error {
+	awssess := ctx.Value(ContextKey("awssess")).(*session.Session)
+
+	if t.Website == "" {
+		return fmt.Errorf("website not defined for symbol")
+	}
+	resp, err := http.Get(t.Website + "/favicon.ico")
+	if err != nil {
+		return err
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	faviconData := string(body)
+
+	s3svc := s3.New(awssess)
+	sha1Hash := sha1.New()
+	io.WriteString(sha1Hash, faviconData)
+	s3Key := fmt.Sprintf("Tickers/FavIcons/%s-%x", t.TickerSymbol, sha1Hash.Sum(nil))
+
+	inputPutObj := &s3.PutObjectInput{
+		Body:   aws.ReadSeekCloser(strings.NewReader(faviconData)),
+		Bucket: aws.String(awsPrivateBucketName),
+		Key:    aws.String(s3Key),
+	}
+
+	_, err = s3svc.PutObject(inputPutObj)
+	if err != nil {
+		return err
+	}
+	t.FavIconS3Key = s3Key
+	t.createOrUpdate(ctx)
+
+	return nil
+}
+
+func (t *Ticker) getFavIconCDATA(ctx context.Context) string {
+	awssess := ctx.Value(ContextKey("awssess")).(*session.Session)
+
+	if t.FavIconS3Key == "" {
+		err := t.saveFavIcon(ctx)
+		if err != nil || t.FavIconS3Key == "" {
+			return ""
+		}
+	}
+	redisPool := ctx.Value(ContextKey("redisPool")).(*redis.Pool)
+
+	redisConn := redisPool.Get()
+	defer redisConn.Close()
+
+	// pull URL from redis (1 day expire), or go get from AWS
+	redisKey := "aws/s3/" + t.FavIconS3Key
+	url, err := redis.String(redisConn.Do("GET", redisKey))
+	if err == nil && !skipRedisChecks {
+		zerolog.Ctx(ctx).Info().Str("symbol", t.TickerSymbol).Str("redis_key", redisKey).Msg("redis cache hit")
+		return url
+	}
+
+	s3svc := s3.New(awssess)
+
+	inputGetObj := &s3.GetObjectInput{
+		Bucket: aws.String(awsPrivateBucketName),
+		Key:    aws.String(t.FavIconS3Key),
+	}
+	resp, _ := s3svc.GetObject(inputGetObj)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Str("symbol", t.TickerSymbol).Str("s3key", t.FavIconS3Key).Msg("failed to get s3 object from aws")
+		return ""
+	}
+	defer resp.Body.Close()
+
+	size := resp.ContentLength
+	buffer := make([]byte, int(*size))
+	var bbuffer bytes.Buffer
+	for {
+		num, rerr := resp.Body.Read(buffer)
+		if num > 0 {
+			bbuffer.Write(buffer[:num])
+		} else if rerr == io.EOF || rerr != nil {
+			break
+		}
+	}
+
+	data := base64.StdEncoding.EncodeToString(bbuffer.Bytes())
+
+	_, err = redisConn.Do("SET", redisKey, data, "EX", 60*60*24)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Str("symbol", t.TickerSymbol).Str("redis_key", redisKey).Msg("failed to save to redis")
+	}
+
+	return url
+}

@@ -7,6 +7,9 @@ import (
 const (
 	httpPort = 3001
 
+	awsRegion            = "us-east-1"
+	awsPrivateBucketName = "stockwatch-graystorm"
+
 	skipRedisChecks     = false // always skip the redis cache info
 	skipLocalTickerInfo = false // always fetch ticker info from yhfinance
 

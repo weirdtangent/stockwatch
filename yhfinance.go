@@ -73,6 +73,7 @@ func fetchTickerInfo(ctx context.Context, symbol string) (Ticker, error) {
 		summaryResponse.SummaryProfile.Phone,
 		summaryResponse.SummaryProfile.Sector,
 		summaryResponse.SummaryProfile.Industry,
+		"",
 		sql.NullTime{},
 		"",
 		sql.NullTime{},

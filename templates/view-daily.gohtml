@@ -33,7 +33,7 @@
               <div class="mt-1 px-2 py-1 bg-warning text-dark d-flex">
                 <div class="flex-grow-1">Related News and Stories</div>
                 <div>Last Checked News:
-                  <span id="{{.TickerSymbol}}_last_checked_news">{{if .NewsLastUpdated.Valid }}{{.NewsLastUpdated.Time.Format "Jan 02 15:04"}}{{ else }}-{{end}}</span>
+                  <span id="{{.TickerSymbol}}_last_checked_news">{{if .LastCheckedNews.Valid }}{{.LastCheckedNews.Time.Format "Jan 02 15:04"}}{{ else }}-{{end}}</span>
                   <i id="updating_news_now" class="ms-2 mb-2 fad fa-sync fa-spin{{if .UpdatingNewsNow}}{{else}} hide{{end}}"></i>
                 </div>
               </div>

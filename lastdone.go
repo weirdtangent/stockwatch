@@ -17,8 +17,8 @@ type LastDone struct {
 }
 
 const (
-	minTickerNewsDelay       = 60 * 4
-	minTickerFinancialsDelay = 60 * 24
+	minTickerNewsDelay       = 60 * 4  //  4 hours
+	minTickerFinancialsDelay = 60 * 24 // 24 hours
 )
 
 // object methods -------------------------------------------------------------

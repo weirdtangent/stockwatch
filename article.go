@@ -294,19 +294,26 @@ func getNewsLastUpdated(ctx context.Context, ticker Ticker) (sql.NullTime, bool)
 	err := lastdone.getByActivity(ctx)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get LastDone activity for {symbol}")
+		webdata["NewsLastUpdated"] = newsLastUpdated
+		webdata["UpdatingNewsNow"] = updatingNewsNow
+		return sql.NullTime{}, false
 	}
-	if err == nil && lastdone.LastStatus == "success" {
-		newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time.In(webdata["tzlocation"].(*time.Location))}
+	if lastdone.LastStatus == "success" {
+		newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time}
+		zerolog.Ctx(ctx).Info().Msg(fmt.Sprintf("lastdone was %s", lastdone.LastDoneDatetime.Time.Format(sqlDatetimeSearchType)))
 		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
+			zerolog.Ctx(ctx).Info().Str("symbol", ticker.TickerSymbol).Msg("its been long enough, lets go get news")
 			err = ticker.queueUpdateNews(ctx)
-			updatingNewsNow = err == nil
+			updatingNewsNow = (err == nil)
+		} else {
+			newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time.In(webdata["tzlocation"].(*time.Location))}
+			updatingNewsNow = false
 		}
 	} else {
+		zerolog.Ctx(ctx).Info().Str("symbol", ticker.TickerSymbol).Msg("last try failed, lets try to get news again")
 		err = ticker.queueUpdateNews(ctx)
-		updatingNewsNow = err == nil
+		updatingNewsNow = (err == nil)
 	}
-	webdata["NewsLastUpdated"] = newsLastUpdated
-	webdata["UpdatingNewsNow"] = updatingNewsNow
 
 	return newsLastUpdated, updatingNewsNow
 }

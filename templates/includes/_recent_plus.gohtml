@@ -3,21 +3,21 @@
                 <div class="row g-0">
                 {{range .recentplus}}
                 <div class="col-1 mt-1 card me-2 ticker-card ticker" style="width:13rem;" data-symbol="{{.TickerSymbol}}"}}>
-                  <div class="card-title bg-warning text-dark px-2 py-1">{{.TickerSymbol}}/{{.Exchange | ToLower}}</div>
+                  <div class="card-title bg-warning text-dark px-2 py-1">{{if .TickerFavIconCDATA}}<img class="favicon" src="data:image/ico;base64,{{.TickerFavIconCDATA}}">{{end}} {{.TickerSymbol}}/{{.Exchange | ToLower}}</div>
                   <div class="card-body small pt-0 px-1">
                     <div class="row nowrap me-0"><a href="/view/{{.TickerSymbol}}" class="hide-link stretched-link">{{.TickerName}}&nbsp;</a></div>
                     <div class="row">
                       <div class="col-12">
                         {{if .LiveQuote.QuotePrice }}
                           <span id="{{.TickerSymbol}}_quote_shareprice">{{- printf "$%.2f" .LiveQuote.QuotePrice}}</span>
-                          {{- if gt .LiveQuote.QuoteChange 0.0 }} <span id="quote_dailymove_text"><i id="quote_dailymove" class="text-success fas fa-arrow-up"></i></span>
-                          {{- else if lt .LiveQuote.QuoteChange 0.0 }} <span id="quote_dailymove_text"><i id="quote_dailymove" class="text-danger fas fa-arrow-down"></i></span>
-                          {{- else }} <span id="quote_dailymove_text"><i id="quote_dailymove" class="fa-solid fa-equals"></i></span>
+                          {{- if gt .LiveQuote.QuoteChange 0.0 }} <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="text-success fas fa-arrow-up"></i></span>
+                          {{- else if lt .LiveQuote.QuoteChange 0.0 }} <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="text-danger fas fa-arrow-down"></i></span>
+                          {{- else }} <span id="quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="fa-solid fa-equals"></i></span>
                           {{- end }}
                           {{- if gt .LiveQuote.QuoteChangePct 5.0 }}<span class="text-success">
                           {{- else if lt .LiveQuote.QuoteChangePct -5.0 }}<span class="text-danger">
                           {{- end }}
-                          <span id="{{.TickerSymbol}}_quote_change">{{- printf " $%.2f" .LiveQuote.QuoteChange }}</span>
+                          &nbsp;<span id="{{.TickerSymbol}}_quote_change">{{- printf " $%.2f" .LiveQuote.QuoteChange }}</span>
                           (<span id="{{.TickerSymbol}}_quote_change_pct">{{ printf "%.2f%%" .LiveQuote.QuoteChangePct }}</span>)
                           {{- if gt .LiveQuote.QuoteChangePct 5.0 }} <i class="h5 text-warning fa-light fa-chart-line-up"></i></span>
                           {{- else if lt .LiveQuote.QuoteChangePct -5.0 }} <i class="h5 text-warning fa-light fa-chart-line-down"></i></span>
@@ -25,7 +25,7 @@
                           </span><br/>
                           <span class="text-info"> as of </span><span class="text-light small"><span id="{{.TickerSymbol}}_quote_asof">{{ FormatUnixTime .LiveQuote.QuoteTime "Jan 2 15:04:05" }}</span></span>
                         {{- else}}
-                          {{- $diffperc := PriceDiffPercAmt .LastClose.ClosePrice .PriorClose.ClosePrice -}}
+                          {{- $diffperc := PriceDiffPercAmt .PriorClose.ClosePrice .LastClose.ClosePrice -}}
                           <span id="{{.TickerSymbol}}_quote_shareprice">{{- printf "$%.2f" .LastClose.ClosePrice }}</span>
                           {{- if eq .LastDailyMove "up"}} <i id="{{.TickerSymbol}}_quote_dailymove" class="text-success fas fa-arrow-up"></i>
                           {{- else if eq .LastDailyMove "down"}} <i id="{{.TickerSymbol}}_quote_dailymove" class="text-danger fas fa-arrow-down"></i>
@@ -33,9 +33,9 @@
                           {{- end}}
                           {{- if ge $diffperc 5.0}}<span class="text-success">{{end -}}
                           {{- if le $diffperc -5.0}}<span class="text-danger">{{end -}}
-                          &nbsp;<span id="{{.TickerSymbol}}_quote_change">{{ PriceDiffAmt .LastClose.ClosePrice .PriorClose.ClosePrice }}</span>
-                          (<span id="{{.TickerSymbol}}_quote_change_pct">{{ PriceDiffPerc .LastClose.ClosePrice .PriorClose.ClosePrice }}</span>)
-                          {{- if ge $diffperc 5.0}} <i class="text-warning fa-light fa-chart-line-up"></i></span>{{end -}}
+                          &nbsp;<span id="{{.TickerSymbol}}_quote_change">{{ PriceDiffAmt .PriorClose.ClosePrice .LastClose.ClosePrice }}</span>
+                          (<span id="{{.TickerSymbol}}_quote_change_pct">{{ PriceDiffPerc .PriorClose.ClosePrice .LastClose.ClosePrice }}</span>)
+                          {{- if ge $diffperc 5.0}} <i class="text-success fa-light fa-chart-line-up"></i></span>{{end -}}
                           {{- if le $diffperc -5.0}} <i class="text-warning fa-light fa-chart-line-down"></i></span>{{end -}}
                           <br/>
                           <span class="text-info"> at close on </span>
@@ -43,7 +43,7 @@
                         {{- end}}
                         <br/><br/>
                         Last Checked News:<br/>
-                        <span class="text-info"><span id="{{.TickerSymbol}}_last_checked_news">{{if .NewsLastUpdated.Valid }}{{.NewsLastUpdated.Time.Format "Jan 02 15:04"}}{{ else }}-{{end}}</span></span>
+                        <span class="text-info"><span id="{{.TickerSymbol}}_last_checked_news">{{if .LastCheckedNews.Valid }}{{.LastCheckedNews.Time.Format "Jan 02 15:04"}}{{ else }}-{{end}}</span></span>
                         <i id="{{.TickerSymbol}}_updating_news_now" class="ms-2 mb-2 fad fa-sync fa-spin{{if .UpdatingNewsNow}}{{else}} hide{{end}}"></i>
                       </div><!-- col-12 -->
                     </div><!-- row -->

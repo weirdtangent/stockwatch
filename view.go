@@ -45,7 +45,9 @@ func viewTickerDailyHandler() http.HandlerFunc {
 			return
 		}
 
-		getNewsLastUpdated(ctx, ticker)
+		lastCheckedNews, updatingNewsNow := getNewsLastUpdated(ctx, ticker)
+		webdata["LastCheckedNews"] = lastCheckedNews
+		webdata["UpdatingNewsNow"] = updatingNewsNow
 
 		// Add this ticker to recents list
 		recents, err := addTickerToRecents(ctx, r, ticker)

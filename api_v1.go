@@ -60,10 +60,13 @@ func apiQuotes(r *http.Request, jsonR *jsonResponseData) {
 	validTickers := []Ticker{}
 	validSymbols := []string{}
 	for _, symbol := range symbols {
+		if symbol == "" {
+			continue
+		}
 		ticker := Ticker{TickerSymbol: symbol}
 		err := ticker.getBySymbol(ctx)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Msg("Failed to find ticker")
+			zerolog.Ctx(ctx).Error().Str("symbol", symbol).Msg("Failed to find ticker")
 			continue
 		}
 		validSymbols = append(validSymbols, symbol)
@@ -79,7 +82,7 @@ func apiQuotes(r *http.Request, jsonR *jsonResponseData) {
 				jsonR.Data[symbol+":last_checked_news"] = "not yet"
 			}
 		}
-		jsonR.Data[symbol+":updating_news_now"] = strconv.FormatBool(updatingNewsNow)
+		jsonR.Data[symbol+":updating_news_now"] = updatingNewsNow
 	}
 
 	// if the market is open, lets get a live quote
