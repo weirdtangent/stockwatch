@@ -224,42 +224,6 @@ func (t *Ticker) needEODs(ctx context.Context) bool {
 	return !priorEOD
 }
 
-// we need to get two days of the most recent EOD prices for this ticker
-// on a weekend, or a weekday before open, we need the last work day, and the day before
-// on a weekday during market hours, or after close, we need the live quote and the prior work day
-func (t *Ticker) getLastAndPriorClose(ctx context.Context) (*TickerDaily, *TickerDaily) {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-	webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
-
-	location := webdata["tzlocation"].(*time.Location)
-	currentDate := time.Now().In(location)
-	currentWeekday := currentDate.Weekday()
-	timeStr := currentDate.Format("1505")
-
-	// Lets assume "today's" close
-	lastCloseDate := currentDate
-	lastCloseDateStr := currentDate.Format("2006-01-02")
-
-	// but: up until 9:30am on weekdays or anytime on weekends, we want prior workday's close
-	if currentWeekday == time.Saturday || currentWeekday == time.Sunday || timeStr < "0930" {
-		lastCloseDate = mytime.PriorWorkDate(lastCloseDate)
-		lastCloseDateStr = lastCloseDate.Format("2006-01-02")
-	}
-
-	var lastClose TickerDaily
-	db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? AND price_date<=? ORDER BY price_date DESC LIMIT 1`, t.TickerId, lastCloseDateStr).StructScan(&lastClose)
-	lastClose.PriceDatetime, _ = time.Parse(sqlDatetimeParseType, lastClose.PriceDate[:11]+lastClose.PriceTime+"Z")
-
-	// ok and now get the prior day to that
-	lastCloseDateStr = mytime.PriorWorkDate(lastCloseDate).Format(sqlDateParseType)
-
-	var priorClose TickerDaily
-	db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? AND price_date<=? ORDER BY price_date DESC LIMIT 1`, t.TickerId, lastCloseDateStr).StructScan(&priorClose)
-	priorClose.PriceDatetime, _ = time.Parse(sqlDatetimeParseType, priorClose.PriceDate[:11]+priorClose.PriceTime+"Z")
-
-	return &lastClose, &priorClose
-}
-
 func (t Ticker) haveEODForDate(ctx context.Context, dateStr string) bool {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 

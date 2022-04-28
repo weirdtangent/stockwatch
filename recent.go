@@ -106,7 +106,7 @@ func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, er
 			ticker := tickers[n]
 			exchange := exchanges[n]
 
-			lastClose, priorClose := ticker.getLastAndPriorClose(ctx)
+			lastTickerDaily, _ := getLastTickerDaily(ctx, ticker.TickerId)
 			lastDailyMove, _ := getLastTickerDailyMove(ctx, ticker.TickerId)
 
 			newsLastUpdated, updatingNewsNow := getNewsLastUpdated(ctx, ticker)
@@ -118,8 +118,8 @@ func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, er
 				TickerName:      ticker.TickerName,
 				CompanyName:     ticker.CompanyName,
 				LiveQuote:       quote,
-				LastClose:       *lastClose,
-				PriorClose:      *priorClose,
+				LastClose:       lastTickerDaily[0],
+				PriorClose:      lastTickerDaily[1],
 				LastDailyMove:   lastDailyMove,
 				NewsLastUpdated: newsLastUpdated,
 				UpdatingNewsNow: updatingNewsNow,

@@ -88,11 +88,11 @@ function phaseChange(response, symbol, item) {
     var newValue = response[`data`][dataId]
 
     if (oldValue != newValue) {
-        console.log(`going to set '${item}' for '${symbol}' from '${oldValue}' to '${newValue}'`);
+        // console.log(`going to set '${item}' for '${symbol}' from '${oldValue}' to '${newValue}'`);
         $(itemId).animate({opacity: 0}, 400, function() {
             $(itemId).text(newValue).animate({opacity: 1}, 400);
         });
     } else {
-        console.log(`leaving '${item}' for '${symbol}' alone since it hasn't changed`);
+        // console.log(`leaving '${item}' for '${symbol}' alone since it hasn't changed`);
     }
 }

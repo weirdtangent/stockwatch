@@ -18,7 +18,7 @@
                         <span id="{{.TickerSymbol}}_quote_change">{{ printf "$%.2f" .quote.QuoteChange }}</span>
                         (<span id="{{.TickerSymbol}}_quote_change_pct">{{ printf "%.2f%%" .quote.QuoteChangePct }}</span></span>)
                     {{- else -}}
-                      {{- $diffperc := PriceDiffPercAmt .lastClose.ClosePrice .priorClose.ClosePrice -}}
+                      {{- $diffperc := PriceDiffPercAmt .priorClose.ClosePrice .lastClose.ClosePrice -}}
                       {{- if eq .last_ticker_daily_move "up" }}
                         <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="h5 text-success fas fa-arrow-up"></i></span>
                       {{- else if eq .last_ticker_daily_move "down" -}}
@@ -27,8 +27,8 @@
                       {{- if ge $diffperc 5.0}}<span class="h5 text-success">
                       {{- else if le $diffperc -5.0}}<span class="h5 text-danger">
                       {{- else }}<span class="h5 text-light">{{ end -}}
-                        &nbsp;<span id="{{.TickerSymbol}}_quote_change">{{PriceDiffAmt .lastClose.ClosePrice .priorClose.ClosePrice }}</span>
-                        (<span id="{{.TickerSymbol}}_quote_change_pct">{{ PriceDiffPerc .lastClose.ClosePrice .priorClose.ClosePrice }}</span>)
+                        &nbsp;<span id="{{.TickerSymbol}}_quote_change">{{PriceDiffAmt .priorClose.ClosePrice .lastClose.ClosePrice }}</span>
+                        (<span id="{{.TickerSymbol}}_quote_change_pct">{{ PriceDiffPerc .priorClose.ClosePrice .lastClose.ClosePrice }}</span>)
                         {{- if ge $diffperc 5.0}} <i class="h5 text-warning fa-light fa-chart-line-up"></i>
                         {{- else if le $diffperc -5.0}} <i class="h5 text-warning fa-light fa-chart-line-down"></i>
                         {{- end}}

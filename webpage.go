@@ -60,7 +60,7 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	// get Ticker_Splits
 	tickerSplits, _ := ticker.getSplits(ctx)
 
-	lastClose, priorClose := ticker.getLastAndPriorClose(ctx)
+	lastTickerDaily, _ := getLastTickerDaily(ctx, ticker.TickerId)
 	lastTickerDailyMove, _ := getLastTickerDailyMove(ctx, ticker.TickerId)
 
 	// load up to last 100 days of EOD data
@@ -138,8 +138,8 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	webdata["ticker_description"] = tickerDescription
 	webdata["exchange"] = exchange
 	webdata["timespan"] = timespan
-	webdata["lastClose"] = lastClose
-	webdata["priorClose"] = priorClose
+	webdata["lastClose"] = lastTickerDaily[0]
+	webdata["priorClose"] = lastTickerDaily[1]
 	webdata["ticker_updowns"] = tickerUpDowns
 	webdata["ticker_attributes"] = tickerAttributes
 	webdata["ticker_splits"] = tickerSplits

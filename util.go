@@ -90,13 +90,13 @@ func isMarketOpen() bool {
 }
 
 func PriceDiffAmt(a, b float64) string {
-	return fmt.Sprintf("$%.2f", a-b)
+	return fmt.Sprintf("$%.2f", b-a)
 }
 
 func PriceDiffPerc(a, b float64) string {
-	return fmt.Sprintf("%.2f%%", (a-b)/a*100)
+	return fmt.Sprintf("%.2f%%", (b-a)/a*100)
 }
 
 func PriceDiffPercAmt(a, b float64) float64 {
-	return (a - b) / a * 100
+	return (b - a) / a * 100
 }
