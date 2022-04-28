@@ -1,7 +1,7 @@
 {{- define "desktop" -}}
 {{ template "_header" . }}
-          <script src="/static/js/desktop_recents.js"
-            data-tickers="{{range .recentplus}}{{.TickerSymbol}},{{end}}".slice(0, -1)
+          <script src="/static/js/quote_refresh.js"
+            data-symbols="{{range .recentplus}}{{.TickerSymbol}},{{end}}".slice(0, -1)
             data-is-market-open="{{.config.is_market_open}}"
             data-quote-refresh="{{.config.quote_refresh}}">
           </script>

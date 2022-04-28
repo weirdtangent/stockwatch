@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -36,9 +37,6 @@ func apiV1Handler() http.HandlerFunc {
 			jsonResponse.Success = true
 			jsonResponse.Message = "ok"
 
-		case "quote":
-			apiQuote(r, &jsonResponse)
-
 		case "quotes":
 			apiQuotes(r, &jsonResponse)
 
@@ -52,80 +50,14 @@ func apiV1Handler() http.HandlerFunc {
 	})
 }
 
-func apiQuote(r *http.Request, jsonResponse *jsonResponseData) {
-	ctx := r.Context()
-	symbol := r.FormValue("symbol")
-
-	zerolog.Ctx(ctx).With().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", jsonResponse.Endpoint).Str("symbol", symbol)
-
-	ticker := Ticker{TickerSymbol: symbol}
-	err := ticker.getBySymbol(ctx)
-	if err != nil {
-		zerolog.Ctx(ctx).Error().Msg("Failed to find ticker")
-		jsonResponse.Success = false
-		jsonResponse.Message = "Failure: unknown symbol"
-		return
-	}
-
-	newsLastUpdated, updatingNewsNow := getNewsLastUpdated(ctx, ticker)
-	if newsLastUpdated.Valid {
-		jsonResponse.Data["news_last_updated"] = newsLastUpdated.Time.Format("Jan 02 15:04")
-	} else {
-		if updatingNewsNow {
-			jsonResponse.Data["news_last_updated"] = "checking now"
-		} else {
-			jsonResponse.Data["news_last_updated"] = "-"
-		}
-	}
-	jsonResponse.Data["updating_news_now"] = updatingNewsNow
-
-	// if the market is open, lets get a live quote
-	if isMarketOpen() {
-		quote, err := loadTickerQuote(ctx, ticker.TickerSymbol)
-		if err != nil {
-			zerolog.Ctx(ctx).Error().Msg("Failed to get live quote")
-			jsonResponse.Success = false
-			jsonResponse.Message = "Failure: could not load quote"
-			return
-		}
-		jsonResponse.Success = true
-		jsonResponse.Message = "ok"
-
-		var dailyMove = "unchanged"
-		if quote.QuoteChange > 0 {
-			dailyMove = "up"
-		} else if quote.QuoteChange < 0 {
-			dailyMove = "down"
-		}
-
-		if quote.QuotePrice > 0 {
-			jsonResponse.Data["quote_shareprice"] = fmt.Sprintf("$%.2f", quote.QuotePrice)
-			jsonResponse.Data["quote_ask"] = fmt.Sprintf("$%.2f", quote.QuoteAsk)
-			jsonResponse.Data["quote_asksize"] = quote.QuoteAskSize
-			jsonResponse.Data["quote_bid"] = fmt.Sprintf("$%.2f", quote.QuoteBid)
-			jsonResponse.Data["quote_bidsize"] = quote.QuoteBidSize
-			jsonResponse.Data["quote_dailymove"] = dailyMove
-			jsonResponse.Data["quote_change"] = fmt.Sprintf("$%.2f", quote.QuoteChange)
-			jsonResponse.Data["quote_change_pct"] = fmt.Sprintf("%.2f%%", quote.QuoteChangePct)
-			jsonResponse.Data["quote_volume"] = quote.QuoteVolume
-			jsonResponse.Data["quote_asof"] = FormatUnixTime(quote.QuoteTime, "Jan 2 15:04")
-			jsonResponse.Data["quote_dailyrange"] = fmt.Sprintf("$%.2f - $%.2f", quote.QuoteLow, quote.QuoteHigh)
-			jsonResponse.Data["is_market_open"] = true
-		}
-	} else {
-		jsonResponse.Data["is_market_open"] = false
-		jsonResponse.Success = true
-		jsonResponse.Message = "Market closed, we already have latest info"
-	}
-}
-
-func apiQuotes(r *http.Request, jsonResponse *jsonResponseData) {
+func apiQuotes(r *http.Request, jsonR *jsonResponseData) {
 	ctx := r.Context()
 	symbolStr := r.FormValue("symbols")
 	symbols := strings.Split(symbolStr, ",")
 
-	zerolog.Ctx(ctx).With().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", jsonResponse.Endpoint).Str("symbols", symbolStr)
+	zerolog.Ctx(ctx).With().Str("api_version", jsonR.ApiVersion).Str("endpoint", jsonR.Endpoint).Str("symbols", symbolStr)
 
+	validTickers := []Ticker{}
 	validSymbols := []string{}
 	for _, symbol := range symbols {
 		ticker := Ticker{TickerSymbol: symbol}
@@ -134,19 +66,20 @@ func apiQuotes(r *http.Request, jsonResponse *jsonResponseData) {
 			zerolog.Ctx(ctx).Error().Msg("Failed to find ticker")
 			continue
 		}
-
 		validSymbols = append(validSymbols, symbol)
+		validTickers = append(validTickers, ticker)
+
 		newsLastUpdated, updatingNewsNow := getNewsLastUpdated(ctx, ticker)
 		if newsLastUpdated.Valid {
-			jsonResponse.Data[symbol+"|news_last_updated"] = newsLastUpdated.Time.Format("Jan 02 15:04")
+			jsonR.Data[symbol+":last_checked_news"] = newsLastUpdated.Time.Format("Jan 02 15:04")
 		} else {
 			if updatingNewsNow {
-				jsonResponse.Data[symbol+"|news_last_updated"] = "checking now"
+				jsonR.Data[symbol+":last_checked_news"] = "checking now"
 			} else {
-				jsonResponse.Data[symbol+"|news_last_updated"] = "-"
+				jsonR.Data[symbol+":last_checked_news"] = "not yet"
 			}
 		}
-		jsonResponse.Data[symbol+"updating_news_now"] = updatingNewsNow
+		jsonR.Data[symbol+":updating_news_now"] = strconv.FormatBool(updatingNewsNow)
 	}
 
 	// if the market is open, lets get a live quote
@@ -154,8 +87,8 @@ func apiQuotes(r *http.Request, jsonResponse *jsonResponseData) {
 		quotes, err := loadMultiTickerQuotes(ctx, symbols)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Msg("Failed to get live quotes")
-			jsonResponse.Success = false
-			jsonResponse.Message = "Failure: could not load quote"
+			jsonR.Success = false
+			jsonR.Message = "Failure: could not load quote"
 			return
 		}
 
@@ -173,25 +106,43 @@ func apiQuotes(r *http.Request, jsonResponse *jsonResponseData) {
 			}
 
 			if quote.QuotePrice > 0 {
-				jsonResponse.Data[symbol+"|quote_shareprice"] = fmt.Sprintf("$%.2f", quote.QuotePrice)
-				jsonResponse.Data[symbol+"|quote_ask"] = fmt.Sprintf("$%.2f", quote.QuoteAsk)
-				jsonResponse.Data[symbol+"|quote_asksize"] = quote.QuoteAskSize
-				jsonResponse.Data[symbol+"|quote_bid"] = fmt.Sprintf("$%.2f", quote.QuoteBid)
-				jsonResponse.Data[symbol+"|quote_bidsize"] = quote.QuoteBidSize
-				jsonResponse.Data[symbol+"|quote_dailymove"] = dailyMove
-				jsonResponse.Data[symbol+"|quote_change"] = fmt.Sprintf("$%.2f", quote.QuoteChange)
-				jsonResponse.Data[symbol+"|quote_change_pct"] = fmt.Sprintf("%.2f%%", quote.QuoteChangePct)
-				jsonResponse.Data[symbol+"|quote_volume"] = quote.QuoteVolume
-				jsonResponse.Data[symbol+"|quote_asof"] = FormatUnixTime(quote.QuoteTime, "Jan 2 15:04:05")
-				jsonResponse.Data[symbol+"|quote_dailyrange"] = fmt.Sprintf("$%.2f - $%.2f", quote.QuoteLow, quote.QuoteHigh)
+				jsonR.Data[symbol+":quote_shareprice"] = fmt.Sprintf("$%.2f", quote.QuotePrice)
+				jsonR.Data[symbol+":quote_ask"] = fmt.Sprintf("$%.2f", quote.QuoteAsk)
+				jsonR.Data[symbol+":quote_asksize"] = fmt.Sprintf("%d", quote.QuoteAskSize)
+				jsonR.Data[symbol+":quote_bid"] = fmt.Sprintf("$%.2f", quote.QuoteBid)
+				jsonR.Data[symbol+":quote_bidsize"] = fmt.Sprintf("%d", quote.QuoteBidSize)
+				jsonR.Data[symbol+":quote_dailymove"] = dailyMove
+				jsonR.Data[symbol+":quote_change"] = fmt.Sprintf("$%.2f", quote.QuoteChange)
+				jsonR.Data[symbol+":quote_change_pct"] = fmt.Sprintf("%.2f%%", quote.QuoteChangePct)
+				jsonR.Data[symbol+":quote_volume"] = fmt.Sprintf("%d", quote.QuoteVolume)
+				jsonR.Data[symbol+":quote_asof"] = FormatUnixTime(quote.QuoteTime, "Jan 2 15:04:05")
+				jsonR.Data[symbol+":quote_dailyrange"] = fmt.Sprintf("$%.2f - $%.2f", quote.QuoteLow, quote.QuoteHigh)
 			}
 		}
-		jsonResponse.Data["is_market_open"] = true
-		jsonResponse.Success = true
-		jsonResponse.Message = "ok"
+		jsonR.Data["is_market_open"] = strconv.FormatBool(true)
+		jsonR.Success = true
+		jsonR.Message = "ok"
 	} else {
-		jsonResponse.Data["is_market_open"] = false
-		jsonResponse.Success = true
-		jsonResponse.Message = "Market closed, we already have latest info"
+		for x, symbol := range validSymbols {
+			lastTickerDaily, err := getLastTickerDaily(ctx, validTickers[x].TickerId)
+			if err != nil {
+				zerolog.Ctx(ctx).Error().Err(err).Str("symbol", symbol).Msg("failed to get last 2 dailys for {symbol}")
+			}
+			dailyMove, err := getLastTickerDailyMove(ctx, validTickers[x].TickerId)
+			if err != nil {
+				zerolog.Ctx(ctx).Error().Err(err).Str("symbol", symbol).Msg("failed to get last 2 dailys for {symbol}")
+			}
+
+			jsonR.Data[symbol+":quote_shareprice"] = fmt.Sprintf("$%.2f", lastTickerDaily[0].ClosePrice)
+			jsonR.Data[symbol+":quote_dailymove"] = dailyMove
+			jsonR.Data[symbol+":quote_change"] = fmt.Sprintf("$%.2f", lastTickerDaily[0].ClosePrice-lastTickerDaily[1].ClosePrice)
+			jsonR.Data[symbol+":quote_change_pct"] = fmt.Sprintf("%.2f%%", (lastTickerDaily[0].ClosePrice-lastTickerDaily[1].ClosePrice)/lastTickerDaily[1].ClosePrice*100)
+			jsonR.Data[symbol+":quote_volume"] = fmt.Sprintf("%.0f", lastTickerDaily[0].Volume)
+			jsonR.Data[symbol+":quote_asof"] = lastTickerDaily[0].PriceDatetime.Format("Jan 2")
+			jsonR.Data[symbol+":quote_dailyrange"] = fmt.Sprintf("$%.2f - $%.2f", lastTickerDaily[0].LowPrice, lastTickerDaily[1].HighPrice)
+		}
+
+		jsonR.Data["is_market_open"] = strconv.FormatBool(false)
+		jsonR.Success = true
 	}
 }

@@ -133,6 +133,7 @@ func loadTickerDetails(ctx context.Context, symbol string, timespan int) (Ticker
 	var qtrPercChartHTML = chartHandlerFinancialsLine(ctx, ticker, &exchange, qtrPercStrs, qtrPercValues, 1)
 	var annPercChartHTML = chartHandlerFinancialsLine(ctx, ticker, &exchange, annPercStrs, annPercValues, 1)
 
+	webdata["TickerSymbol"] = symbol
 	webdata["ticker"] = ticker
 	webdata["ticker_description"] = tickerDescription
 	webdata["exchange"] = exchange

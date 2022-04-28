@@ -2,7 +2,7 @@
 {{- if .recentplus}}
                 <div class="row g-0">
                 {{range .recentplus}}
-                <div class="col-1 mt-1 card me-2 ticker-card" style="width:13rem;">
+                <div class="col-1 mt-1 card me-2 ticker-card ticker" style="width:13rem;" data-symbol="{{.TickerSymbol}}"}}>
                   <div class="card-title bg-warning text-dark px-2 py-1">{{.TickerSymbol}}/{{.Exchange | ToLower}}</div>
                   <div class="card-body small pt-0 px-1">
                     <div class="row nowrap me-0"><a href="/view/{{.TickerSymbol}}" class="hide-link stretched-link">{{.TickerName}}&nbsp;</a></div>
@@ -27,9 +27,9 @@
                         {{- else}}
                           {{- $diffperc := PriceDiffPercAmt .LastClose.ClosePrice .PriorClose.ClosePrice -}}
                           <span id="{{.TickerSymbol}}_quote_shareprice">{{- printf "$%.2f" .LastClose.ClosePrice }}</span>
-                          {{- if eq .LastDailyMove "up"}} <i id="quote_dailymove" class="text-success fas fa-arrow-up"></i>
-                          {{- else if eq .LastDailyMove "down"}} <i id="quote_dailymove" class="text-danger fas fa-arrow-down"></i>
-                          {{- else }}<i id="quote_dailymove" class="fa-solid fa-equals"></i>
+                          {{- if eq .LastDailyMove "up"}} <i id="{{.TickerSymbol}}_quote_dailymove" class="text-success fas fa-arrow-up"></i>
+                          {{- else if eq .LastDailyMove "down"}} <i id="{{.TickerSymbol}}_quote_dailymove" class="text-danger fas fa-arrow-down"></i>
+                          {{- else }}<i id="{{.TickerSymbol}}_quote_dailymove" class="fa-solid fa-equals"></i>
                           {{- end}}
                           {{- if ge $diffperc 5.0}}<span class="text-success">{{end -}}
                           {{- if le $diffperc -5.0}}<span class="text-danger">{{end -}}

@@ -613,7 +613,9 @@ func getLastTickerDailyMove(ctx context.Context, ticker_id uint64) (string, erro
 
 	var lastTickerDailyMove string
 	row := db.QueryRowx(
-		`SELECT IF(ticker_daily.close_price >= prev_daily.close_price,"up",IF(ticker_daily.close_price < prev_daily.close_price,"down","unknown")) AS lastTickerDailyMove
+		`SELECT IF(ticker_daily.close_price > prev_daily.close_price,"up",
+		        IF(ticker_daily.close_price < prev_daily.close_price,"down",
+				IF(ticker_daily.close_price = prev_daily.close_price,"unchanged", "unknown"))) AS lastTickerDailyMove
 		 FROM ticker_daily
 		 LEFT JOIN (
 		   SELECT ticker_id, close_price FROM ticker_daily AS prev_ticker_daily
@@ -621,10 +623,33 @@ func getLastTickerDailyMove(ctx context.Context, ticker_id uint64) (string, erro
 		 ) AS prev_daily ON (ticker_daily.ticker_id = prev_daily.ticker_id)
 		 WHERE ticker_daily.ticker_id=?
 		 ORDER BY price_date DESC
-		 LIMIT 1`,
+		 LIMIT 2`,
 		ticker_id, ticker_id)
 	err := row.Scan(&lastTickerDailyMove)
 	return lastTickerDailyMove, err
+}
+
+// load last ticker price
+func getLastTickerDaily(ctx context.Context, ticker_id uint64) ([]TickerDaily, error) {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+
+	lastTickerDaily := []TickerDaily{}
+	rows, err := db.Queryx(`SELECT * FROM ticker_daily WHERE ticker_daily.ticker_id=? ORDER BY price_date DESC LIMIT 2`, ticker_id)
+	if err != nil {
+		return []TickerDaily{}, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var tickerDaily TickerDaily
+		err := rows.StructScan(&tickerDaily)
+		if err != nil {
+			return []TickerDaily{}, err
+		}
+		tickerDaily.PriceDatetime, _ = time.Parse(sqlDatetimeParseType, tickerDaily.PriceDate[:11]+tickerDaily.PriceTime+"Z")
+		lastTickerDaily = append(lastTickerDaily, tickerDaily)
+	}
+	return lastTickerDaily, nil
 }
 
 func (td *TickerDescription) getByUniqueKey(ctx context.Context) error {
