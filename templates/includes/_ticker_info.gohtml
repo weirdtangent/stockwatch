@@ -27,8 +27,8 @@
                       {{- if ge $diffperc 5.0}}<span class="h5 text-success">
                       {{- else if le $diffperc -5.0}}<span class="h5 text-danger">
                       {{- else }}<span class="h5 text-light">{{ end -}}
-                        &nbsp;<span id="{{.TickerSymbol}}_quote_change">{{PriceDiffAmt .priorClose.ClosePrice .lastClose.ClosePrice }}</span>
-                        (<span id="{{.TickerSymbol}}_quote_change_pct">{{ PriceDiffPerc .priorClose.ClosePrice .lastClose.ClosePrice }}</span>)
+                        &nbsp;<span id="{{.TickerSymbol}}_quote_change">{{PriceDiffAmt .priorClose.ClosePrice .lastClose.ClosePrice}}</span>
+                        (<span id="{{.TickerSymbol}}_quote_change_pct">{{PriceDiffPerc .priorClose.ClosePrice .lastClose.ClosePrice}}</span>)
                         {{- if ge $diffperc 5.0}} <i class="h5 text-warning fa-light fa-chart-line-up"></i>
                         {{- else if le $diffperc -5.0}} <i class="h5 text-warning fa-light fa-chart-line-down"></i>
                         {{- end}}
