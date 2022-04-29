@@ -160,7 +160,7 @@ func addTickerToRecents(ctx context.Context, watcher Watcher, ticker Ticker) ([]
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
 	watcherRecent := WatcherRecent{0, watcher.WatcherId, ticker.TickerId, ticker.TickerSymbol, false, sql.NullTime{Valid: true, Time: time.Now()}, sql.NullTime{Valid: true, Time: time.Now()}}
-	err := watcherRecent.create(ctx)
+	err := watcherRecent.createOrUpdate(ctx)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to save to watcher_recent")
 	}

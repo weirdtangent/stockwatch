@@ -171,6 +171,19 @@ func (wr *WatcherRecent) create(ctx context.Context) error {
 	return nil
 }
 
+func (wr *WatcherRecent) createOrUpdate(ctx context.Context) error {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+
+	insert_or_update := "INSERT INTO watcher_recent SET watcher_id=?, ticker_id=?, locked=? ON DUPLICATE KEY UPDATE locked=?, update_datetime=NOW()"
+	_, err := db.Exec(insert_or_update, wr.WatcherId, wr.TickerId, wr.Locked, wr.Locked)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Str("table_name", "watcher_recent").Msg("failed on INSERT OR UPDATE")
+		return err
+	}
+
+	return nil
+}
+
 func (wr *WatcherRecent) lock(ctx context.Context) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
