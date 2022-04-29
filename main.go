@@ -19,6 +19,8 @@ const (
 
 	volumeUnits = 1_000_000 // factor to reduce volume counts by when graphing
 
+	maxRecentCount = 6
+
 	debugging = true // output DEBUG level logs
 
 )

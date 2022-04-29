@@ -8,7 +8,6 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/weirdtangent/yhfinance"
 )
 
@@ -158,6 +157,8 @@ func getRecentsPlusInfo(ctx context.Context, watcherRecents []WatcherRecent) (*[
 }
 
 func addTickerToRecents(ctx context.Context, watcher Watcher, ticker Ticker) ([]WatcherRecent, error) {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+
 	watcherRecent := WatcherRecent{0, watcher.WatcherId, ticker.TickerId, ticker.TickerSymbol, false, sql.NullTime{Valid: true, Time: time.Now()}, sql.NullTime{Valid: true, Time: time.Now()}}
 	err := watcherRecent.create(ctx)
 	if err != nil {
@@ -172,6 +173,19 @@ func addTickerToRecents(ctx context.Context, watcher Watcher, ticker Ticker) ([]
 	}
 	recent.createOrUpdate(ctx)
 
+	var count int32
+	err = db.QueryRowx("SELECT count(*) FROM watcher_recent WHERE watcher_id=?", watcher.WatcherId).Scan(&count)
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Str("table_name", "watcher_recent").Msg("failed on SELECT")
+	} else {
+		if count > maxRecentCount {
+			_, err := db.Exec("DELETE FROM watcher_recent WHERE watcher_id=? ORDER BY update_datetime LIMIT ?", watcher.WatcherId, count-maxRecentCount)
+			if err != nil {
+				zerolog.Ctx(ctx).Warn().Err(err).Str("table_name", "watcher_recent").Msg("failed on DELETE")
+			}
+		}
+	}
+
 	return getWatcherRecents(ctx, watcher), err
 }
 
@@ -185,7 +199,7 @@ func (r *Recent) createOrUpdate(ctx context.Context) error {
 	var insert_or_update = "INSERT INTO recent (ticker_id, ms_performance_id) VALUES(?, ?) ON DUPLICATE KEY UPDATE ms_performance_id=?, lastseen_datetime=now()"
 	_, err := db.Exec(insert_or_update, r.TickerId, r.MSPerformanceId, r.MSPerformanceId)
 	if err != nil {
-		log.Warn().Err(err).Str("table_name", "recent").Msg("failed on INSERT OR UPDATE")
+		zerolog.Ctx(ctx).Warn().Err(err).Str("table_name", "recent").Msg("failed on INSERT OR UPDATE")
 		return err
 	}
 	return nil
