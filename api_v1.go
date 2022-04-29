@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -29,6 +30,7 @@ func apiV1Handler() http.HandlerFunc {
 		endpoint := params["endpoint"]
 
 		jsonResponse := jsonResponseData{ApiVersion: "0.1.0", Endpoint: endpoint, Success: false, Data: make(map[string]interface{})}
+		log := zerolog.Ctx(ctx).With().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", jsonResponse.Endpoint).Logger()
 
 		switch endpoint {
 		case "version":
@@ -36,7 +38,10 @@ func apiV1Handler() http.HandlerFunc {
 			jsonResponse.Message = "ok"
 
 		case "quotes":
-			apiQuotes(r, &jsonResponse)
+			symbolStr := r.FormValue("symbols")
+			log = log.With().Str("symbols", symbolStr).Logger()
+			ctx = log.WithContext(ctx)
+			apiQuotes(ctx, symbolStr, &jsonResponse)
 
 		default:
 			zerolog.Ctx(ctx).Error().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", endpoint).Err(fmt.Errorf("failure: call to unknown api endpoint")).Msg("api call failed")
@@ -48,12 +53,8 @@ func apiV1Handler() http.HandlerFunc {
 	})
 }
 
-func apiQuotes(r *http.Request, jsonR *jsonResponseData) {
-	ctx := r.Context()
-	symbolStr := r.FormValue("symbols")
+func apiQuotes(ctx context.Context, symbolStr string, jsonR *jsonResponseData) {
 	symbols := strings.Split(symbolStr, ",")
-
-	zerolog.Ctx(ctx).With().Str("api_version", jsonR.ApiVersion).Str("endpoint", jsonR.Endpoint).Str("symbols", symbolStr)
 
 	validTickers := []Ticker{}
 	validSymbols := []string{}
