@@ -1,27 +1,32 @@
 {{- define "_sidemenu" -}}
         <div class="pt-1">
-          {{- if .WID}}
-            {{- if .watcher.WatcherPicURL}}
-            <div class="my-1 text-center">
-              <img id="profile_img" class="image-fluid rounded" alt="User's social media profile picture" src="{{.watcher.WatcherPicURL}}">
-            </div>
-            {{- end}}
-            <ul class="nav flex-column me-auto mb-2 mb-lg-0">
-              <li class="nav-item w-100 text-warning text-center welcome">Welcome back<br>{{.watcher.WatcherName}}!</li>
-              <li class="nav-item"><a class="nav-link ps-3" href="/desktop">Desktop</a></li>
-              <li class="nav-item"><a class="nav-link ps-3" href="/profile">My Profile</a></li>
-              <li class="nav-item"><a class="nav-link ps-3" href="#section2">Holding</a></li>
-              <li class="nav-item"><a class="nav-link ps-3" href="#section3">Watching</a></li>
-              <li class="nav-item"><a class="nav-link ps-3" href="/signout/{{.provider}}">Sign Out</a></li>
-            </ul>
-          {{- else}}
-            <div class="d-flex flex-column align-items-center pt-3">
-              <div class="login align-self-center"><a href="/auth/google"><img src="/static/images/vendor/google-sign-in.png"></a></div>
-              <div class="login align-self-center"><a href="/auth/facebook"><img src="/static/images/vendor/facebook-sign-in.png"></a></div>
-              <div class="login align-self-center"><a href="/auth/github" class="bg-primary btn btn-block btn-social btn-github"><i class="fa fa-github"></i> Sign in with GitHub</a></div>
-              <div class="login align-self-center"><a href="/auth/amazon"><img src="/static/images/vendor/amazon-sign-in.png"></a></div>
-              <div class="login align-self-center"><a href="/auth/twitter"><img src="/static/images/vendor/twitter-sign-in.png"></a></div>
-            </div>
+          {{- if .watcher.WatcherPicURL}}
+          <div class="my-1 text-center">
+            <img id="profile_img" class="image-fluid rounded" alt="User's social media profile picture" src="{{.watcher.WatcherPicURL}}">
+          </div>
           {{- end}}
+
+          <div class="d-flex flex-column align-items-center pt-3">
+            {{if .WID -}}
+            <h5 class="w-100 text-light text-center welcome">Welcome back<br>{{.watcher.WatcherName}}!</h5>
+            {{- end}}
+            <h4><span class="badge bg-warning text-dark"><a class="text-dark text-decoration-none" href="/desktop">Desktop</a></span></h4>
+            {{if .WID -}}
+            <h4><span class="badge bg-warning text-dark"><a class="text-dark text-decoration-none" href="/profile">My Profile</a></span></h4>
+            <h4><span class="badge bg-warning text-dark"><a class="text-dark text-decoration-none" href="#section2">Holding</a></span></h4>
+            <h4><span class="badge bg-warning text-dark"><a class="text-dark text-decoration-none" href="#section3">Watching</a></span></h4>
+            <h4><span class="badge bg-warning text-dark"><a class="text-dark text-decoration-none" href="/signout/{{.provider}}">Sign Out</a></span></h4>
+            {{- end }}
+
+            {{ if .WID -}}{{else}}
+            <hr class="m-2 text-white opacity-3">
+
+            <div class="login align-self-center py-2"><a href="/auth/google"><img src="/static/images/vendor/google-sign-in.png"></a></div>
+            <div class="login align-self-center py-2"><a href="/auth/facebook"><img src="/static/images/vendor/facebook-sign-in.png"></a></div>
+            <div class="login align-self-center py-2"><a href="/auth/github" class="bg-primary btn btn-block btn-social btn-github"><i class="fa fa-github"></i> Sign in with GitHub</a></div>
+            <div class="login align-self-center py-2"><a href="/auth/amazon"><img src="/static/images/vendor/amazon-sign-in.png"></a></div>
+            <div class="login align-self-center py-2"><a href="/auth/twitter"><img src="/static/images/vendor/twitter-sign-in.png"></a></div>
+            {{end}}
+          </div>
         </div>
 {{- end}}

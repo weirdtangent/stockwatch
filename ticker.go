@@ -3,15 +3,12 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto/sha1"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
@@ -437,7 +434,7 @@ func (t Ticker) getSplits(ctx context.Context) ([]TickerSplit, error) {
 func (t Ticker) queueUpdateNews(ctx context.Context) error {
 	awssess := ctx.Value(ContextKey("awssess")).(*session.Session)
 	awssvc := sqs.New(awssess)
-	queueName := "stockwatch-tickers-news"
+	queueName := "stockwatch-tickers"
 
 	urlResult, err := awssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
 		QueueName: &queueName,
@@ -472,7 +469,7 @@ func (t Ticker) queueUpdateNews(ctx context.Context) error {
 func (t Ticker) queueUpdateFinancials(ctx context.Context) error {
 	awssess := ctx.Value(ContextKey("awssess")).(*session.Session)
 	awssvc := sqs.New(awssess)
-	queueName := "stockwatch-tickers-financials"
+	queueName := "stockwatch-tickers"
 
 	urlResult, err := awssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
 		QueueName: &queueName,
@@ -800,64 +797,50 @@ func (t *Ticker) GetFinancials(ctx context.Context, period, chartType string, is
 	return periodStrs, barValues, nil
 }
 
-// type ByQuarter BarFinancials
-
-// func (a ByQuarter) Len() int { return len(a.Quarterly) }
-// func (a ByQuarter) Less(i, j int) bool {
-// 	return a.Days[i].PriceDate < a.Days[j].PriceDate
-// }
-// func (a ByQuarter) Swap(i, j int) { a.Days[i], a.Days[j] = a.Days[j], a.Days[i] }
-
-// func (td ByQuarter) Sort() *TickerDailies {
-// 	sort.Sort(ByTickerPriceDate(td))
-// 	return &td
-// }
-
-func (t *Ticker) saveFavIcon(ctx context.Context) error {
+func (t Ticker) queueSaveFavIcon(ctx context.Context) error {
 	awssess := ctx.Value(ContextKey("awssess")).(*session.Session)
+	awssvc := sqs.New(awssess)
+	queueName := "stockwatch-tickers"
 
-	if t.Website == "" {
-		return fmt.Errorf("website not defined for symbol")
-	}
-	resp, err := http.Get(t.Website + "/favicon.ico")
+	urlResult, err := awssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
+		QueueName: &queueName,
+	})
 	if err != nil {
 		return err
 	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	faviconData := string(body)
 
-	s3svc := s3.New(awssess)
-	sha1Hash := sha1.New()
-	io.WriteString(sha1Hash, faviconData)
-	s3Key := fmt.Sprintf("Tickers/FavIcons/%s-%x", t.TickerSymbol, sha1Hash.Sum(nil))
-
-	inputPutObj := &s3.PutObjectInput{
-		Body:   aws.ReadSeekCloser(strings.NewReader(faviconData)),
-		Bucket: aws.String(awsPrivateBucketName),
-		Key:    aws.String(s3Key),
+	type TaskTickerNewsBody struct {
+		TickerId     uint64 `json:"ticker_id"`
+		TickerSymbol string `json:"ticker_symbol"`
+		ExchangeId   uint64 `json:"exchange_id"`
 	}
 
-	_, err = s3svc.PutObject(inputPutObj)
-	if err != nil {
-		return err
-	}
-	t.FavIconS3Key = s3Key
-	t.createOrUpdate(ctx)
-
-	return nil
+	// get next message from queue, if any
+	queueURL := urlResult.QueueUrl
+	messageBytes, _ := json.Marshal(TaskTickerNewsBody{TickerSymbol: t.TickerSymbol})
+	messageBody := string(messageBytes)
+	messageAttributes := map[string]*sqs.MessageAttributeValue{
+		"action": {
+			DataType:    aws.String("String"),
+			StringValue: aws.String("favicon"),
+		}}
+	_, err = awssvc.SendMessage(&sqs.SendMessageInput{
+		MessageBody:       aws.String(messageBody),
+		MessageAttributes: messageAttributes,
+		QueueUrl:          queueURL,
+	})
+	return err
 }
 
 func (t *Ticker) getFavIconCDATA(ctx context.Context) string {
 	awssess := ctx.Value(ContextKey("awssess")).(*session.Session)
 
+	if t.FavIconS3Key == "none" {
+		return ""
+	}
 	if t.FavIconS3Key == "" {
-		err := t.saveFavIcon(ctx)
-		if err != nil || t.FavIconS3Key == "" {
-			return ""
-		}
+		t.queueSaveFavIcon(ctx)
+		return ""
 	}
 	redisPool := ctx.Value(ContextKey("redisPool")).(*redis.Pool)
 
@@ -866,10 +849,10 @@ func (t *Ticker) getFavIconCDATA(ctx context.Context) string {
 
 	// pull URL from redis (1 day expire), or go get from AWS
 	redisKey := "aws/s3/" + t.FavIconS3Key
-	url, err := redis.String(redisConn.Do("GET", redisKey))
+	data, err := redis.String(redisConn.Do("GET", redisKey))
 	if err == nil && !skipRedisChecks {
 		zerolog.Ctx(ctx).Info().Str("symbol", t.TickerSymbol).Str("redis_key", redisKey).Msg("redis cache hit")
-		return url
+		return data
 	}
 
 	s3svc := s3.New(awssess)
@@ -878,8 +861,9 @@ func (t *Ticker) getFavIconCDATA(ctx context.Context) string {
 		Bucket: aws.String(awsPrivateBucketName),
 		Key:    aws.String(t.FavIconS3Key),
 	}
-	resp, _ := s3svc.GetObject(inputGetObj)
+	resp, err := s3svc.GetObject(inputGetObj)
 	if err != nil {
+		zerolog.Ctx(ctx).Info().Msg(fmt.Sprintf("%#v", err))
 		zerolog.Ctx(ctx).Error().Err(err).Str("symbol", t.TickerSymbol).Str("s3key", t.FavIconS3Key).Msg("failed to get s3 object from aws")
 		return ""
 	}
@@ -897,12 +881,12 @@ func (t *Ticker) getFavIconCDATA(ctx context.Context) string {
 		}
 	}
 
-	data := base64.StdEncoding.EncodeToString(bbuffer.Bytes())
+	data = base64.StdEncoding.EncodeToString(bbuffer.Bytes())
 
 	_, err = redisConn.Do("SET", redisKey, data, "EX", 60*60*24)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Str("symbol", t.TickerSymbol).Str("redis_key", redisKey).Msg("failed to save to redis")
 	}
 
-	return url
+	return data
 }

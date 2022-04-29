@@ -3,11 +3,9 @@ package main
 import (
 	"context"
 	"database/sql"
-	"net/http"
 	"strings"
 	"time"
 
-	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -35,134 +33,136 @@ type RecentPlus struct {
 	UpdatingNewsNow    bool
 }
 
-func getRecents(session *sessions.Session, r *http.Request) (*[]string, error) {
-	var recents []string
+func getWatcherRecents(ctx context.Context, watcher Watcher) []WatcherRecent {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
-	if session.Values["recents"] != nil {
-		recents = session.Values["recents"].([]string)
+	watcherRecents := make([]WatcherRecent, 0, 30)
+	if watcher.WatcherId == 0 {
+		zerolog.Ctx(ctx).Info().Msg("watcher not logged in, so no recents are stored")
+		return watcherRecents
 	}
 
-	return &recents, nil
+	rows, err := db.Queryx(`
+	  SELECT watcher_recent.*, ticker.ticker_symbol
+	  FROM watcher_recent
+	  LEFT JOIN ticker USING (ticker_id)
+	  WHERE watcher_id=?
+	  ORDER BY watcher_recent.update_datetime DESC`, watcher.WatcherId)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Str("table_name", "watcher_recent").Msg("Failed on SELECT")
+		return []WatcherRecent{}
+	}
+	defer rows.Close()
+
+	var watcherRecent WatcherRecent
+	for rows.Next() {
+		err = rows.StructScan(&watcherRecent)
+		if err != nil {
+			zerolog.Ctx(ctx).Fatal().Err(err).Str("table_name", "watcher_recent").Msg("Error reading result rows")
+			continue
+		}
+		watcherRecents = append(watcherRecents, watcherRecent)
+	}
+	if err := rows.Err(); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Str("table_name", "watch").Msg("Error reading result rows")
+	}
+	return watcherRecents
 }
 
-func getRecentsPlusInfo(ctx context.Context, r *http.Request) (*[]RecentPlus, error) {
-	session := getSession(r)
+func getRecentsPlusInfo(ctx context.Context, watcherRecents []WatcherRecent) (*[]RecentPlus, error) {
 	var recentPlus []RecentPlus
 
-	if session.Values["recents"] != nil {
-		recents := session.Values["recents"].([]string)
-		if len(recents) == 0 {
-			return &recentPlus, nil
+	symbols := []string{}
+	tickers := []Ticker{}
+	exchanges := []Exchange{}
+	quotes := map[string]yhfinance.YFQuote{}
+	// Load up all the tickers and exchanges and fill arrays
+	for _, watcherRecent := range watcherRecents {
+		zerolog.Ctx(ctx).Info().Msg("checking on watcher_recent" + watcherRecent.TickerSymbol)
+		ticker := Ticker{TickerId: watcherRecent.TickerId}
+		err := ticker.getById(ctx)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load recent {symbol}")
+			continue
 		}
-		symbols := []string{}
-		tickers := []Ticker{}
-		exchanges := []Exchange{}
-		quotes := map[string]yhfinance.YFQuote{}
-		// Load up all the tickers and exchanges and fill arrays
-		for _, symbol := range recents {
-			ticker := Ticker{TickerSymbol: symbol}
-			err := ticker.getBySymbol(ctx)
+		tickers = append(tickers, ticker)
+		symbols = append(symbols, ticker.TickerSymbol)
+
+		if ticker.FavIconS3Key == "" {
+			err := ticker.queueSaveFavIcon(ctx)
 			if err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load recent {symbol}")
-				continue
-			}
-			tickers = append(tickers, ticker)
-			symbols = append(symbols, ticker.TickerSymbol)
-
-			if ticker.FavIconS3Key == "" {
-				err := ticker.saveFavIcon(ctx)
-				if err != nil {
-					zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to save favicon for recent {symbol}")
-				}
-			}
-
-			exchange := Exchange{ExchangeId: uint64(ticker.ExchangeId)}
-			err = exchange.getById(ctx)
-			if err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load exchange for recent {symbol}")
-				continue
-			}
-			exchanges = append(exchanges, exchange)
-
-			quotes[ticker.TickerSymbol] = yhfinance.YFQuote{}
-		}
-
-		// if market open, get all quotes in one call
-		if isMarketOpen() {
-			var err error
-			quotes, err = loadMultiTickerQuotes(ctx, symbols)
-			if err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Str("symbols", strings.Join(symbols, ",")).Msg("failed to load quote for recent {symbol}")
-				return &recentPlus, err
-			}
-		} else {
-			// if it is a workday after 4 and we don't have the EOD (or not an EOD from
-			// AFTER 4pm) or we don't have the prior workday EOD, get them
-			for _, ticker := range tickers {
-				if ticker.needEODs(ctx) {
-					loadTickerEODs(ctx, ticker)
-				}
+				zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to queue save favicon for recent {symbol}")
 			}
 		}
 
-		// build recentPlus array
-		for n, symbol := range symbols {
-			quote, ok := quotes[symbol]
-			if !ok {
-				continue
-			}
-			ticker := tickers[n]
-			exchange := exchanges[n]
-
-			lastTickerDaily, _ := getLastTickerDaily(ctx, ticker.TickerId)
-			lastDailyMove, _ := getLastTickerDailyMove(ctx, ticker.TickerId)
-
-			lastCheckedNews, updatingNewsNow := getNewsLastUpdated(ctx, ticker)
-
-			recentPlus = append(recentPlus, RecentPlus{
-				TickerId:           ticker.TickerId,
-				TickerSymbol:       ticker.TickerSymbol,
-				TickerFavIconCDATA: ticker.getFavIconCDATA(ctx),
-				Exchange:           exchange.ExchangeAcronym,
-				TickerName:         ticker.TickerName,
-				CompanyName:        ticker.CompanyName,
-				LiveQuote:          quote,
-				LastClose:          lastTickerDaily[0],
-				PriorClose:         lastTickerDaily[1],
-				LastDailyMove:      lastDailyMove,
-				LastCheckedNews:    lastCheckedNews,
-				UpdatingNewsNow:    updatingNewsNow,
-			})
+		exchange := Exchange{ExchangeId: uint64(ticker.ExchangeId)}
+		err = exchange.getById(ctx)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load exchange for recent {symbol}")
+			continue
 		}
+		exchanges = append(exchanges, exchange)
+
+		quotes[ticker.TickerSymbol] = yhfinance.YFQuote{}
+	}
+
+	// if market open, get all quotes in one call
+	if isMarketOpen() {
+		var err error
+		quotes, err = loadMultiTickerQuotes(ctx, symbols)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Str("symbols", strings.Join(symbols, ",")).Msg("failed to load quote for recent {symbol}")
+			return &recentPlus, err
+		}
+	} else {
+		// if it is a workday after 4 and we don't have the EOD (or not an EOD from
+		// AFTER 4pm) or we don't have the prior workday EOD, get them
+		for _, ticker := range tickers {
+			if ticker.needEODs(ctx) {
+				loadTickerEODs(ctx, ticker)
+			}
+		}
+	}
+
+	// build recentPlus array
+	for n, symbol := range symbols {
+		quote, ok := quotes[symbol]
+		if !ok {
+			continue
+		}
+		ticker := tickers[n]
+		exchange := exchanges[n]
+
+		lastTickerDaily, _ := getLastTickerDaily(ctx, ticker.TickerId)
+		lastDailyMove, _ := getLastTickerDailyMove(ctx, ticker.TickerId)
+
+		lastCheckedNews, updatingNewsNow := getNewsLastUpdated(ctx, ticker)
+
+		recentPlus = append(recentPlus, RecentPlus{
+			TickerId:           ticker.TickerId,
+			TickerSymbol:       ticker.TickerSymbol,
+			TickerFavIconCDATA: ticker.getFavIconCDATA(ctx),
+			Exchange:           exchange.ExchangeAcronym,
+			TickerName:         ticker.TickerName,
+			CompanyName:        ticker.CompanyName,
+			LiveQuote:          quote,
+			LastClose:          lastTickerDaily[0],
+			PriorClose:         lastTickerDaily[1],
+			LastDailyMove:      lastDailyMove,
+			LastCheckedNews:    lastCheckedNews,
+			UpdatingNewsNow:    updatingNewsNow,
+		})
 	}
 
 	return &recentPlus, nil
 }
 
-func addTickerToRecents(ctx context.Context, r *http.Request, ticker Ticker) (*[]string, error) {
-	// get current list (if any) from session
-	var recents []string
-
-	session := getSession(r)
-	if session.Values["recents"] != nil {
-		recents = session.Values["recents"].([]string)
+func addTickerToRecents(ctx context.Context, watcher Watcher, ticker Ticker) ([]WatcherRecent, error) {
+	watcherRecent := WatcherRecent{0, watcher.WatcherId, ticker.TickerId, ticker.TickerSymbol, false, sql.NullTime{Valid: true, Time: time.Now()}, sql.NullTime{Valid: true, Time: time.Now()}}
+	err := watcherRecent.create(ctx)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to save to watcher_recent")
 	}
-
-	// if this symbol/exchange is already on the list, remove it so we can add it to the front
-	for i, viewed := range recents {
-		if viewed == ticker.TickerSymbol {
-			recents = append(recents[:i], recents[i+1:]...)
-			break
-		}
-	}
-
-	// keep only the 5 most recent
-	if len(recents) >= 6 {
-		recents = recents[:5]
-	}
-	// prepend latest symbol to front of recents slice
-	recents = append([]string{ticker.TickerSymbol}, recents...)
-	session.Values["recents"] = recents
 
 	// add/update to recent table
 	recent := &Recent{
@@ -172,7 +172,7 @@ func addTickerToRecents(ctx context.Context, r *http.Request, ticker Ticker) (*[
 	}
 	recent.createOrUpdate(ctx)
 
-	return &recents, nil
+	return getWatcherRecents(ctx, watcher), err
 }
 
 func (r *Recent) createOrUpdate(ctx context.Context) error {

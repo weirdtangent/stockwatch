@@ -54,11 +54,14 @@
 
               <div class="col-5 align-self-center">
                 {{- if not .hideRecents}}
-                  {{- if .recents}}
+                  {{- if .WatcherRecents}}
                     <ul class="flex-grow-1 nav">
                       <li class="nav-item me-2 pt-2">Recent:</li>
-                      {{range .recents -}}
-                        <li class="nav-item me-1 pt-2 recent"><a class="badge text-dark bg-warning text-decoration-none" href="/view/{{.}}"><i class="fas fa-dollar-sign"></i>{{.}}</a></li>
+                      {{range .WatcherRecents -}}
+                        <li class="nav-item me-1 pt-2 recent">
+                          <a class="badge {{if .Locked}}text-light bg-success{{else}}text-dark bg-warning{{end}} text-decoration-none me-0" href="/view/{{.TickerSymbol}}"><i class="fas fa-dollar-sign"></i>{{.TickerSymbol}}
+                            <span class="ps-2"><i class="fa-light {{if .Locked}}fa-lock-open{{else}}fa-lock{{end}}"></i></a>
+                        </li>
                       {{end}}
                     </ul>
                   {{- end}}

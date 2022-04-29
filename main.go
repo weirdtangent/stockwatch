@@ -8,7 +8,7 @@ const (
 	httpPort = 3001
 
 	awsRegion            = "us-east-1"
-	awsPrivateBucketName = "stockwatch-graystorm"
+	awsPrivateBucketName = "stockwatch-private"
 
 	skipRedisChecks     = false // always skip the redis cache info
 	skipLocalTickerInfo = false // always fetch ticker info from yhfinance
@@ -20,6 +20,15 @@ const (
 	volumeUnits = 1_000_000 // factor to reduce volume counts by when graphing
 
 	debugging = true // output DEBUG level logs
+
+)
+
+var (
+// regexs
+// absoluteUrl         = regexp.MustCompile(`^https?\://\S+`)
+// relativeProtocolUrl = regexp.MustCompile(`^//\S+`)
+// getProtocolUrl      = regexp.MustCompile(`^https?\:`)
+// relativePathUrl     = regexp.MustCompile(`^/[^/]\S+`)
 )
 
 func main() {

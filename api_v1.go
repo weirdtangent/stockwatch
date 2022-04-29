@@ -21,9 +21,7 @@ type jsonResponseData struct {
 
 func apiV1Handler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		checkAuthState(w, r)
+		ctx, _ := checkAuthState(w, r)
 
 		w.Header().Add("Content-Type", "application/json")
 

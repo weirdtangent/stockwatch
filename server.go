@@ -250,7 +250,9 @@ func startHTTPServer(ctx context.Context, awssess *session.Session, db *sqlx.DB,
 	//router.HandleFunc("/tokensignin", signinHandler()).Methods("POST")
 	router.HandleFunc("/auth/{provider}", authLoginHandler()).Methods("GET")
 	router.HandleFunc("/auth/{provider}/callback", authCallbackHandler()).Methods("GET")
+	router.HandleFunc("/signout/", signoutHandler()).Methods("GET")
 	router.HandleFunc("/signout/{provider}", signoutHandler()).Methods("GET")
+	router.HandleFunc("/logout/", signoutHandler()).Methods("GET")
 	router.HandleFunc("/logout/{provider}", signoutHandler()).Methods("GET")
 
 	router.HandleFunc("/ping", pingHandler()).Methods("GET")

@@ -23,12 +23,12 @@ type Profile struct {
 
 func profileHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
+		ctx, watcher := checkAuthState(w, r)
+
 		messages := ctx.Value(ContextKey("messages")).(*[]Message)
 		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 
-		var ok bool
-		if ctx, ok = checkAuthState(w, r); !ok {
+		if watcher.WatcherId == 0 {
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}

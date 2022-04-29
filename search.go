@@ -34,11 +34,10 @@ type SearchResult struct {
 
 func searchHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
+		ctx, _ := checkAuthState(w, r)
+
 		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 		messages := ctx.Value(ContextKey("messages")).(*[]Message)
-
-		checkAuthState(w, r)
 
 		// if ctx, ok := checkAuthState(w, r); !ok {
 		// 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)

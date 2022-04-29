@@ -3,7 +3,7 @@
                 <div class="row g-0">
                 {{range .recentplus}}
                 <div class="col-1 mt-1 card me-2 ticker-card ticker" style="width:13rem;" data-symbol="{{.TickerSymbol}}"}}>
-                  <div class="card-title bg-warning text-dark px-2 py-1">{{if .TickerFavIconCDATA}}<img class="favicon" src="data:image/ico;base64,{{.TickerFavIconCDATA}}">{{end}} {{.TickerSymbol}}/{{.Exchange | ToLower}}</div>
+                  <div class="card-title bg-warning text-dark px-2 py-1">{{if .TickerFavIconCDATA}}<img class="favicon mb-1 me-1" src="data:image/ico;base64,{{.TickerFavIconCDATA}}">{{end}}{{.TickerSymbol}}/{{.Exchange | ToLower}}</div>
                   <div class="card-body small pt-0 px-1">
                     <div class="row nowrap me-0"><a href="/view/{{.TickerSymbol}}" class="hide-link stretched-link">{{.TickerName}}&nbsp;</a></div>
                     <div class="row">

@@ -125,19 +125,17 @@ func deleteWIDCookie(w http.ResponseWriter, r *http.Request) {
 
 // check for WID cookie, set above when authenticated with Google 1-Tap
 // plus set some standard webdata keys we'll need for all/most pages
-func checkAuthState(w http.ResponseWriter, r *http.Request) (context.Context, bool) {
+func checkAuthState(w http.ResponseWriter, r *http.Request) (context.Context, Watcher) {
 	ctx := r.Context()
 	sc := ctx.Value(ContextKey("sc")).(*securecookie.SecureCookie)
 	webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 	nonce := ctx.Value(ContextKey("nonce")).(string)
 
 	session := getSession(r)
-	recents, _ := getRecents(session, r)
 	if session.Values["provider"] != nil {
 		webdata["provider"] = session.Values["provider"].(string)
 	}
 	webdata["config"] = ConfigData{}
-	webdata["recents"] = *recents
 	webdata["nonce"] = nonce
 	location, _ := time.LoadLocation("UTC")
 	webdata["tzlocation"] = location
@@ -172,12 +170,15 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) (context.Context, bo
 			webdata["WID"] = wid
 			webdata["watcher"] = watcher
 
+			watcherRecents := getWatcherRecents(ctx, watcher)
+			webdata["WatcherRecents"] = watcherRecents
+
 			location, err := time.LoadLocation(watcher.WatcherTimezone)
 			if err == nil {
 				webdata["tzlocation"] = location
 			}
 
-			return ctx, true
+			return ctx, watcher
 		}
 	}
 	// zerolog.Ctx(ctx).Info().Msg("Anonymous visitor found")
@@ -189,7 +190,7 @@ func checkAuthState(w http.ResponseWriter, r *http.Request) (context.Context, bo
 	webdata["scope"] = "openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
 	webdata["redirectTo"] = "https://stockwatch.graystorm.com/callback"
 
-	return ctx, false
+	return ctx, Watcher{}
 }
 
 // random string of bytes, use in nonce values, for example

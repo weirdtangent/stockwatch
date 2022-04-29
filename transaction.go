@@ -30,7 +30,7 @@ func transactionHandler() http.HandlerFunc {
 		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 		messages := ctx.Value(ContextKey("messages")).(*[]Message)
 
-		watcher := webdata["watcher"].(*Watcher)
+		watcher := webdata["watcher"].(Watcher)
 
 		params := mux.Vars(r)
 		action := params["action"]

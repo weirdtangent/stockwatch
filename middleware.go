@@ -21,7 +21,7 @@ import (
 var (
 	forwardedRE      = regexp.MustCompile(`for=(.*)`)
 	skipLoggingPaths = regexp.MustCompile(`^/(ping|metrics|static|favicon.ico)`)
-	obfuscateParams  = regexp.MustCompile(`(token|verifier|pwd|password)=([^\&]+)`)
+	obfuscateParams  = regexp.MustCompile(`(token|verifier|pwd|password|code|state)=([^\&]+)`)
 )
 
 // AddContext middleware ------------------------------------------------------
@@ -158,8 +158,20 @@ type Logger struct {
 	handler http.Handler
 }
 
+type StatusRecorder struct {
+	http.ResponseWriter
+	Status int
+}
+
+func (r *StatusRecorder) WriteHeader(status int) {
+	r.Status = status
+	r.ResponseWriter.WriteHeader(status)
+}
+
 func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t := time.Now()
+
+	recorder := &StatusRecorder{ResponseWriter: w, Status: 200}
 
 	// attach zerolog to request context
 	logTag := "stockwatch"
@@ -168,7 +180,7 @@ func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// handle the HTTP request
-	l.handler.ServeHTTP(w, r)
+	l.handler.ServeHTTP(recorder, r)
 
 	// don't logs these, no reason to
 	if !skipLoggingPaths.MatchString(r.URL.String()) {
@@ -184,7 +196,7 @@ func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		cleanURL := r.URL.String()
 		cleanURL = obfuscateParams.ReplaceAllString(cleanURL, "$1=xxxxxx")
 
-		zerolog.Ctx(ctx).Info().Str("url", cleanURL).Int("status_code", 200).Str("method", r.Method).Str("remote_ip_addr", remote_ip_addr).Int64("response_time", time.Since(t).Nanoseconds()).Msg("request")
+		zerolog.Ctx(ctx).Info().Str("url", cleanURL).Int("status_code", recorder.Status).Str("method", r.Method).Str("remote_ip_addr", remote_ip_addr).Int64("response_time", time.Since(t).Nanoseconds()).Msg("request")
 	}
 }
 func withLogging(h http.Handler) *Logger {
@@ -207,7 +219,6 @@ func (s *Session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if session.IsNew {
 		state := RandStringMask(32)
 		session.Values["state"] = state
-		session.Values["recents"] = []string{}
 		session.Values["theme"] = "dark"
 		err := session.Save(r, w)
 		if err != nil {

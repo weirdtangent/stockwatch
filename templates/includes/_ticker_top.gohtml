@@ -8,6 +8,7 @@
                       <span class="h5 text-light pe-3 text-lowercase">/{{.exchange.ExchangeAcronym}}</span>
                       <span class="h5 text-info">Name:</span>
                       <span class="h3 text-white">{{.ticker.TickerName}}</span>
+                      {{if .TickerFavIconCDATA}}<img class="favicon_big mb-3 ms-1" src="data:image/ico;base64,{{.TickerFavIconCDATA}}">{{end -}}
                     </div>
                     {{ template "_ticker_info" . }}
                   </div>

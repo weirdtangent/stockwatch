@@ -13,16 +13,10 @@ import (
 
 func viewTickerDailyHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
+		ctx, watcher := checkAuthState(w, r)
+
 		messages := ctx.Value(ContextKey("messages")).(*[]Message)
 		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
-
-		checkAuthState(w, r)
-
-		// if ctx, ok := checkAuthState(w, r); !ok {
-		// 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		// 	return
-		// }
 
 		params := mux.Vars(r)
 		symbol := params["symbol"]
@@ -48,13 +42,14 @@ func viewTickerDailyHandler() http.HandlerFunc {
 		lastCheckedNews, updatingNewsNow := getNewsLastUpdated(ctx, ticker)
 		webdata["LastCheckedNews"] = lastCheckedNews
 		webdata["UpdatingNewsNow"] = updatingNewsNow
+		webdata["TickerFavIconCDATA"] = ticker.getFavIconCDATA(ctx)
 
 		// Add this ticker to recents list
-		recents, err := addTickerToRecents(ctx, r, ticker)
+		watcherRecents, err := addTickerToRecents(ctx, watcher, ticker)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Err(err).Msg("failed to add ticker to recents list")
 		}
-		webdata["recents"] = *recents
+		webdata["WatcherRecents"] = watcherRecents
 
 		renderTemplateDefault(w, r, "view-daily")
 	})

@@ -6,7 +6,8 @@ import (
 
 func homeHandler(tmplname string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
+		ctx, _ := checkAuthState(w, r)
+
 		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
 		params := r.URL.Query()
 
@@ -15,8 +16,6 @@ func homeHandler(tmplname string) http.HandlerFunc {
 			deleteWIDCookie(w, r)
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		}
-
-		checkAuthState(w, r)
 
 		nextParam := params.Get("next")
 

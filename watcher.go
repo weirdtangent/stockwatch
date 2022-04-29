@@ -32,6 +32,16 @@ type WatcherEmail struct {
 	UpdateDatetime sql.NullTime `db:"update_datetime"`
 }
 
+type WatcherRecent struct {
+	WatcherRecentId uint64       `db:"watcher_recent_id"`
+	WatcherId       uint64       `db:"watcher_id"`
+	TickerId        uint64       `db:"ticker_id"`
+	TickerSymbol    string       `db:"ticker_symbol"`
+	Locked          bool         `db:"locked"`
+	CreateDatetime  sql.NullTime `db:"create_datetime"`
+	UpdateDatetime  sql.NullTime `db:"update_datetime"`
+}
+
 func (w *Watcher) update(ctx context.Context, email string) error {
 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
 
@@ -146,4 +156,39 @@ func getWatcherIdByEmail(ctx context.Context, email string) (uint64, error) {
 		}
 	}
 	return watcherId, err
+}
+
+func (wr *WatcherRecent) create(ctx context.Context) error {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+
+	insert := "INSERT INTO watcher_recent SET watcher_id=?, ticker_id=?, locked=?"
+	_, err := db.Exec(insert, wr.WatcherId, wr.TickerId, wr.Locked)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Str("table_name", "watcher_recent").Msg("failed on INSERT")
+		return err
+	}
+
+	return nil
+}
+
+func (wr *WatcherRecent) lock(ctx context.Context) error {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+
+	var update = "UPDATE watcher_recent SET locked=true WHERE watcher_id=? AND ticker_id=?"
+	_, err := db.Exec(update, wr.WatcherId, wr.TickerId)
+	if err != nil {
+		log.Warn().Err(err).Str("table_name", "watcher_recent").Msg("Failed on UPDATE")
+	}
+	return err
+}
+
+func (wr *WatcherRecent) unlock(ctx context.Context) error {
+	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+
+	var update = "UPDATE watcher_recent SET locked=false WHERE watcher_id=? AND ticker_id=?"
+	_, err := db.Exec(update, wr.WatcherId, wr.TickerId)
+	if err != nil {
+		log.Warn().Err(err).Str("table_name", "watcher_recent").Msg("Failed on UPDATE")
+	}
+	return err
 }
