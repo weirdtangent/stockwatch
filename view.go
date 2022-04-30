@@ -1,22 +1,21 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/rs/zerolog"
 
 	"github.com/weirdtangent/mymath"
 )
 
-func viewTickerDailyHandler() http.HandlerFunc {
+func viewTickerDailyHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, watcher := checkAuthState(w, r)
+		watcher := checkAuthState(w, r, deps)
 
-		messages := ctx.Value(ContextKey("messages")).(*[]Message)
-		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
+		// messages := *(deps.messages)
+		webdata := deps.webdata
+		sublog := deps.logger
 
 		params := mux.Vars(r)
 		symbol := params["symbol"]
@@ -26,31 +25,31 @@ func viewTickerDailyHandler() http.HandlerFunc {
 			if tsValue, err := strconv.ParseInt(tsParam, 10, 32); err == nil {
 				timespan = int(mymath.MinMax(tsValue, 15, 1825))
 			} else if err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Str("ts", tsParam).Msg("invalid timespan (ts) param")
+				sublog.Error().Err(err).Str("ts", tsParam).Msg("invalid timespan (ts) param")
 			}
-			zerolog.Ctx(ctx).Info().Int("timespan", timespan).Msg("")
+			sublog.Info().Int("timespan", timespan).Msg("")
 		}
 
-		ticker, err := loadTickerDetails(ctx, symbol, timespan)
+		ticker, err := loadTickerDetails(deps, symbol, timespan)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to load ticker details for viewing")
-			*messages = append(*messages, Message{fmt.Sprintf("Sorry, I had trouble loading that stock: %s", err.Error()), "danger"})
-			renderTemplateDefault(w, r, "desktop")
+			sublog.Error().Err(err).Msg("Failed to load ticker details for viewing")
+			// messages = append(messages, Message{fmt.Sprintf("Sorry, I had trouble loading that stock: %s", err.Error()), "danger"})
+			renderTemplateDefault(w, r, deps, "desktop")
 			return
 		}
 
-		lastCheckedNews, updatingNewsNow := getNewsLastUpdated(ctx, ticker)
+		lastCheckedNews, updatingNewsNow := getNewsLastUpdated(deps, ticker)
 		webdata["LastCheckedNews"] = lastCheckedNews
 		webdata["UpdatingNewsNow"] = updatingNewsNow
-		webdata["TickerFavIconCDATA"] = ticker.getFavIconCDATA(ctx)
+		webdata["TickerFavIconCDATA"] = ticker.getFavIconCDATA(deps)
 
 		// Add this ticker to recents list
-		watcherRecents, err := addTickerToRecents(ctx, watcher, ticker)
+		watcherRecents, err := addTickerToRecents(deps, watcher, ticker)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("failed to add ticker to recents list")
+			sublog.Error().Err(err).Msg("failed to add ticker to recents list")
 		}
 		webdata["WatcherRecents"] = watcherRecents
 
-		renderTemplateDefault(w, r, "view-daily")
+		renderTemplateDefault(w, r, deps, "view-daily")
 	})
 }

@@ -2,11 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
-
-	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog"
 )
 
 type ProfileEmail struct {
@@ -21,44 +17,44 @@ type Profile struct {
 	Emails         []ProfileEmail
 }
 
-func profileHandler() http.HandlerFunc {
+func profileHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, watcher := checkAuthState(w, r)
+		sublog := deps.logger
 
-		messages := ctx.Value(ContextKey("messages")).(*[]Message)
-		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
-
+		watcher := checkAuthState(w, r, deps)
 		if watcher.WatcherId == 0 {
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
 
-		profile, err := getProfile(r)
+		// messages := deps.messages
+		webdata := deps.webdata
+		profile, err := getProfile(deps)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to get profile info")
-			*messages = append(*messages, Message{fmt.Sprintf("Sorry, error retrieving your profile: %s", err.Error()), "danger"})
+			sublog.Error().Err(err).Msg("Failed to get profile info")
+			// messages = append(messages, Message{fmt.Sprintf("Sorry, error retrieving your profile: %s", err.Error()), "danger"})
 		}
 		webdata["profile"] = profile
-		renderTemplateDefault(w, r, "profile")
+
+		renderTemplateDefault(w, r, deps, "profile")
 	})
 }
 
-func getProfile(r *http.Request) (*Profile, error) {
-	ctx := r.Context()
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
-	session := getSession(r)
+func getProfile(deps *Dependencies) (*Profile, error) {
+	db := deps.db
+	sublog := deps.logger
+	session := getSession(deps)
 
 	var profile Profile
 
-	watcherId, err := getWatcherIdBySession(ctx, session.ID)
+	watcherId, err := getWatcherIdBySession(deps, session.ID)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to get profile from session")
+		sublog.Error().Err(err).Msg("Failed to get profile from session")
 		return &profile, err
 	}
-	var watcher Watcher
-	err = getWatcherById(ctx, &watcher, watcherId)
+	watcher, err := getWatcherById(deps, watcherId)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Uint64("watcher_id", watcherId).Msg("Failed to get profile from session")
+		sublog.Error().Err(err).Uint64("watcher_id", watcherId).Msg("Failed to get profile from session")
 		return &profile, err
 	}
 
@@ -68,7 +64,7 @@ func getProfile(r *http.Request) (*Profile, error) {
 
 	rows, err := db.Queryx("SELECT * FROM watcher_email WHERE watcher_id=? ORDER BY email_is_primary DESC, email_address", watcherId)
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Str("table_name", "watcher_email").Msg("Failed on SELECT")
+		sublog.Fatal().Err(err).Str("table_name", "watcher_email").Msg("Failed on SELECT")
 	}
 	defer rows.Close()
 
@@ -77,12 +73,12 @@ func getProfile(r *http.Request) (*Profile, error) {
 	for rows.Next() {
 		err = rows.StructScan(&watcherEmail)
 		if err != nil {
-			zerolog.Ctx(ctx).Fatal().Err(err).Str("table_name", "watcher_email").Msg("Error reading result rows")
+			sublog.Fatal().Err(err).Str("table_name", "watcher_email").Msg("Error reading result rows")
 		}
 		emails = append(emails, ProfileEmail{watcherEmail.EmailAddress, watcherEmail.IsPrimary})
 	}
 	if err := rows.Err(); err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Str("table_name", "watcher_email").Msg("Error reading result rows")
+		sublog.Fatal().Err(err).Str("table_name", "watcher_email").Msg("Error reading result rows")
 	}
 
 	profile.Emails = emails

@@ -1,7 +1,7 @@
 {{- define "desktop" -}}
 {{ template "_header" . }}
           <script src="/static/js/quote_refresh.js"
-            data-symbols="{{range .recentplus}}{{.TickerSymbol}},{{end}}".slice(0, -1)
+            data-symbols="{{range .RecentPlus}}{{.TickerSymbol}},{{end}}".slice(0, -1)
             data-is-market-open="{{.config.is_market_open}}"
             data-quote-refresh="{{.config.quote_refresh}}">
           </script>
@@ -37,7 +37,7 @@
 
               <div class="row g-0 mt-3">
                 <div id="movers" class="mt-1 col-12 col-lg-4 bg-dark opacity-6 me-2">
-                  <div class="bg-warning text-dark px-2 py-1">Movers and Shakers, {{.movers.ForDate}}</div>
+                  <div class="bg-warning text-dark px-2 py-1">Movers and Shakers, {{.Movers.ForDate}}</div>
                   <div id="carouselMovers" class="carousel slide mx-2 my-2" data-bs-ride="carousel">
                     <div class="carousel-indicators">
                       <button type="button" data-bs-target="#carouselMovers" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Gainers"></button>
@@ -49,7 +49,7 @@
                         <div class="bg-success rounded mx-2 my-2">
                           <h5 class="text-dark pt-2 ps-2">Gainers (by % gain)</h5>
                           <ul class="list-group small px-2 pb-5">
-                            {{range .movers.SortGainers}} {{- template "_mover" . }} {{end}}
+                            {{range .Movers.SortGainers}} {{- template "_mover" . }} {{end}}
                           </ul>
                         </div>
                       </div>
@@ -57,7 +57,7 @@
                         <div class="bg-danger rounded mx-2 my-2">
                           <h5 class="text-dark pt-2 ps-2">Losers (by % loss)</h5>
                           <ul class="list-group small px-2 pb-5">
-                            {{range .movers.SortLosers}} {{- template "_mover" . }} {{end}}
+                            {{range .Movers.SortLosers}} {{- template "_mover" . }} {{end}}
                           </ul>
                         </div>
                       </div>
@@ -65,7 +65,7 @@
                         <div class="bg-primary rounded mx-2 my-2">
                           <h5 class="text-dark pt-2 ps-2">Actives (by volume)</h5>
                           <ul class="list-group small px-2 pb-5">
-                            {{range .movers.Actives}} {{- template "_mover" . }} {{end}}
+                            {{range .Movers.Actives}} {{- template "_mover" . }} {{end}}
                           </ul>
                         </div>
                       </div>
@@ -76,7 +76,7 @@
                 <div class="mt-1 col-12 col-lg-7 bg-dark opacity-6">
                   <div class="bg-warning text-dark px-2 py-1">Recent Market/Financial News</div>
                   <div class="">
-                    {{range .articles}}
+                    {{range .Articles}}
                       {{- if .ArticleURL}}
                       <div class="text-light bg-dark row g-0 mx-2 pb-1 small nowrap">
                         <div class="">

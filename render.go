@@ -7,19 +7,18 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname string) {
-	ctx := r.Context()
-	config := ctx.Value(ContextKey("config")).(map[string]interface{})
-	webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
-	messages := ctx.Value(ContextKey("messages")).(*[]Message)
+func renderTemplateDefault(w http.ResponseWriter, r *http.Request, deps *Dependencies, tmplname string) {
+	config := deps.config
+	webdata := deps.webdata
+	// messages := deps.messages
+	sublog := deps.logger
 
 	config["template_name"] = tmplname
 
-	webdata["messages"] = Messages{*messages}
+	// webdata["messages"] = messages
 	webdata["config"] = config
 
 	funcMap := template.FuncMap{
@@ -37,17 +36,17 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 	tmpl := template.New("blank").Funcs(funcMap)
 	tmpl, err := tmpl.ParseGlob("templates/includes/*.gohtml")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Str("template_dir", "includes").Msg("Failed to parse template(s)")
+		sublog.Fatal().Err(err).Str("template_dir", "includes").Msg("Failed to parse template(s)")
 	}
 	tmpl, err = tmpl.ParseGlob("templates/modals/*.gohtml")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Str("template_dir", "modals").Msg("Failed to parse template(s)")
+		sublog.Fatal().Err(err).Str("template_dir", "modals").Msg("Failed to parse template(s)")
 	}
 	// Parse variable "about" page into template
 	if val, ok := webdata["about-contents_template"]; ok {
 		tmpl, err = tmpl.Parse("{{ define \"about-contents\" }}" + *val.(*string) + "{{end}}")
 		if err != nil {
-			zerolog.Ctx(ctx).Fatal().Err(err).Msg("Failed to parse 'about' page into template")
+			sublog.Fatal().Err(err).Msg("Failed to parse 'about' page into template")
 		}
 	}
 	// Parse all internal articles as templates
@@ -59,11 +58,11 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, tmplname stri
 	}
 	tmpl, err = tmpl.ParseFiles("templates/" + tmplname + ".gohtml")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Str("template", tmplname).Msg("Failed to parse template")
+		sublog.Fatal().Err(err).Str("template", tmplname).Msg("Failed to parse template")
 	}
 	err = tmpl.ExecuteTemplate(w, tmplname, webdata)
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Str("template", tmplname).Msg("Failed to execute template")
+		sublog.Fatal().Err(err).Str("template", tmplname).Msg("Failed to execute template")
 	}
 }
 

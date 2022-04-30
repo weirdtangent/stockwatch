@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/rs/zerolog"
 )
 
 type jsonResponseData struct {
@@ -20,9 +18,9 @@ type jsonResponseData struct {
 	Data       map[string]interface{} `json:"data"`
 }
 
-func apiV1Handler() http.HandlerFunc {
+func apiV1Handler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, _ := checkAuthState(w, r)
+		sublog := deps.logger
 
 		w.Header().Add("Content-Type", "application/json")
 
@@ -30,7 +28,8 @@ func apiV1Handler() http.HandlerFunc {
 		endpoint := params["endpoint"]
 
 		jsonResponse := jsonResponseData{ApiVersion: "0.1.0", Endpoint: endpoint, Success: false, Data: make(map[string]interface{})}
-		log := zerolog.Ctx(ctx).With().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", jsonResponse.Endpoint).Logger()
+		newlog := sublog.With().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", jsonResponse.Endpoint).Logger()
+		sublog = &newlog
 
 		switch endpoint {
 		case "version":
@@ -39,12 +38,12 @@ func apiV1Handler() http.HandlerFunc {
 
 		case "quotes":
 			symbolStr := r.FormValue("symbols")
-			log = log.With().Str("symbols", symbolStr).Logger()
-			ctx = log.WithContext(ctx)
-			apiQuotes(ctx, symbolStr, &jsonResponse)
+			// newlog := sublog.With().Str("sumbols", symbolStr).Logger()
+			// deps.logger = &newlog
+			apiQuotes(deps, symbolStr, &jsonResponse)
 
 		default:
-			zerolog.Ctx(ctx).Error().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", endpoint).Err(fmt.Errorf("failure: call to unknown api endpoint")).Msg("api call failed")
+			sublog.Error().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", endpoint).Err(fmt.Errorf("failure: call to unknown api endpoint")).Msg("api call failed")
 			jsonResponse.Success = false
 			jsonResponse.Message = "Failure: unknown endpoint"
 		}
@@ -53,7 +52,9 @@ func apiV1Handler() http.HandlerFunc {
 	})
 }
 
-func apiQuotes(ctx context.Context, symbolStr string, jsonR *jsonResponseData) {
+func apiQuotes(deps *Dependencies, symbolStr string, jsonR *jsonResponseData) {
+	sublog := deps.logger
+
 	symbols := strings.Split(symbolStr, ",")
 
 	validTickers := []Ticker{}
@@ -63,15 +64,15 @@ func apiQuotes(ctx context.Context, symbolStr string, jsonR *jsonResponseData) {
 			continue
 		}
 		ticker := Ticker{TickerSymbol: symbol}
-		err := ticker.getBySymbol(ctx)
+		err := ticker.getBySymbol(deps)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Str("symbol", symbol).Msg("Failed to find ticker")
+			sublog.Error().Str("symbol", symbol).Msg("Failed to find ticker")
 			continue
 		}
 		validSymbols = append(validSymbols, symbol)
 		validTickers = append(validTickers, ticker)
 
-		newsLastUpdated, updatingNewsNow := getNewsLastUpdated(ctx, ticker)
+		newsLastUpdated, updatingNewsNow := getNewsLastUpdated(deps, ticker)
 		if newsLastUpdated.Valid {
 			jsonR.Data[symbol+":last_checked_news"] = newsLastUpdated.Time.Format("Jan 02 15:04")
 		} else {
@@ -86,9 +87,9 @@ func apiQuotes(ctx context.Context, symbolStr string, jsonR *jsonResponseData) {
 
 	// if the market is open, lets get a live quote
 	if isMarketOpen() {
-		quotes, err := loadMultiTickerQuotes(ctx, symbols)
+		quotes, err := loadMultiTickerQuotes(deps, symbols)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Msg("Failed to get live quotes")
+			sublog.Error().Msg("Failed to get live quotes")
 			jsonR.Success = false
 			jsonR.Message = "Failure: could not load quote"
 			return
@@ -126,13 +127,13 @@ func apiQuotes(ctx context.Context, symbolStr string, jsonR *jsonResponseData) {
 		jsonR.Message = "ok"
 	} else {
 		for x, symbol := range validSymbols {
-			lastTickerDaily, err := getLastTickerDaily(ctx, validTickers[x].TickerId)
+			lastTickerDaily, err := getLastTickerDaily(deps, validTickers[x].TickerId)
 			if err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Str("symbol", symbol).Msg("failed to get last 2 dailys for {symbol}")
+				sublog.Error().Err(err).Str("symbol", symbol).Msg("failed to get last 2 dailys for {symbol}")
 			}
-			dailyMove, err := getLastTickerDailyMove(ctx, validTickers[x].TickerId)
+			dailyMove, err := getLastTickerDailyMove(deps, validTickers[x].TickerId)
 			if err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Str("symbol", symbol).Msg("failed to get last 2 dailys for {symbol}")
+				sublog.Error().Err(err).Str("symbol", symbol).Msg("failed to get last 2 dailys for {symbol}")
 			}
 
 			jsonR.Data[symbol+":quote_shareprice"] = fmt.Sprintf("$%.2f", lastTickerDaily[0].ClosePrice)

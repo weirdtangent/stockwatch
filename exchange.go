@@ -1,10 +1,7 @@
 package main
 
 import (
-	"context"
 	"database/sql"
-
-	"github.com/jmoiron/sqlx"
 )
 
 type Exchange struct {
@@ -23,15 +20,15 @@ type Exchange struct {
 
 // object methods -------------------------------------------------------------
 
-func (e *Exchange) getById(ctx context.Context) error {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func (e *Exchange) getById(deps *Dependencies) error {
+	db := deps.db
 
 	err := db.QueryRowx("SELECT * FROM exchange WHERE exchange_id=?", e.ExchangeId).StructScan(e)
 	return err
 }
 
-func (e *Exchange) getByCode(ctx context.Context) error {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func (e *Exchange) getByCode(deps *Dependencies) error {
+	db := deps.db
 
 	err := db.QueryRowx("SELECT * FROM exchange WHERE exchange_code=?", e.ExchangeCode).StructScan(e)
 	return err

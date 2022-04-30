@@ -1,12 +1,9 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"sort"
 
-	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -75,36 +72,35 @@ func (m Movers) SortActives() *[]WebMover {
 	return &m.Actives
 }
 
-func getMovers(ctx context.Context) (*Movers, error) {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func getMovers(deps *Dependencies) (Movers, error) {
+	db := deps.db
+	sublog := deps.logger
 
-	var movers Movers
-
-	latestDateStr, err := getLatestMoversDate(ctx)
+	latestDateStr, err := getLatestMoversDate(deps)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to find most recent movers date")
-		return &movers, err
+		return Movers{}, err
 	}
 
-	var mover Mover
+	movers := Movers{}
 	gainers := make([]WebMover, 0)
 	losers := make([]WebMover, 0)
 	actives := make([]WebMover, 0)
 
 	rows, err := db.Queryx(`SELECT * FROM mover WHERE mover_date=?`, latestDateStr)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Str("mover_date", latestDateStr).Msg("Failed to load movers")
-		return &movers, err
+		sublog.Error().Err(err).Str("mover_date", latestDateStr).Msg("Failed to load movers")
+		return movers, err
 	}
 	defer rows.Close()
 
+	mover := Mover{}
 	for rows.Next() {
 		err = rows.StructScan(&mover)
 		if err != nil {
 			log.Warn().Err(err).Str("table_name", "mover").Msg("Error reading result rows")
 		} else {
 			ticker := Ticker{TickerId: mover.TickerId}
-			err := ticker.getById(ctx)
+			err := ticker.getById(deps)
 			if err == nil {
 				switch mover.MoverType {
 				case "gainer":
@@ -118,15 +114,15 @@ func getMovers(ctx context.Context) (*Movers, error) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return &movers, err
+		return Movers{}, err
 	}
 
 	movers = Movers{gainers, losers, actives, latestDateStr}
-	return &movers, nil
+	return movers, nil
 }
 
-func getLatestMoversDate(ctx context.Context) (string, error) {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func getLatestMoversDate(deps *Dependencies) (string, error) {
+	db := deps.db
 	var dateStr string
 
 	err := db.QueryRowx(`SELECT mover_date FROM mover ORDER BY mover_date DESC LIMIT 1`).Scan(&dateStr)

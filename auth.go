@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"math/rand"
@@ -10,103 +9,105 @@ import (
 	"time"
 
 	"github.com/dgryski/go-skip32"
-	"github.com/gorilla/securecookie"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
-	"github.com/rs/zerolog"
 )
 
-func authLoginHandler() http.HandlerFunc {
+func authLoginHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if user, err := gothic.CompleteUserAuth(w, r); err == nil {
-			signinUser(w, r, user)
+			signinUser(deps, w, r, user)
 		} else {
 			gothic.BeginAuthHandler(w, r)
 		}
 	})
 }
 
-func authCallbackHandler() http.HandlerFunc {
+func authCallbackHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
+		sublog := deps.logger
+
 		user, err := gothic.CompleteUserAuth(w, r)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to complete auth")
+			sublog.Error().Err(err).Msg("Failed to complete auth")
 			return
 		}
-		signinUser(w, r, user)
+		signinUser(deps, w, r, user)
 	})
 }
 
-func signinUser(w http.ResponseWriter, r *http.Request, gothUser goth.User) {
-	ctx := r.Context()
-	session := getSession(r)
-	sc := ctx.Value(ContextKey("sc")).(*securecookie.SecureCookie)
+func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, gothUser goth.User) {
+	session := deps.session
+	// sc := deps.secureCookie
+	sublog := deps.logger
 
 	// get (or create) watcher account based on oauth properties
-	// specifically, based on the sub value, because email addresses can change
+	// specifically, based on the oauth_sub value, because email addresses can change
 	// and we want a watchers session and "account" to follow them even if they change
 	watcher := Watcher{0, gothUser.UserID, gothUser.Name, "active", "standard", "", gothUser.AvatarURL, session.ID, sql.NullTime{}, sql.NullTime{}}
-	err := watcher.createOrUpdate(ctx, gothUser.Email)
+	sublog.Info().Interface("watcher", watcher).Msg("start off")
+	watcher, err := createOrUpdateWatcher(deps, watcher, gothUser.Email)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to get/create watcher from one-tap")
+		sublog.Error().Err(err).Msg("Failed to get/create watcher from one-tap")
 		http.NotFound(w, r)
 		return
 	}
 	if watcher.WatcherId == 0 {
-		zerolog.Ctx(ctx).Fatal().Msg("WatcherId should not be 0 here")
+		sublog.Fatal().Msg("WatcherId should not be 0 here")
 	}
 
 	// why does twitter send back a weird gothUser.ExpiresAt?
 	if gothUser.ExpiresAt.IsZero() {
 		gothUser.ExpiresAt = time.Now().Add(24 * time.Hour)
 	}
+
 	oauth := OAuth{
-		0,
-		gothUser.Provider,
-		gothUser.UserID,
-		sql.NullTime{Valid: true, Time: time.Now()},
-		sql.NullTime{Valid: true, Time: gothUser.ExpiresAt},
-		sql.NullTime{Valid: true, Time: time.Now()},
-		sql.NullTime{Valid: true, Time: time.Now()},
+		OAuthId:        0,
+		OAuthIssuer:    gothUser.Provider,
+		OAuthSub:       gothUser.UserID,
+		OAuthIssued:    sql.NullTime{Valid: true, Time: time.Now()},
+		OAuthExpires:   sql.NullTime{Valid: true, Time: gothUser.ExpiresAt},
+		CreateDatetime: sql.NullTime{Valid: true, Time: time.Now()},
+		UpdateDatetime: sql.NullTime{Valid: true, Time: time.Now()},
 	}
-	err = oauth.createOrUpdate(ctx)
+	err = oauth.createOrUpdate(deps)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to create/update oauth record")
+		sublog.Error().Err(err).Msg("failed to create/update oauth record")
 		http.NotFound(w, r)
 		return
 	}
 
 	// set WID (WatcherId) session cookie, meaning the user is authenticated and logged-in
-	if encoded, err := sc.Encode("WID", fmt.Sprintf("%d", watcher.WatcherId)); err == nil {
-		cookie := &http.Cookie{
-			Name:     "WID",
-			Value:    encoded,
-			Path:     "/",
-			Secure:   true,
-			HttpOnly: true,
-		}
-		http.SetCookie(w, cookie)
-	} else {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to encode cookie")
-	}
+	// if encoded, err := sc.Encode("WID", fmt.Sprintf("%d", watcher.WatcherId)); err == nil {
+	// 	widCookie := &http.Cookie{
+	// 		Name:     "WID",
+	// 		Value:    encoded,
+	// 		Path:     "/",
+	// 		Secure:   true,
+	// 		HttpOnly: true,
+	// 		SameSite: http.SameSiteStrictMode,
+	// 	}
+	// 	http.SetCookie(w, widCookie)
+	// } else {
+	// 	sublog.Error().Err(err).Msg("Failed to encode cookie")
+	// }
 
+	session.Values["encWId"] = encryptId(deps, "watcher", watcher.WatcherId)
 	session.Values["provider"] = gothUser.Provider
 	http.Redirect(w, r, "/desktop", http.StatusFound)
 }
 
 // logout from google one-tap here
-func signoutHandler() http.HandlerFunc {
+func signoutHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		deleteWIDCookie(w, r)
+		deleteWIDCookie(w, r, deps)
 		gothic.Logout(w, r)
 		http.Redirect(w, r, "/", http.StatusFound)
 	})
 }
 
-func deleteWIDCookie(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	sc := ctx.Value(ContextKey("sc")).(*securecookie.SecureCookie)
+func deleteWIDCookie(w http.ResponseWriter, r *http.Request, deps *Dependencies) {
+	sc := deps.secureCookie
 
 	if encoded, err := sc.Encode("WID", "invalid"); err == nil {
 		cookie := &http.Cookie{
@@ -118,79 +119,59 @@ func deleteWIDCookie(w http.ResponseWriter, r *http.Request) {
 			MaxAge:   -1,
 		}
 		http.SetCookie(w, cookie)
-	} else {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to encode cookie (for removal)")
 	}
 }
 
 // check for WID cookie, set above when authenticated with Google 1-Tap
 // plus set some standard webdata keys we'll need for all/most pages
-func checkAuthState(w http.ResponseWriter, r *http.Request) (context.Context, Watcher) {
-	ctx := r.Context()
-	sc := ctx.Value(ContextKey("sc")).(*securecookie.SecureCookie)
-	webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
-	nonce := ctx.Value(ContextKey("nonce")).(string)
+func checkAuthState(w http.ResponseWriter, r *http.Request, deps *Dependencies) Watcher {
+	// sc := deps.secureCookie
+	webdata := deps.webdata
+	nonce := deps.nonce
+	session := deps.session
+	sublog := deps.logger
 
-	session := getSession(r)
-	if session.Values["provider"] != nil {
-		webdata["provider"] = session.Values["provider"].(string)
-	}
 	webdata["config"] = ConfigData{}
 	webdata["nonce"] = nonce
-	location, _ := time.LoadLocation("UTC")
-	webdata["tzlocation"] = location
+	webdata["TZLocation"], _ = time.LoadLocation("UTC")
 
-	if wid, err := r.Cookie("WID"); err == nil {
-		var WIDstr string
-		err = sc.Decode("WID", wid.Value, &WIDstr)
-		switch err {
-		case nil:
-			WIDvalue, err := strconv.ParseUint(WIDstr, 10, 64)
-			if err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Str("wid", WIDstr).Msg("Failed to convert cookie value to id")
-				deleteWIDCookie(w, r)
-				break
-			}
-			var watcher Watcher
-			err = getWatcherById(ctx, &watcher, WIDvalue)
-			if err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Uint64("wid", WIDvalue).Msg("Failed to get watcher via cookie")
-				deleteWIDCookie(w, r)
-				break
-			}
-			if watcher.WatcherStatus != "active" {
-				zerolog.Ctx(ctx).Error().Err(err).Uint64("watcher_id", WIDvalue).Str("watcher_status", watcher.WatcherStatus).Msg("Watcher record not marked 'active'")
-				deleteWIDCookie(w, r)
-				break
-			}
-			log := zerolog.Ctx(ctx).With().Str("watcher", encryptId(ctx, "watcher", watcher.WatcherId)).Logger()
-			ctx = log.WithContext(ctx)
-
-			zerolog.Ctx(ctx).Info().Str("watcher_status", watcher.WatcherStatus).Msg("authenticated visitor")
-			webdata["WID"] = wid
-			webdata["watcher"] = watcher
-
-			watcherRecents := getWatcherRecents(ctx, watcher)
-			webdata["WatcherRecents"] = watcherRecents
-
-			location, err := time.LoadLocation(watcher.WatcherTimezone)
-			if err == nil {
-				webdata["tzlocation"] = location
-			}
-
-			return ctx, watcher
+	if session.Values["encWId"] != nil {
+		encWId := session.Values["encWId"].(string)
+		watcherId := decryptedId(deps, "watcher", encWId)
+		watcher, err := getWatcherById(deps, watcherId)
+		if err != nil {
+			sublog.Error().Err(err).Str("encWId", encWId).Msg("failed to load watcher via encWId {encWId}")
+			deleteWIDCookie(w, r, deps)
+			return Watcher{}
 		}
+		if watcher.WatcherStatus != "active" {
+			sublog.Error().Err(err).Str("encWId", encWId).Str("status", watcher.WatcherStatus).Msg("watcher is not active: {status}")
+			deleteWIDCookie(w, r, deps)
+			return Watcher{}
+		}
+
+		sublog.Info().Str("encWId", encWId).Msg("authenticated watcher from session")
+		webdata["encWId"] = encWId
+		webdata["Watcher"] = WebWatcher{watcher.WatcherName, watcher.WatcherStatus, watcher.WatcherLevel, watcher.WatcherTimezone, watcher.WatcherPicURL}
+
+		watcherRecents := getWatcherRecents(deps, watcher)
+		webdata["WatcherRecents"] = watcherRecents
+
+		location, err := time.LoadLocation(watcher.WatcherTimezone)
+		if err == nil {
+			webdata["TZLocation"] = location
+		}
+
+		if session.Values["provider"] != nil {
+			webdata["provider"] = session.Values["provider"].(string)
+		}
+
+		return watcher
 	}
-	// zerolog.Ctx(ctx).Info().Msg("Anonymous visitor found")
+	sublog.Info().Msg("anonymous visitor")
 	webdata["loggedout"] = 1
 
-	stateStr := session.Values["state"].(string)
-	webdata["stateStr"] = stateStr
-	webdata["clientId"] = ctx.Value(ContextKey("google_oauth_client_id")).(string)
-	webdata["scope"] = "openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
-	webdata["redirectTo"] = "https://stockwatch.graystorm.com/callback"
-
-	return ctx, Watcher{}
+	return Watcher{}
 }
 
 // random string of bytes, use in nonce values, for example
@@ -213,8 +194,8 @@ func RandStringMask(n int) string {
 	return string(b)
 }
 
-// func encryptURL(ctx context.Context, text []byte) ([]byte, error) {
-// 	secret := ctx.Value(ContextKey("next_url_key")).(string)
+// func encryptURL(deps *Dependencies, text []byte) ([]byte, error) {
+// 	secret := secrets["next_url_key"]
 // 	key := []byte(secret)
 // 	block, err := aes.NewCipher(key)
 // 	if err != nil {
@@ -232,8 +213,8 @@ func RandStringMask(n int) string {
 // 	return cipherstring, nil
 // }
 
-// func decryptURL(ctx context.Context, cipherstring []byte) ([]byte, error) {
-// 	secret := ctx.Value(ContextKey("next_url_key")).(string)
+// func decryptURL(deps *Dependencies, cipherstring []byte) ([]byte, error) {
+// 	secret := secrets["next_url_key"]
 // 	key := []byte(secret)
 // 	textstr, err := base64.URLEncoding.DecodeString(string(cipherstring))
 // 	if err != nil {
@@ -259,17 +240,20 @@ func RandStringMask(n int) string {
 // }
 
 // split uint64 into high/low uint32s and skip32 them and return as 8 hex chars
-func encryptId(ctx context.Context, objectType string, id uint64) string {
+func encryptId(deps *Dependencies, objectType string, id uint64) string {
+	sublog := deps.logger
+	secrets := deps.secrets
+
 	skip64Key := fmt.Sprintf("skip64_%s", objectType)
-	key := ctx.Value(ContextKey(skip64Key))
-	if key == nil {
+	key := *secrets[skip64Key]
+	if key == "" {
 		err := fmt.Errorf("key not found")
-		zerolog.Ctx(ctx).Fatal().Str("object", objectType).Err(err).Msg("encryption key not found for {object}")
+		sublog.Fatal().Str("object", objectType).Err(err).Msg("encryption key not found for {object}")
 		return ""
 	}
-	cipher, err := skip32.New([]byte(key.(string)))
+	cipher, err := skip32.New([]byte(key))
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Int("length", len(key.(string))).Str("object", objectType).Err(err).Msg("encryption failed for {object}")
+		sublog.Fatal().Int("length", len(key)).Str("object", objectType).Err(err).Msg("encryption failed for {object}")
 		return ""
 	}
 
@@ -278,33 +262,36 @@ func encryptId(ctx context.Context, objectType string, id uint64) string {
 }
 
 // break 8 hex chars into high/low uint32s and un-skip32 them and combine to single uint64
-func decryptedId(ctx context.Context, objectType string, obfuscated string) uint64 {
+func decryptedId(deps *Dependencies, objectType string, obfuscated string) uint64 {
+	sublog := deps.logger
+	secrets := deps.secrets
+
 	if len(obfuscated) != 16 {
 		err := fmt.Errorf("invalid encrypted id")
-		zerolog.Ctx(ctx).Fatal().Str("object", objectType).Err(err).Msg("decryption failed for {object}")
+		sublog.Fatal().Str("object", objectType).Err(err).Msg("decryption failed for {object}")
 		return 0
 	}
 	skip64Key := fmt.Sprintf("skip64_%s", objectType)
-	key := ctx.Value(ContextKey(skip64Key))
-	if key == nil {
+	key := *secrets[skip64Key]
+	if key == "" {
 		err := fmt.Errorf("key not found")
-		zerolog.Ctx(ctx).Fatal().Str("object", objectType).Err(err).Msg("decryption key not found for {object}")
+		sublog.Fatal().Str("object", objectType).Err(err).Msg("decryption key not found for {object}")
 		return 0
 	}
-	cipher, err := skip32.New([]byte(key.(string)))
+	cipher, err := skip32.New([]byte(key))
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Str("object", objectType).Err(err).Msg("decryption failed for {object}")
+		sublog.Fatal().Str("object", objectType).Err(err).Msg("decryption failed for {object}")
 		return 0
 	}
 
 	left, err := strconv.ParseUint(obfuscated[:8], 16, 32)
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Str("object", objectType).Err(err).Msg("decryption failed for {object}")
+		sublog.Fatal().Str("object", objectType).Err(err).Msg("decryption failed for {object}")
 		return 0
 	}
 	right, err := strconv.ParseUint(obfuscated[8:16], 16, 32)
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Str("object", objectType).Err(err).Msg("decryption failed for {object}")
+		sublog.Fatal().Str("object", objectType).Err(err).Msg("decryption failed for {object}")
 		return 0
 	}
 

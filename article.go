@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"crypto/sha256"
 	"database/sql"
 	"fmt"
@@ -9,8 +8,6 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -87,8 +84,8 @@ type WebArticle struct {
 	Symbols            sql.NullString `db:"symbols"`
 }
 
-// func getArticlesByKeyword(ctx context.Context, keyword string) ([]WebArticle, error) {
-// 	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+// func getArticlesByKeyword(deps *Dependencies, keyword string) ([]WebArticle, error) {
+// 	db := deps.db
 
 // 	if keyword == "" {
 // 		return []WebArticle{}, fmt.Errorf("missing required keyword param")
@@ -135,7 +132,7 @@ type WebArticle struct {
 // 		if len(article.Body) > 0 {
 // 			sha := fmt.Sprintf("%x", sha256.Sum256([]byte(article.Body)))
 // 			if _, ok := bodySHA256[sha]; ok {
-// 				zerolog.Ctx(ctx).Info().Msg("Skipping, seen this article body already")
+// 				sublog.Info().Msg("Skipping, seen this article body already")
 // 			} else {
 // 				bodySHA256[sha] = true
 
@@ -159,8 +156,8 @@ type WebArticle struct {
 // 	return articles, nil
 // }
 
-func getArticlesByTicker(ctx context.Context, ticker_id uint64) ([]WebArticle, error) {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func getArticlesByTicker(deps *Dependencies, ticker_id uint64) ([]WebArticle, error) {
+	db := deps.db
 
 	// go back as far as 180 days but limited to 20 articles
 	fromDate := time.Now().Add(-1 * 180 * 24 * time.Hour).Format(sqlDatetimeSearchType)
@@ -225,12 +222,13 @@ func getArticlesByTicker(ctx context.Context, ticker_id uint64) ([]WebArticle, e
 	return articles, nil
 }
 
-func getRecentArticles(ctx context.Context) ([]WebArticle, error) {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func getRecentArticles(deps *Dependencies) ([]WebArticle, error) {
+	db := deps.db
+	sublog := deps.logger
 
 	// go back as far as 30 days but limited to 30 articles
 	fromDate := time.Now().Add(-1 * 30 * 24 * time.Hour).Format(sqlDatetimeSearchType)
-	zerolog.Ctx(ctx).Info().Str("from_date", fromDate).Msg("checking for recent news since {from_date}")
+	sublog.Info().Str("from_date", fromDate).Msg("checking for recent news since {from_date}")
 
 	query := `SELECT article.article_id, article.source_id, article.external_id, article.published_datetime, article.pubupdated_datetime,
 		        article.title, article.body, article.article_url, article.image_url,
@@ -285,33 +283,36 @@ func getRecentArticles(ctx context.Context) ([]WebArticle, error) {
 	return articles, nil
 }
 
-func getNewsLastUpdated(ctx context.Context, ticker Ticker) (sql.NullTime, bool) {
-	webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
+func getNewsLastUpdated(deps *Dependencies, ticker Ticker) (sql.NullTime, bool) {
+	webdata := deps.webdata
+	sublog := deps.logger
 
 	newsLastUpdated := sql.NullTime{Valid: false, Time: time.Time{}}
 	updatingNewsNow := false
 	lastdone := LastDone{Activity: "ticker_news", UniqueKey: ticker.TickerSymbol}
-	err := lastdone.getByActivity(ctx)
+	err := lastdone.getByActivity(deps)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get LastDone activity for {symbol}")
+		sublog.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get LastDone activity for {symbol}")
 		webdata["NewsLastUpdated"] = newsLastUpdated
 		webdata["UpdatingNewsNow"] = updatingNewsNow
 		return sql.NullTime{}, false
 	}
 	if lastdone.LastStatus == "success" {
 		newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time}
-		zerolog.Ctx(ctx).Info().Msg(fmt.Sprintf("lastdone was %s", lastdone.LastDoneDatetime.Time.Format(sqlDatetimeSearchType)))
 		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
-			zerolog.Ctx(ctx).Info().Str("symbol", ticker.TickerSymbol).Msg("its been long enough, lets go get news")
-			err = ticker.queueUpdateNews(ctx)
+			err = ticker.queueUpdateNews(deps)
 			updatingNewsNow = (err == nil)
 		} else {
-			newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time.In(webdata["tzlocation"].(*time.Location))}
+			if webdata["TZLocation"] != nil {
+				newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time.In(webdata["TZLocation"].(*time.Location))}
+			} else {
+				newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time}
+			}
 			updatingNewsNow = false
 		}
 	} else {
-		zerolog.Ctx(ctx).Info().Str("symbol", ticker.TickerSymbol).Msg("last try failed, lets try to get news again")
-		err = ticker.queueUpdateNews(ctx)
+		sublog.Info().Str("symbol", ticker.TickerSymbol).Msg("last try failed, lets try to get news again")
+		err = ticker.queueUpdateNews(deps)
 		updatingNewsNow = (err == nil)
 	}
 

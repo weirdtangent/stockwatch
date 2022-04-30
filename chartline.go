@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"html/template"
 	"math"
@@ -12,15 +11,16 @@ import (
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
-	"github.com/rs/zerolog"
 )
 
-func chartHandlerTickerDailyLine(ctx context.Context, ticker Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
+func chartHandlerTickerDailyLine(deps *Dependencies, ticker Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
+	nonce := deps.nonce
+	sublog := deps.logger
+
 	mainX := "880px"
 	mainY := "280px"
 	smallX := "880px"
 	smallY := "200px"
-	nonce := ctx.Value(ContextKey("nonce")).(string)
 	legendStrs := []string{"Closing Price", "20-Day MA", "50-Day MA", "200-Day MA"}
 
 	// build data needed
@@ -39,7 +39,7 @@ func chartHandlerTickerDailyLine(ctx context.Context, ticker Ticker, exchange *E
 		// first 10 characters
 		tickerDate, err := time.Parse(sqlDateParseType, dailies[x].PriceDate[:10])
 		if err != nil {
-			zerolog.Ctx(ctx).Fatal().Err(err).Str("symbol", ticker.TickerSymbol).Str("bad_data", dailies[x].PriceDate).Msg("failed to parse price_date for {symbol}")
+			sublog.Fatal().Err(err).Str("symbol", ticker.TickerSymbol).Str("bad_data", dailies[x].PriceDate).Msg("failed to parse price_date for {symbol}")
 		}
 
 		x_axis = append(x_axis, tickerDate.Format("Jan 02"))
@@ -138,7 +138,7 @@ func chartHandlerTickerDailyLine(ctx context.Context, ticker Ticker, exchange *E
 	prices.Renderer = newSnippetRenderer(prices, prices.Validate)
 	volume.Renderer = newSnippetRenderer(volume, volume.Validate)
 
-	return renderToHtml(ctx, prices) + renderToHtml(ctx, volume)
+	return renderToHtml(deps, prices) + renderToHtml(deps, volume)
 }
 
 // utils ----------------------------------------------------------------------

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"net/http"
 	"os"
 	"strconv"
@@ -9,8 +8,10 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -27,7 +28,23 @@ import (
 	"github.com/weirdtangent/myaws"
 )
 
-func setupLogging() context.Context {
+type Dependencies struct {
+	awssess      *session.Session
+	db           *sqlx.DB
+	logger       *zerolog.Logger
+	secureCookie *securecookie.SecureCookie
+	cookieStore  *dynastore.Store
+	redisPool    *redis.Pool
+	secrets      map[string]*string
+	session      *sessions.Session
+	config       map[string]interface{}
+	webdata      map[string]interface{}
+	request_id   string
+	nonce        string
+	// messages    []Message
+}
+
+func setupLogging() *Dependencies {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	// alter the caller() return to only include the last directory
 	zerolog.CallerMarshalFunc = func(file string, line int) string {
@@ -42,101 +59,129 @@ func setupLogging() context.Context {
 	if len(pgmPath) > 1 {
 		logTag = pgmPath[len(pgmPath)-1]
 	}
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	if debugging {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	} else {
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	}
-	log := log.With().Str("@tag", logTag).Caller().Logger()
-	ctx := log.WithContext(context.Background())
+	newlog := log.With().Str("@tag", logTag).Caller().Logger()
 
-	return ctx
+	// messages := make([]Message, 100)
+	deps := Dependencies{
+		logger:  &newlog,
+		secrets: make(map[string]*string, 100),
+		// messages: &messages,
+		config:  make(map[string]interface{}, 100),
+		webdata: make(map[string]interface{}, 100),
+	}
+
+	return &deps
 }
 
-func setupOAuth(ctx context.Context, awssess *session.Session, store *dynastore.Store, secrets *map[string]string) {
-	googleOAuthClientId, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "google_oauth_client_id")
-	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
-	}
-	(*secrets)["google_oauth_client_id"] = *googleOAuthClientId
+func getSecrets(deps *Dependencies) {
+	sublog := deps.logger
+	awssess := deps.awssess
+	secrets := deps.secrets
 
-	googleOAuthSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "google_oauth_client_secret")
+	// get yhfinance api access key and host
+	yf_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "yhfinance_rapidapi_key")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
+		sublog.Fatal().Err(err).
+			Msg("failed to get YHFinance API key")
 	}
-	(*secrets)["google_oauth_secret"] = *googleOAuthSecret
+	deps.secrets["yhfinance_apikey"] = yf_api_access_key
 
-	twitterApiKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "twitter_api_key")
+	yf_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "yhfinance_rapidapi_host")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
+		sublog.Fatal().Err(err).
+			Msg("failed to get YHFinance API key")
 	}
-	twitterApiSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "twitter_api_secret")
-	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
-	}
+	secrets["yhfinance_apihost"] = yf_api_access_host
 
-	githubApiKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "github_api_key")
+	// get msfinance api access key and host
+	ms_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "msfinance_rapidapi_key")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
+		sublog.Fatal().Err(err).
+			Msg("failed to get Morningstar API key")
 	}
-	githubApiSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "github_api_secret")
-	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
-	}
+	secrets["msfinance_rapidapi_key"] = ms_api_access_key
 
-	amazonApiKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "amazon_api_key")
+	ms_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "msfinance_rapidapi_host")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
+		sublog.Fatal().Err(err).
+			Msg("failed to get Morningstar API key")
 	}
-	amazonApiSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "amazon_api_secret")
-	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
-	}
+	secrets["msfinance_rapidapi_host"] = ms_api_access_host
 
-	facebookApiKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "facebook_api_key")
+	// get bbfinance api access key and host
+	bb_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "bbfinance_rapidapi_key")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
+		sublog.Fatal().Err(err).
+			Msg("failed to get bbfinance API key")
 	}
-	facebookApiSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "facebook_api_secret")
+	secrets["bbfinance_rapidapi_key"] = bb_api_access_key
+
+	bb_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "bbfinance_rapidapi_host")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
+		sublog.Fatal().Err(err).
+			Msg("failed to get bbfinance API key")
 	}
+	secrets["bbfinance_rapidapi_host"] = bb_api_access_host
 
-	goth.UseProviders(
-		amazon.New(*amazonApiKey, *amazonApiSecret, "https://stockwatch.graystorm.com/auth/amazon/callback"),
-		facebook.New(*facebookApiKey, *facebookApiSecret, "https://stockwatch.graystorm.com/auth/facebook/callback", "email"),
-		github.New(*githubApiKey, *githubApiSecret, "https://stockwatch.graystorm.com/auth/github/callback"),
-		google.New(*googleOAuthClientId, *googleOAuthSecret, "https://stockwatch.graystorm.com/auth/google/callback", "openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"),
-		twitter.New(*twitterApiKey, *twitterApiSecret, "https://stockwatch.graystorm.com/auth/twitter/callback"),
-	)
+	// google svc account
+	google_svc_acct, err := myaws.AWSGetSecretValue(awssess, "stockwatch_google_svc_acct")
+	if err != nil {
+		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
+	}
+	secrets["stockwatch_google_svc_acct"] = google_svc_acct
 
-	gothic.Store = store
+	// github svc account
+	githubOAuthKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "github_oauth_key")
+	if err != nil {
+		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
+	}
+	secrets["github_oauth_key"] = githubOAuthKey
+
+	// stockwatch next url encryption key
+	next_url_key, err := myaws.AWSGetSecretValue(awssess, "stockwatch_next_url_key")
+	if err != nil {
+		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
+	}
+	secrets["next_url_key"] = next_url_key
+
+	skip64_watcher, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "skip64_watcher")
+	if err != nil || *skip64_watcher == "" {
+		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
+	}
+	secrets["skip64_watcher"] = skip64_watcher
 }
 
-func setupSessionsStore(ctx context.Context, awssess *session.Session) (*securecookie.SecureCookie, *dynastore.Store) {
+func setupSessionsStore(deps *Dependencies) {
+	awssess := deps.awssess
+	sublog := deps.logger
+
 	// grab config ---------------------------------------------------------------
 	awsConfig, err := myaws.AWSConfig("us-east-1")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to find us-east-1 configuration")
+		sublog.Fatal().Err(err).Msg("failed to find us-east-1 configuration")
 	}
 
 	// connect to Dynamo
 	ddb, err := myaws.DDBConnect(awssess)
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to connect to DDB")
+		sublog.Fatal().Err(err).Msg("failed to connect to DDB")
 	}
 
 	// Cookie setup for sessionID ------------------------------------------------
 	cookieAuthKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "cookie_auth_key")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
+		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
 	}
 
 	cookieEncryptionKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "cookie_encryption_key")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
+		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
 	}
 
 	var hashKey = []byte(*cookieAuthKey)
@@ -156,91 +201,81 @@ func setupSessionsStore(ctx context.Context, awssess *session.Session) (*securec
 		dynastore.Codecs(secureCookie),
 	)
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to setup session management")
+		sublog.Fatal().Err(err).Msg("failed to setup session management")
 	}
 
-	return secureCookie, store
+	deps.secureCookie = secureCookie
+	deps.cookieStore = store
 }
 
-func getSecrets(ctx context.Context, awssess *session.Session) map[string]string {
-	var secrets = make(map[string]string)
+func setupOAuth(deps *Dependencies) {
+	sublog := deps.logger
+	awssess := deps.awssess
+	cookieStore := deps.cookieStore
+	secrets := deps.secrets
 
-	// get yhfinance api access key and host
-	yf_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "yhfinance_rapidapi_key")
+	googleOAuthClientId, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "google_oauth_client_id")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).
-			Msg("failed to get YHFinance API key")
+		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
 	}
-	secrets["yhfinance_rapidapi_key"] = *yf_api_access_key
+	secrets["google_oauth_client_id"] = googleOAuthClientId
 
-	yf_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "yhfinance_rapidapi_host")
+	googleOAuthSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "google_oauth_client_secret")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).
-			Msg("failed to get YHFinance API key")
+		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
 	}
-	secrets["yhfinance_rapidapi_host"] = *yf_api_access_host
+	secrets["google_oauth_secret"] = googleOAuthSecret
 
-	// get msfinance api access key and host
-	ms_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "msfinance_rapidapi_key")
+	twitterApiKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "twitter_api_key")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).
-			Msg("failed to get Morningstar API key")
+		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
 	}
-	secrets["msfinance_rapidapi_key"] = *ms_api_access_key
-
-	ms_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "msfinance_rapidapi_host")
+	twitterApiSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "twitter_api_secret")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).
-			Msg("failed to get Morningstar API key")
+		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
 	}
-	secrets["msfinance_rapidapi_host"] = *ms_api_access_host
 
-	// get bbfinance api access key and host
-	bb_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "bbfinance_rapidapi_key")
+	githubApiKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "github_api_key")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).
-			Msg("failed to get bbfinance API key")
+		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
 	}
-	secrets["bbfinance_rapidapi_key"] = *bb_api_access_key
-
-	bb_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "bbfinance_rapidapi_host")
+	githubApiSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "github_api_secret")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).
-			Msg("failed to get bbfinance API key")
+		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
 	}
-	secrets["bbfinance_rapidapi_host"] = *bb_api_access_host
 
-	// google svc account
-	google_svc_acct, err := myaws.AWSGetSecretValue(awssess, "stockwatch_google_svc_acct")
+	amazonApiKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "amazon_api_key")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
+		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
 	}
-	secrets["stockwatch_google_svc_acct"] = *google_svc_acct
-
-	// github svc account
-	githubOAuthKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "github_oauth_key")
+	amazonApiSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "amazon_api_secret")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
+		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
 	}
-	secrets["github_oauth_key"] = *githubOAuthKey
 
-	// stockwatch next url encryption key
-	next_url_key, err := myaws.AWSGetSecretValue(awssess, "stockwatch_next_url_key")
+	facebookApiKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "facebook_api_key")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
+		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
 	}
-	secrets["next_url_key"] = *next_url_key
-
-	skip64_watcher, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "skip64_watcher")
-	if err != nil || *skip64_watcher == "" {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("failed to retrieve secret")
+	facebookApiSecret, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "facebook_api_secret")
+	if err != nil {
+		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
 	}
-	secrets["skip64_watcher"] = *skip64_watcher
 
-	return secrets
+	goth.UseProviders(
+		amazon.New(*amazonApiKey, *amazonApiSecret, "https://stockwatch.graystorm.com/auth/amazon/callback"),
+		facebook.New(*facebookApiKey, *facebookApiSecret, "https://stockwatch.graystorm.com/auth/facebook/callback", "email"),
+		github.New(*githubApiKey, *githubApiSecret, "https://stockwatch.graystorm.com/auth/github/callback"),
+		google.New(*googleOAuthClientId, *googleOAuthSecret, "https://stockwatch.graystorm.com/auth/google/callback", "openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"),
+		twitter.New(*twitterApiKey, *twitterApiSecret, "https://stockwatch.graystorm.com/auth/twitter/callback"),
+	)
+
+	gothic.Store = cookieStore
 }
 
-func startHTTPServer(ctx context.Context, awssess *session.Session, db *sqlx.DB, secrets map[string]string, store *dynastore.Store, secureCookie *securecookie.SecureCookie) {
+func startHTTPServer(deps *Dependencies) {
+	sublog := deps.logger
+
 	// setup middleware chain
 	router := mux.NewRouter()
 
@@ -248,37 +283,37 @@ func startHTTPServer(ctx context.Context, awssess *session.Session, db *sqlx.DB,
 	router.PathPrefix("/favicon.ico").Handler(http.FileServer(http.Dir("static/images")))
 
 	//router.HandleFunc("/tokensignin", signinHandler()).Methods("POST")
-	router.HandleFunc("/auth/{provider}", authLoginHandler()).Methods("GET")
-	router.HandleFunc("/auth/{provider}/callback", authCallbackHandler()).Methods("GET")
-	router.HandleFunc("/signout/", signoutHandler()).Methods("GET")
-	router.HandleFunc("/signout/{provider}", signoutHandler()).Methods("GET")
-	router.HandleFunc("/logout/", signoutHandler()).Methods("GET")
-	router.HandleFunc("/logout/{provider}", signoutHandler()).Methods("GET")
+	router.HandleFunc("/auth/{provider}", authLoginHandler(deps)).Methods("GET")
+	router.HandleFunc("/auth/{provider}/callback", authCallbackHandler(deps)).Methods("GET")
+	router.HandleFunc("/signout/", signoutHandler(deps)).Methods("GET")
+	router.HandleFunc("/signout/{provider}", signoutHandler(deps)).Methods("GET")
+	router.HandleFunc("/logout/", signoutHandler(deps)).Methods("GET")
+	router.HandleFunc("/logout/{provider}", signoutHandler(deps)).Methods("GET")
 
 	router.HandleFunc("/ping", pingHandler()).Methods("GET")
-	router.HandleFunc("/internal/cspviolations", JSONReportHandler()).Methods("GET")
-	router.HandleFunc("/api/v1/{endpoint}", apiV1Handler()).Methods("GET")
+	router.HandleFunc("/internal/cspviolations", JSONReportHandler(deps)).Methods("GET")
+	router.HandleFunc("/api/v1/{endpoint}", apiV1Handler(deps)).Methods("GET")
 	router.Handle("/metrics", promhttp.Handler())
 
-	router.HandleFunc("/profile", profileHandler()).Methods("GET")
-	router.HandleFunc("/desktop", desktopHandler()).Methods("GET")
-	router.HandleFunc("/view/{symbol}", viewTickerDailyHandler()).Methods("GET")
-	router.HandleFunc("/{action:bought|sold}/{symbol}/{acronym}", transactionHandler()).Methods("POST")
-	router.HandleFunc("/search/{type}", searchHandler()).Methods("POST")
-	router.HandleFunc("/about", homeHandler("about")).Methods("GET")
-	router.HandleFunc("/terms", homeHandler("terms")).Methods("GET")
-	router.HandleFunc("/privacy", homeHandler("privacy")).Methods("GET")
+	router.HandleFunc("/profile", profileHandler(deps)).Methods("GET")
+	router.HandleFunc("/desktop", desktopHandler(deps)).Methods("GET")
+	router.HandleFunc("/view/{symbol}", viewTickerDailyHandler(deps)).Methods("GET")
+	router.HandleFunc("/{action:bought|sold}/{symbol}/{acronym}", transactionHandler(deps)).Methods("POST")
+	router.HandleFunc("/search/{type}", searchHandler(deps)).Methods("POST")
+	router.HandleFunc("/about", homeHandler(deps, "about")).Methods("GET")
+	router.HandleFunc("/terms", homeHandler(deps, "terms")).Methods("GET")
+	router.HandleFunc("/privacy", homeHandler(deps, "privacy")).Methods("GET")
 
-	router.HandleFunc("/", homeHandler("home")).Methods("GET")
+	router.HandleFunc("/", homeHandler(deps, "home")).Methods("GET")
 
 	// middleware chain
-	chainedMux1 := withSession(store, router) // deepest level, last to run
-	chainedMux2 := withAddHeader(chainedMux1)
-	chainedMux3 := withAddContext(chainedMux2, awssess, db, secureCookie, secrets)
-	chainedMux4 := withLogging(chainedMux3) // outer level, first to run
+	chainedMux1 := withSession(router, deps) // deepest level, last to run
+	chainedMux2 := withExtraHeader(chainedMux1, deps)
+	chainedMux3 := withLogging(chainedMux2, deps)
+	chainedMux4 := withContext(chainedMux3, deps) // outer level, first to run
 
 	// starting up web service ---------------------------------------------------
-	zerolog.Ctx(ctx).Info().Int("port", httpPort).Msg("started serving requests")
+	sublog.Info().Int("port", httpPort).Msg("started serving requests")
 
 	// starup or die
 	server := &http.Server{
@@ -289,8 +324,8 @@ func startHTTPServer(ctx context.Context, awssess *session.Session, db *sqlx.DB,
 	}
 
 	if err := server.ListenAndServe(); err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("ended abnormally")
+		sublog.Fatal().Err(err).Msg("ended abnormally")
 	} else {
-		zerolog.Ctx(ctx).Info().Msg("stopped serving requests")
+		sublog.Info().Msg("stopped serving requests")
 	}
 }

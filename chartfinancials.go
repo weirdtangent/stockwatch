@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"html/template"
 	"strings"
@@ -11,10 +10,10 @@ import (
 	"github.com/go-echarts/go-echarts/v2/types"
 )
 
-func chartHandlerFinancialsBar(ctx context.Context, ticker Ticker, exchange *Exchange, periodStrs []string, barValues []map[string]float64) template.HTML {
+func chartHandlerFinancialsBar(deps *Dependencies, ticker Ticker, exchange *Exchange, periodStrs []string, barValues []map[string]float64) template.HTML {
+	nonce := deps.nonce
 	mainX := "880px"
 	mainY := "400px"
-	nonce := ctx.Value(ContextKey("nonce")).(string)
 
 	// acctg := accounting.Accounting{Symbol: "$", Precision: 0}
 
@@ -76,13 +75,13 @@ func chartHandlerFinancialsBar(ctx context.Context, ticker Ticker, exchange *Exc
 
 	barChart.Renderer = newSnippetRenderer(barChart, barChart.Validate)
 
-	return renderToHtml(ctx, barChart)
+	return renderToHtml(deps, barChart)
 }
 
-func chartHandlerFinancialsLine(ctx context.Context, ticker Ticker, exchange *Exchange, periodStrs []string, lineValues []map[string]float64, isPercentage int) template.HTML {
+func chartHandlerFinancialsLine(deps *Dependencies, ticker Ticker, exchange *Exchange, periodStrs []string, lineValues []map[string]float64, isPercentage int) template.HTML {
+	nonce := deps.nonce
 	mainX := "580px"
 	mainY := "400px"
-	nonce := ctx.Value(ContextKey("nonce")).(string)
 
 	// acctg := accounting.Accounting{Symbol: "$", Precision: 0}
 
@@ -162,5 +161,5 @@ func chartHandlerFinancialsLine(ctx context.Context, ticker Ticker, exchange *Ex
 
 	lineChart.Renderer = newSnippetRenderer(lineChart, lineChart.Validate)
 
-	return renderToHtml(ctx, lineChart)
+	return renderToHtml(deps, lineChart)
 }

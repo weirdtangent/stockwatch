@@ -4,16 +4,14 @@ import (
 	"net/http"
 )
 
-func homeHandler(tmplname string) http.HandlerFunc {
+func homeHandler(deps *Dependencies, tmplname string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, _ := checkAuthState(w, r)
-
-		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
+		webdata := deps.webdata
 		params := r.URL.Query()
 
 		signoutParam := params.Get("signout")
 		if signoutParam == "1" {
-			deleteWIDCookie(w, r)
+			deleteWIDCookie(w, r, deps)
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		}
 
@@ -23,13 +21,13 @@ func homeHandler(tmplname string) http.HandlerFunc {
 			webdata["hideRecents"] = true
 		}
 		if tmplname == "about" {
-			webdata["about-contents_template"], webdata["commits"], _ = getGithubCommits(ctx)
+			webdata["about-contents_template"], webdata["commits"], _ = getGithubCommits(deps)
 		}
 		if len(nextParam) > 0 {
 			webdata["next"] = nextParam
 		}
 		webdata["loggedout"] = true
 
-		renderTemplateDefault(w, r, tmplname)
+		renderTemplateDefault(w, r, deps, tmplname)
 	})
 }

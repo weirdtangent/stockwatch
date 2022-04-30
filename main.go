@@ -34,14 +34,14 @@ var (
 )
 
 func main() {
-	ctx := setupLogging()
+	deps := setupLogging()
 
-	awssess := myaws.AWSMustConnect("us-east-1", "stockwatch")
-	db := myaws.DBMustConnect(awssess, "stockwatch")
+	deps.awssess = myaws.AWSMustConnect("us-east-1", "stockwatch")
+	deps.db = myaws.DBMustConnect(deps.awssess, "stockwatch")
 
-	secrets := getSecrets(ctx, awssess)
-	secureCookie, store := setupSessionsStore(ctx, awssess)
-	setupOAuth(ctx, awssess, store, &secrets)
+	getSecrets(deps)
+	setupSessionsStore(deps)
+	setupOAuth(deps)
 
-	startHTTPServer(ctx, awssess, db, secrets, store, secureCookie)
+	startHTTPServer(deps)
 }

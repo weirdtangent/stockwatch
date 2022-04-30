@@ -1,10 +1,7 @@
 package main
 
 import (
-	"context"
 	"database/sql"
-
-	"github.com/jmoiron/sqlx"
 )
 
 type LastDone struct {
@@ -22,8 +19,8 @@ const (
 )
 
 // object methods -------------------------------------------------------------
-func (ld *LastDone) getByActivity(ctx context.Context) error {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func (ld *LastDone) getByActivity(deps *Dependencies) error {
+	db := deps.db
 
 	err := db.QueryRowx("SELECT * FROM lastdone WHERE activity=? AND unique_key=?", ld.Activity, ld.UniqueKey).StructScan(ld)
 	return err

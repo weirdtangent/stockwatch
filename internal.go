@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/rs/zerolog/log"
@@ -21,10 +20,9 @@ func pingHandler() http.HandlerFunc {
 	})
 }
 
-func JSONReportHandler() http.HandlerFunc {
+func JSONReportHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		awssess := ctx.Value(ContextKey("awssess")).(*session.Session)
+		awssess := deps.awssess
 
 		s3svc := s3.New(awssess)
 

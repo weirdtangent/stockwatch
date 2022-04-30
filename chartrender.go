@@ -2,21 +2,21 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"html/template"
 	"io"
 
 	chartrender "github.com/go-echarts/go-echarts/v2/render"
-	"github.com/rs/zerolog"
 )
 
-func renderToHtml(ctx context.Context, c interface{}) template.HTML {
+func renderToHtml(deps *Dependencies, c interface{}) template.HTML {
+	sublog := deps.logger
+
 	var buf bytes.Buffer
 	r := c.(chartrender.Renderer)
 	err := r.Render(&buf)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to render line chart")
+		sublog.Error().Err(err).Msg("Failed to render line chart")
 		return ""
 	}
 

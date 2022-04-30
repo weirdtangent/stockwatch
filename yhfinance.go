@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -9,38 +8,39 @@ import (
 	"time"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/weirdtangent/yhfinance"
 )
 
 // fetch ticker info (and possibly new exchange) from yhfinance
-func fetchTickerInfo(ctx context.Context, symbol string) (Ticker, error) {
-	redisPool := ctx.Value(ContextKey("redisPool")).(*redis.Pool)
+func fetchTickerInfo(deps *Dependencies, symbol string) (Ticker, error) {
+	redisPool := deps.redisPool
+	sublog := deps.logger
+	secrets := deps.secrets
 
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
 
-	apiKey := ctx.Value(ContextKey("yhfinance_apikey")).(string)
-	apiHost := ctx.Value(ContextKey("yhfinance_apihost")).(string)
+	apiKey := secrets["yhfinance_apikey"]
+	apiHost := secrets["yhfinance_apihost"]
 
 	// pull recent response from redis (1 day expire), or go get from YF
 	redisKey := "yhfinance/summary/" + symbol
 	response, err := redis.String(redisConn.Do("GET", redisKey))
 	if err == nil && !skipRedisChecks {
-		zerolog.Ctx(ctx).Info().Str("redis_key", redisKey).Msg("redis cache hit")
+		sublog.Info().Str("redis_key", redisKey).Msg("redis cache hit")
 	} else {
 		var err error
 		summaryParams := map[string]string{"symbol": symbol}
-		zerolog.Ctx(ctx).Info().Str("symbol", symbol).Msg("get {symbol} info from yhfinance api")
-		response, err = yhfinance.GetFromYHFinance(ctx, &apiKey, &apiHost, "summary", summaryParams)
+		sublog.Info().Str("symbol", symbol).Msg("get {symbol} info from yhfinance api")
+		response, err = yhfinance.GetFromYHFinance(sublog, *apiKey, *apiHost, "summary", summaryParams)
 		if err != nil {
 			log.Warn().Err(err).Str("ticker", symbol).Msg("failed to retrieve ticker")
 			return Ticker{}, err
 		}
 		_, err = redisConn.Do("SET", redisKey, response, "EX", 60*60*24)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Str("ticker", symbol).Str("redis_key", redisKey).Msg("failed to save to redis")
+			sublog.Error().Err(err).Str("ticker", symbol).Str("redis_key", redisKey).Msg("failed to save to redis")
 		}
 	}
 
@@ -51,9 +51,9 @@ func fetchTickerInfo(ctx context.Context, symbol string) (Ticker, error) {
 	// table to translate those to Exchange MIC or Acronym... so I have to
 	// link them manually for now
 	exchange := Exchange{ExchangeCode: summaryResponse.Price.ExchangeCode}
-	err = exchange.getByCode(ctx)
+	err = exchange.getByCode(deps)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Str("ticker", summaryResponse.QuoteType.Symbol).Str("exchange_code", summaryResponse.Price.ExchangeCode).Msg("failed to find exchange_code matched to exchange mic record")
+		sublog.Error().Err(err).Str("ticker", summaryResponse.QuoteType.Symbol).Str("exchange_code", summaryResponse.Price.ExchangeCode).Msg("failed to find exchange_code matched to exchange mic record")
 		return Ticker{}, err
 	}
 
@@ -79,50 +79,53 @@ func fetchTickerInfo(ctx context.Context, symbol string) (Ticker, error) {
 		sql.NullTime{},
 		sql.NullTime{},
 	}
-	err = ticker.createOrUpdate(ctx)
+	err = ticker.createOrUpdate(deps)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to create or update ticker")
+		sublog.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to create or update ticker")
 		return Ticker{}, err
 	}
 
 	tickerDescription := TickerDescription{0, ticker.TickerId, summaryResponse.SummaryProfile.LongBusinessSummary, sql.NullTime{}, sql.NullTime{}}
-	err = tickerDescription.createOrUpdate(ctx)
+	err = tickerDescription.createOrUpdate(deps)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Str("ticker", ticker.TickerSymbol).Msg("Failed to create ticker description")
+		sublog.Error().Err(err).Str("ticker", ticker.TickerSymbol).Msg("Failed to create ticker description")
 	}
 
 	// create upgrade/downgrade recommendations
 	for _, updown := range summaryResponse.UpgradeDowngradeHistory.Histories {
 		updownDate := UnixToDatetimeStr(updown.GradeDate)
 		UpDown := TickerUpDown{0, ticker.TickerId, updown.Action, updown.FromGrade, updown.ToGrade, updownDate, updown.Firm, "", sql.NullTime{}, sql.NullTime{}}
-		UpDown.createIfNew(ctx)
+		UpDown.createIfNew(deps)
 	}
 
 	// create/update ticker_attributes
-	ticker.createOrUpdateAttribute(ctx, "sector", "", summaryResponse.SummaryProfile.Sector)
-	ticker.createOrUpdateAttribute(ctx, "industry", "", summaryResponse.SummaryProfile.Industry)
-	ticker.createOrUpdateAttribute(ctx, "short_ratio", "", summaryResponse.DefaultKeyStatistics.ShortRatio.Fmt)
-	ticker.createOrUpdateAttribute(ctx, "last_split_date", "", summaryResponse.DefaultKeyStatistics.LastSplitDate.Fmt)
-	ticker.createOrUpdateAttribute(ctx, "last_dividend_date", "", summaryResponse.DefaultKeyStatistics.LastDividendDate.Fmt)
-	ticker.createOrUpdateAttribute(ctx, "shares_short", "", summaryResponse.DefaultKeyStatistics.SharesShort.Fmt)
-	ticker.createOrUpdateAttribute(ctx, "float_shares", "", summaryResponse.DefaultKeyStatistics.FloatShares.Fmt)
-	ticker.createOrUpdateAttribute(ctx, "forward_eps", "", summaryResponse.DefaultKeyStatistics.ForwardEPS.Fmt)
-	ticker.createOrUpdateAttribute(ctx, "enterprize_to_revenue", "", summaryResponse.DefaultKeyStatistics.EnterprizeToRevenue.Fmt)
-	ticker.createOrUpdateAttribute(ctx, "enterprize_to_ebita", "", summaryResponse.DefaultKeyStatistics.EnterprizeToEbita.Fmt)
+	ticker.createOrUpdateAttribute(deps, "sector", "", summaryResponse.SummaryProfile.Sector)
+	ticker.createOrUpdateAttribute(deps, "industry", "", summaryResponse.SummaryProfile.Industry)
+	ticker.createOrUpdateAttribute(deps, "short_ratio", "", summaryResponse.DefaultKeyStatistics.ShortRatio.Fmt)
+	ticker.createOrUpdateAttribute(deps, "last_split_date", "", summaryResponse.DefaultKeyStatistics.LastSplitDate.Fmt)
+	ticker.createOrUpdateAttribute(deps, "last_dividend_date", "", summaryResponse.DefaultKeyStatistics.LastDividendDate.Fmt)
+	ticker.createOrUpdateAttribute(deps, "shares_short", "", summaryResponse.DefaultKeyStatistics.SharesShort.Fmt)
+	ticker.createOrUpdateAttribute(deps, "float_shares", "", summaryResponse.DefaultKeyStatistics.FloatShares.Fmt)
+	ticker.createOrUpdateAttribute(deps, "forward_eps", "", summaryResponse.DefaultKeyStatistics.ForwardEPS.Fmt)
+	ticker.createOrUpdateAttribute(deps, "enterprize_to_revenue", "", summaryResponse.DefaultKeyStatistics.EnterprizeToRevenue.Fmt)
+	ticker.createOrUpdateAttribute(deps, "enterprize_to_ebita", "", summaryResponse.DefaultKeyStatistics.EnterprizeToEbita.Fmt)
 
 	return ticker, nil
 }
 
 // load ticker up-to-date quote
-func loadTickerQuote(ctx context.Context, symbol string) (yhfinance.YFQuote, error) {
-	redisPool := ctx.Value(ContextKey("redisPool")).(*redis.Pool)
-	zerolog.Ctx(ctx).With().Str("symbol", symbol)
+func loadTickerQuote(deps *Dependencies, symbol string) (yhfinance.YFQuote, error) {
+	redisPool := deps.redisPool
+	secrets := deps.secrets
+	sublog := deps.logger
+
+	sublog.With().Str("symbol", symbol)
 
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
 
-	apiKey := ctx.Value(ContextKey("yhfinance_apikey")).(string)
-	apiHost := ctx.Value(ContextKey("yhfinance_apihost")).(string)
+	apiKey := secrets["yhfinance_apikey"]
+	apiHost := secrets["yhfinance_apihost"]
 
 	var quote yhfinance.YFQuote
 
@@ -130,11 +133,11 @@ func loadTickerQuote(ctx context.Context, symbol string) (yhfinance.YFQuote, err
 	redisKey := "yhfinance/quote/" + symbol
 	response, err := redis.String(redisConn.Do("GET", redisKey))
 	if err == nil && response != "" && !skipRedisChecks {
-		zerolog.Ctx(ctx).Info().Str("redis_key", redisKey).Msg("redis cache hit")
+		sublog.Info().Str("redis_key", redisKey).Msg("redis cache hit")
 	} else {
 		var err error
 		quoteParams := map[string]string{"symbols": symbol}
-		response, err = yhfinance.GetFromYHFinance(ctx, &apiKey, &apiHost, "quote", quoteParams)
+		response, err = yhfinance.GetFromYHFinance(sublog, *apiKey, *apiHost, "quote", quoteParams)
 		if err != nil {
 			log.Warn().Err(err).Msg("Failed to retrieve quote")
 			return quote, err
@@ -142,7 +145,7 @@ func loadTickerQuote(ctx context.Context, symbol string) (yhfinance.YFQuote, err
 		if response != "" {
 			_, err = redisConn.Do("SET", redisKey, response, "EX", 20)
 			if err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Str("redis_key", redisKey).Msg("Failed to save to redis")
+				sublog.Error().Err(err).Str("redis_key", redisKey).Msg("Failed to save to redis")
 			}
 		}
 	}
@@ -151,8 +154,8 @@ func loadTickerQuote(ctx context.Context, symbol string) (yhfinance.YFQuote, err
 	json.NewDecoder(strings.NewReader(response)).Decode(&quoteResponse)
 
 	if len(quoteResponse.QuoteResponse.Quotes) == 0 {
-		zerolog.Ctx(ctx).Warn().Msg(fmt.Sprintf("%#v", strings.NewReader(response)))
-		zerolog.Ctx(ctx).Warn().Msg("failed to get quote response back from yhfinance")
+		sublog.Warn().Msg(fmt.Sprintf("%#v", strings.NewReader(response)))
+		sublog.Warn().Msg("failed to get quote response back from yhfinance")
 		return quote, nil
 	}
 	quote = quoteResponse.QuoteResponse.Quotes[0]
@@ -160,21 +163,23 @@ func loadTickerQuote(ctx context.Context, symbol string) (yhfinance.YFQuote, err
 	return quote, nil
 }
 
-func loadMultiTickerQuotes(ctx context.Context, symbols []string) (map[string]yhfinance.YFQuote, error) {
-	redisPool := ctx.Value(ContextKey("redisPool")).(*redis.Pool)
+func loadMultiTickerQuotes(deps *Dependencies, symbols []string) (map[string]yhfinance.YFQuote, error) {
+	redisPool := deps.redisPool
+	secrets := deps.secrets
+	sublog := deps.logger
 
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
 
-	apiKey := ctx.Value(ContextKey("yhfinance_apikey")).(string)
-	apiHost := ctx.Value(ContextKey("yhfinance_apihost")).(string)
+	apiKey := secrets["yhfinance_apikey"]
+	apiHost := secrets["yhfinance_apihost"]
 
 	quotes := map[string]yhfinance.YFQuote{}
 
 	var err error
 	quoteParams := map[string]string{"symbols": strings.Join(symbols, ",")}
-	zerolog.Ctx(ctx).Info().Str("symbols", strings.Join(symbols, ",")).Msg("getting multi-symbol quote from yhfinance")
-	fullResponse, err := yhfinance.GetFromYHFinance(ctx, &apiKey, &apiHost, "quote", quoteParams)
+	sublog.Info().Str("symbols", strings.Join(symbols, ",")).Msg("getting multi-symbol quote from yhfinance")
+	fullResponse, err := yhfinance.GetFromYHFinance(sublog, *apiKey, *apiHost, "quote", quoteParams)
 	if err != nil {
 		log.Warn().Err(err).Str("symbols", strings.Join(symbols, ",")).Msg("Failed to retrieve quote")
 		return quotes, err
@@ -187,10 +192,10 @@ func loadMultiTickerQuotes(ctx context.Context, symbols []string) (map[string]yh
 		redisKey := "yhfinance/quote/" + symbol
 		_, err = redisConn.Do("SET", redisKey, response, "EX", 20)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Str("ticker", symbol).Str("redis_key", redisKey).Msg("Failed to save to redis")
+			sublog.Error().Err(err).Str("ticker", symbol).Str("redis_key", redisKey).Msg("Failed to save to redis")
 		}
 
-		zerolog.Ctx(ctx).Info().Str("symbol", symbol).Msg("found yhfinance quote response for {symbol}")
+		sublog.Info().Str("symbol", symbol).Msg("found yhfinance quote response for {symbol}")
 		quotes[symbol] = quoteResponse.QuoteResponse.Quotes[n]
 	}
 
@@ -198,9 +203,9 @@ func loadMultiTickerQuotes(ctx context.Context, symbols []string) (map[string]yh
 }
 
 // load ticker historical prices
-func loadTickerEODs(ctx context.Context, ticker Ticker) error {
-	apiKey := ctx.Value(ContextKey("yhfinance_apikey")).(string)
-	apiHost := ctx.Value(ContextKey("yhfinance_apihost")).(string)
+func loadTickerEODs(deps *Dependencies, ticker Ticker) error {
+	secrets := deps.secrets
+	sublog := deps.logger
 
 	EasternTZ, _ := time.LoadLocation("America/New_York")
 	currentDate := time.Now().In(EasternTZ)
@@ -208,9 +213,15 @@ func loadTickerEODs(ctx context.Context, ticker Ticker) error {
 	currentTimeStr := currentDate.Format("15:04:05")
 
 	historicalParams := map[string]string{"symbol": ticker.TickerSymbol}
-	response, err := yhfinance.GetFromYHFinance(ctx, &apiKey, &apiHost, "historical", historicalParams)
+
+	apiKey := *secrets["yhfinance_apikey"]
+	apiHost := *secrets["yhfinance_apihost"]
+	if apiKey == "" || apiHost == "" {
+		sublog.Fatal().Msg("apiKey or apiHost secret is missing")
+	}
+	response, err := yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "historical", historicalParams)
 	if err != nil {
-		log.Warn().Err(err).Str("ticker", ticker.TickerSymbol).Msg("Failed to retrieve historical prices")
+		sublog.Warn().Err(err).Str("ticker", ticker.TickerSymbol).Msg("Failed to retrieve historical prices")
 		return err
 	}
 
@@ -228,7 +239,7 @@ func loadTickerEODs(ctx context.Context, ticker Ticker) error {
 		}
 		priceDatetime, _ := time.Parse(sqlDatetimeParseType, priceDate+" "+priceTime)
 		tickerDaily := TickerDaily{0, ticker.TickerId, priceDate, priceTime, priceDatetime, price.Open, price.High, price.Low, price.Close, price.Volume, sql.NullTime{}, sql.NullTime{}}
-		err = tickerDaily.createOrUpdate(ctx)
+		err = tickerDaily.createOrUpdate(deps)
 		if err != nil {
 			lastErr = err
 		}
@@ -240,7 +251,7 @@ func loadTickerEODs(ctx context.Context, ticker Ticker) error {
 	for _, split := range historicalResponse.Events {
 		splitDate := FormatUnixTime(split.Date, "2006-01-02")
 		tickerSplit := TickerSplit{0, ticker.TickerId, splitDate, split.SplitRatio, sql.NullTime{}, sql.NullTime{}}
-		err = tickerSplit.createIfNew(ctx)
+		err = tickerSplit.createIfNew(deps)
 		if err != nil {
 			lastErr = err
 		}
@@ -253,10 +264,10 @@ func loadTickerEODs(ctx context.Context, ticker Ticker) error {
 }
 
 // search for ticker and return highest scored quote symbol
-func jumpSearch(ctx context.Context, searchString string) (SearchResultTicker, error) {
+func jumpSearch(deps *Dependencies, searchString string) (SearchResultTicker, error) {
 	var searchResult SearchResultTicker
 
-	searchResults, err := listSearch(ctx, searchString, "ticker")
+	searchResults, err := listSearch(deps, searchString, "ticker")
 	if err != nil {
 		return searchResult, err
 	}
@@ -276,14 +287,17 @@ func jumpSearch(ctx context.Context, searchString string) (SearchResultTicker, e
 }
 
 // search for ticker or news
-func listSearch(ctx context.Context, searchString string, resultTypes string) ([]SearchResult, error) {
-	apiKey := ctx.Value(ContextKey("yhfinance_apikey")).(string)
-	apiHost := ctx.Value(ContextKey("yhfinance_apihost")).(string)
+func listSearch(deps *Dependencies, searchString string, resultTypes string) ([]SearchResult, error) {
+	secrets := deps.secrets
+	sublog := deps.logger
+
+	apiKey := secrets["yhfinance_apikey"]
+	apiHost := secrets["yhfinance_apihost"]
 
 	searchResults := make([]SearchResult, 100)
 
 	searchParams := map[string]string{"q": searchString, "region": "US"}
-	response, err := yhfinance.GetFromYHFinance(ctx, &apiKey, &apiHost, "autocomplete", searchParams)
+	response, err := yhfinance.GetFromYHFinance(sublog, *apiKey, *apiHost, "autocomplete", searchParams)
 	if err != nil {
 		return searchResults, err
 	}
@@ -325,9 +339,9 @@ func listSearch(ctx context.Context, searchString string, resultTypes string) ([
 				continue
 			}
 			exchange := Exchange{ExchangeCode: quoteResult.ExchangeCode}
-			err := exchange.getByCode(ctx)
+			err := exchange.getByCode(deps)
 			if err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).Str("exchange_code", quoteResult.ExchangeCode).Msg("failed to get exchange by code")
+				sublog.Error().Err(err).Str("exchange_code", quoteResult.ExchangeCode).Msg("failed to get exchange by code")
 				continue
 			}
 			if exchange.ExchangeId > 0 {
@@ -348,7 +362,7 @@ func listSearch(ctx context.Context, searchString string, resultTypes string) ([
 		}
 	}
 
-	zerolog.Ctx(ctx).Info().Str("search_string", searchString).Int("results_count", searchCount).Msg("Search returned results")
+	sublog.Info().Str("search_string", searchString).Int("results_count", searchCount).Msg("Search returned results")
 
 	return searchResults, nil
 }

@@ -1,12 +1,8 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"errors"
-
-	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog"
 )
 
 type OAuth struct {
@@ -19,44 +15,46 @@ type OAuth struct {
 	UpdateDatetime sql.NullTime `db:"update_datetime"`
 }
 
-func (o *OAuth) create(ctx context.Context) error {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func (o *OAuth) create(deps *Dependencies) error {
+	db := deps.db
+	sublog := deps.logger
 
 	_, err := db.Exec(
 		"INSERT INTO oauth SET oauth_issuer=?, oauth_sub=?, oauth_issued=?, oauth_expires=?",
 		o.OAuthIssuer, o.OAuthSub, o.OAuthIssued, o.OAuthExpires)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Str("table_name", "oauth").Msg("failed on insert")
-		zerolog.Ctx(ctx).Debug().Interface("OAuth", o).Caller().Msg("failed on insert")
+		sublog.Error().Err(err).Str("table_name", "oauth").Msg("failed on insert")
+		sublog.Debug().Interface("OAuth", o).Caller().Msg("failed on insert")
 		return err
 	}
 
-	return o.getBySub(ctx)
+	return o.getBySub(deps)
 }
 
-func (o *OAuth) createOrUpdate(ctx context.Context) error {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func (o *OAuth) createOrUpdate(deps *Dependencies) error {
+	db := deps.db
+	sublog := deps.logger
 
-	err := o.getBySub(ctx)
-	if errors.Is(err, sql.ErrNoRows) {
-		return o.create(ctx)
+	err := o.getBySub(deps)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return o.create(deps)
 	}
 
 	_, err = db.Exec(
-		"UPDATE oauth SET oauth_issued=?, oauth_expires=? WHERE oauth_id=?",
+		"UPDATE oauth SET oauth_issued=?, oauth_expires=?, update_datetime=now() WHERE oauth_id=?",
 		o.OAuthIssued, o.OAuthExpires,
 		o.OAuthId,
 	)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Str("table_name", "oauth").Msg("failed on update")
-		zerolog.Ctx(ctx).Debug().Interface("OAuth", o).Caller().Msg("failed on update")
+		sublog.Error().Err(err).Str("table_name", "oauth").Msg("failed on update")
+		sublog.Debug().Interface("OAuth", o).Caller().Msg("failed on update")
 	}
 
-	return o.getBySub(ctx)
+	return o.getBySub(deps)
 }
 
-func (o *OAuth) getBySub(ctx context.Context) error {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func (o *OAuth) getBySub(deps *Dependencies) error {
+	db := deps.db
 
 	err := db.QueryRowx("SELECT * FROM oauth WHERE oauth_sub=?", o.OAuthSub).StructScan(o)
 	return err

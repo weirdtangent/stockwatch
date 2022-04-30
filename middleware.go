@@ -1,21 +1,14 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gomodule/redigo/redis"
-	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
-	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-	"github.com/savaki/dynastore"
 )
 
 var (
@@ -24,53 +17,46 @@ var (
 	obfuscateParams  = regexp.MustCompile(`(token|verifier|pwd|password|code|state)=([^\&]+)`)
 )
 
-// AddContext middleware ------------------------------------------------------
+// withContext middleware -----------------------------------------------------
 type AddContext struct {
 	handler http.Handler
-	awssess *session.Session
-	db      *sqlx.DB
-	sc      *securecookie.SecureCookie
-	secrets map[string]string
+	deps    *Dependencies
 }
 
 type ContextKey string
 
 func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	reqHeader := r.Header
-	resHeader := w.Header()
-
 	// lets add request_id to this context and as a response header
 	// but also as a cookie with a short expiration so we can catch
 	// additional immediate requests with the same id
-	var rid string
+	reqHeader := r.Header
+	resHeader := w.Header()
+
+	var requestId string
 	ridCookie, err := r.Cookie("RID")
 	if err == nil {
-		rid = ridCookie.Value
+		requestId = ridCookie.Value
 	}
-	if len(rid) == 0 {
-		rid = reqHeader.Get("X-Request-ID")
+	if len(requestId) == 0 {
+		requestId = reqHeader.Get("X-Request-ID")
 	}
-	ctx = context.WithValue(ctx, ContextKey("request_id"), rid)
-	resHeader.Set("X-Request-ID", rid)
+	resHeader.Set("X-Request-ID", requestId)
+	ac.deps.request_id = requestId
 
+	// write/update cookie with RID
 	ridCookie = &http.Cookie{
 		Name:     "RID",
-		Value:    rid,
+		Value:    requestId,
 		Path:     "/",
 		Secure:   true,
 		HttpOnly: true,
-		Expires:  time.Now().Add(3 * time.Second),
+		SameSite: http.SameSiteStrictMode,
+		Expires:  time.Now().Add(5 * time.Second), // so, requests within 5 seconds will have the same request_id
 	}
 	http.SetCookie(w, ridCookie)
 
-	logger := zerolog.Ctx(ctx)
-	logger.UpdateContext(func(c zerolog.Context) zerolog.Context {
-		return c.Str("request_id", rid)
-	})
-
-	messages := make([]Message, 0)
+	// newlog := ac.deps.logger.With().Str("request_id", requestId).Logger()
+	// ac.deps.logger = &newlog
 
 	// redis connection
 	redisPool := &redis.Pool{
@@ -85,43 +71,79 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defaultConfig["is_market_open"] = isMarketOpen()
 	defaultConfig["quote_refresh"] = 20
 
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("awssess"), ac.awssess))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("db"), ac.db))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("sc"), ac.sc))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("redisPool"), redisPool))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("google_oauth_client_id"), ac.secrets["google_oauth_client_id"]))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("google_oauth_client_secret"), ac.secrets["google_oauth_secret"]))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("github_oauth_key"), ac.secrets["github_oauth_key"]))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("google_svc_acct"), ac.secrets["stockwatch_google_svc_acct"]))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("yhfinance_apikey"), ac.secrets["yhfinance_rapidapi_key"]))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("yhfinance_apihost"), ac.secrets["yhfinance_rapidapi_host"]))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("msfinance_apikey"), ac.secrets["msfinance_rapidapi_key"]))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("msfinance_apihost"), ac.secrets["msfinance_rapidapi_host"]))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("bbfinance_apikey"), ac.secrets["bbfinance_rapidapi_key"]))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("bbfinance_apihost"), ac.secrets["bbfinance_rapidapi_host"]))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("skip64_watcher"), ac.secrets["skip64_watcher"]))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("next_url_key"), ac.secrets["next_url_key"]))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("config"), defaultConfig))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("webdata"), make(map[string]interface{})))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("messages"), &messages))
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("nonce"), RandStringMask(32)))
+	ac.deps.redisPool = redisPool
+	ac.deps.config = defaultConfig
+	ac.deps.webdata = make(map[string]interface{})
+
+	ac.deps.nonce = RandStringMask(32)
 
 	ac.handler.ServeHTTP(w, r)
 }
-
-func withAddContext(h http.Handler, awssess *session.Session, db *sqlx.DB, sc *securecookie.SecureCookie, secrets map[string]string) *AddContext {
-	return &AddContext{h, awssess, db, sc, secrets}
+func withContext(h http.Handler, deps *Dependencies) *AddContext {
+	return &AddContext{h, deps}
 }
 
-// AddHeaders middleware ------------------------------------------------------
+// withLogging middleware -----------------------------------------------------
+type StatusRecorder struct {
+	http.ResponseWriter
+	Status int
+}
 
-type AddHeader struct {
+func (r *StatusRecorder) WriteHeader(status int) {
+	r.Status = status
+	r.ResponseWriter.WriteHeader(status)
+}
+
+type Logger struct {
 	handler http.Handler
+	deps    *Dependencies
 }
 
-func (ah *AddHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	nonce := ctx.Value(ContextKey("nonce")).(string)
+func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	t := time.Now()
+	sublog := l.deps.logger
+
+	recorder := &StatusRecorder{ResponseWriter: w, Status: 200}
+
+	// handle the HTTP request
+	l.handler.ServeHTTP(recorder, r)
+
+	// don't logs these, no reason to
+	if !skipLoggingPaths.MatchString(r.URL.String()) {
+		ForwardedHdrs := r.Header["Forwarded"]
+		remote_ip_addr := ""
+		if len(ForwardedHdrs) > 0 {
+			submatches := forwardedRE.FindStringSubmatch(ForwardedHdrs[0])
+			if len(submatches) >= 1 {
+				remote_ip_addr = submatches[1]
+			}
+		}
+
+		cleanURL := r.URL.String()
+		cleanURL = obfuscateParams.ReplaceAllString(cleanURL, "$1=xxxxxx")
+
+		sublog.Info().
+			Str("method", r.Method).
+			Str("url", cleanURL).
+			Int("status_code", recorder.Status).
+			Str("remote_ip_addr", remote_ip_addr).
+			Int64("response_time", time.Since(t).Nanoseconds()).
+			Msg("request")
+	}
+}
+func withLogging(h http.Handler, deps *Dependencies) *Logger {
+	return &Logger{h, deps}
+}
+
+// withExtraHeader middleware -------------------------------------------------
+
+type ExtraHeader struct {
+	handler http.Handler
+	deps    *Dependencies
+}
+
+func (ah *ExtraHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	nonce := ah.deps.nonce
 
 	resHeader := w.Header()
 	csp := map[string][]string{
@@ -148,73 +170,23 @@ func (ah *AddHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ah.handler.ServeHTTP(w, r)
 }
-func withAddHeader(h http.Handler) *AddHeader {
-	return &AddHeader{h}
+func withExtraHeader(h http.Handler, deps *Dependencies) *ExtraHeader {
+	return &ExtraHeader{h, deps}
 }
 
-// Logging middleware ---------------------------------------------------------
-
-type Logger struct {
-	handler http.Handler
-}
-
-type StatusRecorder struct {
-	http.ResponseWriter
-	Status int
-}
-
-func (r *StatusRecorder) WriteHeader(status int) {
-	r.Status = status
-	r.ResponseWriter.WriteHeader(status)
-}
-
-func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	t := time.Now()
-
-	recorder := &StatusRecorder{ResponseWriter: w, Status: 200}
-
-	// attach zerolog to request context
-	logTag := "stockwatch"
-	log := log.With().Str("@tag", logTag).Caller().Logger()
-	r = r.WithContext(log.WithContext(r.Context()))
-	ctx := r.Context()
-
-	// handle the HTTP request
-	l.handler.ServeHTTP(recorder, r)
-
-	// don't logs these, no reason to
-	if !skipLoggingPaths.MatchString(r.URL.String()) {
-		ForwardedHdrs := r.Header["Forwarded"]
-		remote_ip_addr := ""
-		if len(ForwardedHdrs) > 0 {
-			submatches := forwardedRE.FindStringSubmatch(ForwardedHdrs[0])
-			if len(submatches) >= 1 {
-				remote_ip_addr = submatches[1]
-			}
-		}
-
-		cleanURL := r.URL.String()
-		cleanURL = obfuscateParams.ReplaceAllString(cleanURL, "$1=xxxxxx")
-
-		zerolog.Ctx(ctx).Info().Str("url", cleanURL).Int("status_code", recorder.Status).Str("method", r.Method).Str("remote_ip_addr", remote_ip_addr).Int64("response_time", time.Since(t).Nanoseconds()).Msg("request")
-	}
-}
-func withLogging(h http.Handler) *Logger {
-	return &Logger{handler: h}
-}
-
-// Session management middleware ----------------------------------------------
+// withSession management middleware ------------------------------------------
 
 type Session struct {
-	store   *dynastore.Store
 	handler http.Handler
+	deps    *Dependencies
 }
 
 func (s *Session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	session, err := s.store.Get(r, "SID")
+	sublog := s.deps.logger
+
+	session, err := s.deps.cookieStore.Get(r, "SID")
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("Failed to get/create session")
+		sublog.Fatal().Err(err).Msg("Failed to get/create session")
 	}
 	if session.IsNew {
 		state := RandStringMask(32)
@@ -222,24 +194,26 @@ func (s *Session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		session.Values["theme"] = "dark"
 		err := session.Save(r, w)
 		if err != nil {
-			zerolog.Ctx(ctx).Fatal().Err(err).Msg("Failed to save session")
+			sublog.Fatal().Err(err).Msg("Failed to save session")
 		}
 	}
-	r = r.Clone(context.WithValue(r.Context(), ContextKey("ddbs"), session))
+	s.deps.session = session
 
 	defer session.Save(r, w)
 
 	s.handler.ServeHTTP(w, r)
 }
-func withSession(store *dynastore.Store, h http.Handler) *Session {
-	return &Session{store, h}
+
+func withSession(h http.Handler, deps *Dependencies) *Session {
+	return &Session{h, deps}
 }
 
-func getSession(r *http.Request) *sessions.Session {
-	ctx := r.Context()
-	session := ctx.Value(ContextKey("ddbs")).(*sessions.Session)
+func getSession(deps *Dependencies) *sessions.Session {
+	sublog := deps.logger
+
+	session := deps.session
 	if session == nil {
-		zerolog.Ctx(ctx).Fatal().Err(fmt.Errorf("failed to get session from context")).Msg("")
+		sublog.Fatal().Err(fmt.Errorf("failed to get session from context")).Msg("")
 	}
 	return session
 }

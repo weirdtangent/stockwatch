@@ -2,14 +2,10 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/rs/zerolog"
-
-	"github.com/weirdtangent/mymath"
 )
 
 type Transaction struct {
@@ -24,11 +20,11 @@ type Transaction struct {
 	UpdateDatetime      sql.NullTime `db:"update_datetime"`
 }
 
-func transactionHandler() http.HandlerFunc {
+func transactionHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		webdata := ctx.Value(ContextKey("webdata")).(map[string]interface{})
-		messages := ctx.Value(ContextKey("messages")).(*[]Message)
+		sublog := deps.logger
+		webdata := deps.webdata
+		// messages := *(deps.messages)
 
 		watcher := webdata["watcher"].(Watcher)
 
@@ -41,13 +37,13 @@ func transactionHandler() http.HandlerFunc {
 		SharePrice, _ := strconv.ParseFloat(r.FormValue("SharePrice"), 64)
 		PurchaseDate := r.FormValue("PurchaseDate")
 
-		shares, _ := mymath.FloatPrec(Shares, 2, 6)
-		sharePrice, _ := mymath.FloatPrec(SharePrice, 2, 6)
+		// shares, _ := mymath.FloatPrec(Shares, 2, 6)
+		// sharePrice, _ := mymath.FloatPrec(SharePrice, 2, 6)
 
-		*messages = append(*messages, Message{fmt.Sprintf("Got it! Recorded that you %s %s shares of %s (%s) at $%s/share on %s",
-			action, shares, symbol, acronym, sharePrice, PurchaseDate), "success"})
-		zerolog.Ctx(ctx).Info().Uint64("watcher_id", watcher.WatcherId).Str("action", action).Float64("shares", Shares).Float64("share_price", SharePrice).Str("purchase_date", PurchaseDate).Str("symbol", symbol).Str("acronym", acronym).Msg("transaction recorded")
+		// messages = append(messages, Message{fmt.Sprintf("Got it! Recorded that you %s %s shares of %s (%s) at $%s/share on %s",
+		// action, shares, symbol, acronym, sharePrice, PurchaseDate), "success"})
+		sublog.Info().Uint64("watcher_id", watcher.WatcherId).Str("action", action).Float64("shares", Shares).Float64("share_price", SharePrice).Str("purchase_date", PurchaseDate).Str("symbol", symbol).Str("acronym", acronym).Msg("transaction recorded")
 
-		renderTemplateDefault(w, r, "update")
+		renderTemplateDefault(w, r, deps, "update")
 	})
 }

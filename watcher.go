@@ -1,12 +1,9 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 
-	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -42,74 +39,76 @@ type WatcherRecent struct {
 	UpdateDatetime  sql.NullTime `db:"update_datetime"`
 }
 
-func (w *Watcher) update(ctx context.Context, email string) error {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+type WebWatcher struct {
+	WatcherName     string
+	WatcherStatus   string
+	WatcherLevel    string
+	WatcherTimezone string
+	WatcherPicURL   string
+}
 
-	var update = "UPDATE watcher SET watcher_name=?, watcher_pic_url=?, session_id=? WHERE watcher_id=?"
+func getWatcherById(deps *Dependencies, watcherId uint64) (Watcher, error) {
+	db := deps.db
+
+	w := Watcher{}
+	err := db.QueryRowx("SELECT * FROM watcher WHERE watcher_id=?", watcherId).StructScan(&w)
+	return w, err
+}
+
+func updateWatcher(deps *Dependencies, w Watcher, email string) error {
+	db := deps.db
+
+	update := "UPDATE watcher SET watcher_name=?, watcher_pic_url=?, session_id=? WHERE watcher_id=?"
 	_, err := db.Exec(update, w.WatcherName, w.WatcherPicURL, w.SessionId, w.WatcherId)
 	if err != nil {
-		log.Warn().Err(err).Str("table_name", "watcher").Msg("Failed on UPDATE")
-	} else {
-		err = getWatcherById(ctx, w, w.WatcherId)
-		if err != nil {
-			log.Warn().Err(err).Uint64("watcher_id", w.WatcherId).Str("table_name", "watcher").Msg("Failed to retrieve record after UPDATE")
-		}
+		return err
 	}
 
-	if err == nil {
-		var update = "INSERT INTO watcher_email SET watcher_id=?, email_address=? ON DUPLICATE KEY UPDATE watcher_id=watcher_id"
-		_, err = db.Exec(update, w.WatcherId, email)
-		if err != nil {
-			log.Warn().Err(err).Str("table_name", "watcher_email").Msg("Failed to store/ignore email address after UPDATE")
-		}
-	}
+	update = "INSERT INTO watcher_email SET watcher_id=?, email_address=? ON DUPLICATE KEY UPDATE watcher_id=watcher_id"
+	_, err = db.Exec(update, w.WatcherId, email)
 	return err
 }
 
-func (w *Watcher) create(ctx context.Context, email string) error {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func createWatcher(deps *Dependencies, w Watcher, email string) (Watcher, error) {
+	db := deps.db
 
 	insert := "INSERT INTO watcher SET watcher_sub=?, watcher_name=?, watcher_status=?, watcher_pic_url=?, session_id=?"
 	_, err := db.Exec(insert, w.WatcherSub, w.WatcherName, w.WatcherStatus, w.WatcherPicURL, w.SessionId)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Str("table_name", "watcher").Msg("failed on INSERT")
-		return err
+		return Watcher{}, err
 	}
-	w.WatcherId, err = getWatcherIdBySession(ctx, w.SessionId)
-	if err != nil || w.WatcherId == 0 {
-		zerolog.Ctx(ctx).Error().Err(err).Str("table_name", "watcher").Msg("failed on getting watcher_id of who we just inserted")
-		return err
+
+	w.WatcherId, err = getWatcherIdBySession(deps, w.SessionId)
+	if err != nil {
+		return Watcher{}, err
 	}
+
 	insert = "INSERT INTO watcher_email SET watcher_id=?, email_address=?, email_is_primary=1"
 	_, err = db.Exec(insert, w.WatcherId, email)
-	if err != nil {
-		log.Warn().Err(err).Str("table_name", "watcher_email").Msg("failed on INSERT")
-	}
 
-	return nil
+	return w, err
 }
 
-func (w *Watcher) createOrUpdate(ctx context.Context, email string) error {
-	watcherId, err := getWatcherIdBySession(ctx, w.SessionId)
+func createOrUpdateWatcher(deps *Dependencies, watcher Watcher, email string) (Watcher, error) {
+	watcherId, err := getWatcherIdBySession(deps, watcher.SessionId)
 	if err != nil {
-		return nil
+		return watcher, nil
 	}
 
 	if watcherId == 0 {
-		zerolog.Ctx(ctx).Info().Msg("did not connect to watcher via sessionId")
-		watcherId, err = getWatcherIdByEmail(ctx, email)
+		watcherId, err = getWatcherIdByEmail(deps, email)
 		if err != nil {
-			return nil
+			return watcher, nil
 		}
 		if watcherId == 0 {
-			zerolog.Ctx(ctx).Info().Msg("did not connect to watcher via emailAddress")
-			return w.create(ctx, email)
+			return createWatcher(deps, watcher, email)
 		}
 	}
 
-	w.WatcherId = watcherId
+	watcher.WatcherId = watcherId
 
-	return w.update(ctx, email)
+	err = updateWatcher(deps, watcher, email)
+	return watcher, err
 }
 
 func (w Watcher) IsAdmin() bool {
@@ -121,15 +120,20 @@ func (w Watcher) IsRoot() bool {
 }
 
 // misc -----------------------------------------------------------------------
-func getWatcherById(ctx context.Context, w *Watcher, watcherId uint64) error {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func getWatcherBySession(deps *Dependencies, session string) (Watcher, error) {
+	db := deps.db
 
-	err := db.QueryRowx("SELECT * FROM watcher WHERE watcher_id=?", watcherId).StructScan(w)
-	return err
+	w := Watcher{}
+	err := db.QueryRowx("SELECT * FROM watcher WHERE session_id=?", session).StructScan(&w)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return Watcher{}, nil
+	}
+	return w, err
 }
 
-func getWatcherIdBySession(ctx context.Context, session string) (uint64, error) {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func getWatcherIdBySession(deps *Dependencies, session string) (uint64, error) {
+	db := deps.db
+	sublog := deps.logger
 
 	var watcherId uint64
 	err := db.QueryRowx("SELECT watcher_id FROM watcher WHERE session_id=?", session).Scan(&watcherId)
@@ -137,14 +141,15 @@ func getWatcherIdBySession(ctx context.Context, session string) (uint64, error) 
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
 		} else {
-			log.Warn().Err(err).Str("table_name", "watcher").Msg("Failed to check for existing record")
+			sublog.Warn().Err(err).Str("table_name", "watcher").Msg("Failed to check for existing record")
 		}
 	}
 	return watcherId, err
 }
 
-func getWatcherIdByEmail(ctx context.Context, email string) (uint64, error) {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func getWatcherIdByEmail(deps *Dependencies, email string) (uint64, error) {
+	db := deps.db
+	sublog := deps.logger
 
 	var watcherId uint64
 	err := db.QueryRowx("SELECT watcher_id FROM watcher_email WHERE email_address=?", email).Scan(&watcherId)
@@ -152,40 +157,42 @@ func getWatcherIdByEmail(ctx context.Context, email string) (uint64, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
 		} else {
-			log.Warn().Err(err).Str("table_name", "watcher").Msg("Failed to check for existing record")
+			sublog.Warn().Err(err).Str("table_name", "watcher").Msg("Failed to check for existing record")
 		}
 	}
 	return watcherId, err
 }
 
-func (wr *WatcherRecent) create(ctx context.Context) error {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func (wr *WatcherRecent) create(deps *Dependencies) error {
+	db := deps.db
+	sublog := deps.logger
 
 	insert := "INSERT INTO watcher_recent SET watcher_id=?, ticker_id=?, locked=?"
 	_, err := db.Exec(insert, wr.WatcherId, wr.TickerId, wr.Locked)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Str("table_name", "watcher_recent").Msg("failed on INSERT")
+		sublog.Error().Err(err).Str("table_name", "watcher_recent").Msg("failed on INSERT")
 		return err
 	}
 
 	return nil
 }
 
-func (wr *WatcherRecent) createOrUpdate(ctx context.Context) error {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func (wr *WatcherRecent) createOrUpdate(deps *Dependencies) error {
+	db := deps.db
+	sublog := deps.logger
 
 	insert_or_update := "INSERT INTO watcher_recent SET watcher_id=?, ticker_id=?, locked=? ON DUPLICATE KEY UPDATE locked=?, update_datetime=NOW()"
 	_, err := db.Exec(insert_or_update, wr.WatcherId, wr.TickerId, wr.Locked, wr.Locked)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Str("table_name", "watcher_recent").Msg("failed on INSERT OR UPDATE")
+		sublog.Error().Err(err).Str("table_name", "watcher_recent").Msg("failed on INSERT OR UPDATE")
 		return err
 	}
 
 	return nil
 }
 
-func (wr *WatcherRecent) lock(ctx context.Context) error {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func (wr *WatcherRecent) lock(deps *Dependencies) error {
+	db := deps.db
 
 	var update = "UPDATE watcher_recent SET locked=true WHERE watcher_id=? AND ticker_id=?"
 	_, err := db.Exec(update, wr.WatcherId, wr.TickerId)
@@ -195,8 +202,8 @@ func (wr *WatcherRecent) lock(ctx context.Context) error {
 	return err
 }
 
-func (wr *WatcherRecent) unlock(ctx context.Context) error {
-	db := ctx.Value(ContextKey("db")).(*sqlx.DB)
+func (wr *WatcherRecent) unlock(deps *Dependencies) error {
+	db := deps.db
 
 	var update = "UPDATE watcher_recent SET locked=false WHERE watcher_id=? AND ticker_id=?"
 	_, err := db.Exec(update, wr.WatcherId, wr.TickerId)
