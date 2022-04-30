@@ -304,7 +304,11 @@ func getNewsLastUpdated(deps *Dependencies, ticker Ticker) (sql.NullTime, bool) 
 			updatingNewsNow = (err == nil)
 		} else {
 			if webdata["TZLocation"] != nil {
-				newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time.In(webdata["TZLocation"].(*time.Location))}
+				location, err := time.LoadLocation(webdata["TZLocation"].(string))
+				if err != nil {
+					location, _ = time.LoadLocation("UTC")
+				}
+				newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time.In(location)}
 			} else {
 				newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time}
 			}

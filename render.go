@@ -31,6 +31,7 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, deps *Depende
 		"PriceBigMoveColor":     PriceBigMoveColorCSS,
 		"PriceMoveIndicator":    PriceMoveIndicatorCSS,
 		"PriceBigMoveIndicator": PriceBigMoveIndicatorCSS,
+		"TimeNow":               TimeNow,
 		"ToUpper":               strings.ToUpper,
 		"ToLower":               strings.ToLower,
 	}

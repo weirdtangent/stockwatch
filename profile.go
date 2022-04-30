@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"net/http"
+	"sort"
 )
 
 type ProfileEmail struct {
@@ -31,10 +32,18 @@ func profileHandler(deps *Dependencies) http.HandlerFunc {
 		webdata := deps.webdata
 		profile, err := getProfile(deps)
 		if err != nil {
-			sublog.Error().Err(err).Msg("Failed to get profile info")
+			sublog.Error().Err(err).Msg("failed to get profile info")
 			// messages = append(messages, Message{fmt.Sprintf("Sorry, error retrieving your profile: %s", err.Error()), "danger"})
 		}
 		webdata["profile"] = profile
+
+		timezones := getTimezones(deps)
+
+		sort.Slice(timezones, func(i, j int) bool {
+			return timezones[i].Location < timezones[j].Location
+		})
+
+		webdata["timezones"] = timezones
 
 		renderTemplateDefault(w, r, deps, "profile")
 	})

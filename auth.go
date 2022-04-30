@@ -133,7 +133,7 @@ func checkAuthState(w http.ResponseWriter, r *http.Request, deps *Dependencies) 
 
 	webdata["config"] = ConfigData{}
 	webdata["nonce"] = nonce
-	webdata["TZLocation"], _ = time.LoadLocation("UTC")
+	webdata["TZLocation"] = "UTC"
 
 	if session.Values["encWId"] != nil {
 		encWId := session.Values["encWId"].(string)
@@ -157,9 +157,9 @@ func checkAuthState(w http.ResponseWriter, r *http.Request, deps *Dependencies) 
 		watcherRecents := getWatcherRecents(deps, watcher)
 		webdata["WatcherRecents"] = watcherRecents
 
-		location, err := time.LoadLocation(watcher.WatcherTimezone)
+		_, err = time.LoadLocation(watcher.WatcherTimezone)
 		if err == nil {
-			webdata["TZLocation"] = location
+			webdata["TZLocation"] = watcher.WatcherTimezone
 		}
 
 		if session.Values["provider"] != nil {

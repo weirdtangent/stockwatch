@@ -127,6 +127,11 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 	var qtrPercChartHTML = chartHandlerFinancialsLine(deps, ticker, &exchange, qtrPercStrs, qtrPercValues, 1)
 	var annPercChartHTML = chartHandlerFinancialsLine(deps, ticker, &exchange, annPercStrs, annPercValues, 1)
 
+	localTz, err := time.LoadLocation(webdata["TZLocation"].(string))
+	if err != nil {
+		localTz, _ = time.LoadLocation("UTC")
+	}
+
 	webdata["TickerSymbol"] = symbol
 	webdata["ticker"] = ticker
 	webdata["ticker_description"] = tickerDescription
@@ -141,7 +146,7 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 	webdata["ticker_splits"] = tickerSplits
 	webdata["last_ticker_daily_move"] = lastTickerDailyMove
 	webdata["ticker_dailies"] = TickerDailies{ticker_dailies}
-	webdata["LastCheckedNews"] = lastCheckedNews
+	webdata["LastCheckedNews"] = lastCheckedNews.Time.In(localTz)
 	webdata["UpdatingNewsNow"] = updatingNewsNow
 	webdata["watches"] = webwatches
 	webdata["lineChart"] = lineChartHTML

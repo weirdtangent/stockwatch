@@ -16,6 +16,9 @@ const (
 	sqlDateParseType      = "2006-01-02"
 	sqlDatetimeParseType  = "2006-01-02T15:04:05Z"
 	sqlDatetimeSearchType = "2006-01-02 15:04:05"
+	fullDatetime          = "2006-01-02 15:04:05 MST"
+
+	zoneDir = "/usr/share/zoneinfo/"
 
 	volumeUnits    = 1_000_000 // factor to reduce volume counts by when graphing
 	maxRecentCount = 6         // limit watcher_recents

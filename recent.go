@@ -70,6 +70,7 @@ func getWatcherRecents(deps *Dependencies, watcher Watcher) []WatcherRecent {
 
 func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]RecentPlus, error) {
 	sublog := deps.logger
+	webdata := deps.webdata
 
 	var recentPlus []RecentPlus
 
@@ -140,6 +141,10 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 		lastDailyMove, _ := getLastTickerDailyMove(deps, ticker.TickerId)
 
 		lastCheckedNews, updatingNewsNow := getNewsLastUpdated(deps, ticker)
+		localTz, err := time.LoadLocation(webdata["TZLocation"].(string))
+		if err != nil {
+			localTz, _ = time.LoadLocation("UTC")
+		}
 
 		recentPlus = append(recentPlus, RecentPlus{
 			TickerId:           ticker.TickerId,
@@ -154,7 +159,7 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 			DiffAmt:            PriceDiffAmt(lastTickerDaily[1].ClosePrice, lastTickerDaily[0].ClosePrice),
 			DiffPerc:           PriceDiffPercAmt(lastTickerDaily[1].ClosePrice, lastTickerDaily[0].ClosePrice),
 			LastDailyMove:      lastDailyMove,
-			LastCheckedNews:    lastCheckedNews,
+			LastCheckedNews:    sql.NullTime{Valid: true, Time: lastCheckedNews.Time.In(localTz)},
 			UpdatingNewsNow:    updatingNewsNow,
 		})
 	}

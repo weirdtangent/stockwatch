@@ -32,7 +32,7 @@
                         {{- end}}
                         <br/><br/>
                         Last Checked News:<br/>
-                        <span class="text-info"><span id="{{.TickerSymbol}}_last_checked_news">{{if .LastCheckedNews.Valid }}{{.LastCheckedNews.Time.Format "Jan 02 15:04"}}{{ else }}-{{end}}</span></span>
+                        <span class="text-info"><span id="{{.TickerSymbol}}_last_checked_news">{{if .LastCheckedNews.Valid }}{{.LastCheckedNews.Time.Format "Jan 02 15:04 MST"}}{{ else }}-{{end}}</span></span>
                         <i id="{{.TickerSymbol}}_updating_news_now" class="ms-2 mb-2 fad fa-sync fa-spin{{if .UpdatingNewsNow}}{{else}} hide{{end}}"></i>
                       </div><!-- col-12 -->
                     </div><!-- row -->

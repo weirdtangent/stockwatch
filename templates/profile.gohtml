@@ -12,23 +12,47 @@
               {{ template "_messageblock" . }}
               <div class="mt-3 col-10 offset-1 bg-dark opacity-6">
                 <h4 class="px-2 py-1 bg-warning text-dark">Profile</h4>
-                <div class="mx-2 my-2 pb-2">
-                  <h5 class="text-info">Name</h5>
-                  <ul>
-                    <li>{{.profile.Name}}</li>
-                    <li><span class="text-info">First login:</span> {{.profile.CreateDatetime}}</li>
-                  </ul>
 
-                  <h5 class="text-info">Email Addresses (from OAuth Sign-ins)</h5>
-                  <ul>
-                    {{range .profile.Emails}}
-                    <li>{{.EmailAddress}}{{if .IsPrimary}} <span class="text-success">PRIMARY</span>{{end}}</li>
-                    {{end}}
-                  </ul>
+                <div class="row mx-2 my-2 pb-2">
+                  <div class="col-6">
+                    <h5 class="text-info">Name</h5>
+                    <ul>
+                      <li>{{.profile.Name}}</li>
+                      <li><span class="text-info">First login:</span> {{.profile.CreateDatetime}}</li>
+                    </ul>
 
-                  <h5 class="text-info">Avatar</h5>
-                  <img id="profile_img" class="image-fluid rounded" alt="User's social media profile picture" src="{{.profile.AvatarURL}}">
-                </div>
+                    <h5 class="text-info">Email Addresses (from OAuth Sign-ins)</h5>
+                    <ul>
+                      {{range .profile.Emails -}}
+                      <li>{{.EmailAddress}}{{if .IsPrimary}} <span class="text-success">PRIMARY</span>{{end}}</li>
+                      {{end -}}
+                    </ul>
+                  </div>
+                  <div class="col-6">
+                    <h5 class="text-info">Avatar</h5>
+                    <img id="profile_img" class="image-fluid rounded" alt="User's social media profile picture" src="{{.profile.AvatarURL}}">
+                  </div>
+                </div><!-- row -->
+
+                <hr class="mx-4 ms-0 me-2 text-white opacity-3">
+
+                <div class="row mx-2 my-2 pb-2">
+                  <h5 class="text-info">Settings</h5>
+                  <div class="col-3">
+                    Your Timezone
+                  </div>
+                  <div class="col-6">
+                    <select class="form-select text-dark" aria-label="Local Timezone">
+                    {{- range .timezones}}
+                      <option value="{{.Location}}"{{if .Default}} selected{{end}}>{{.Location}} [{{.Offset}}] {{.TZAbbr}}</option>
+                    {{- end}}
+                    </select>
+                  </div>
+                  <div class="col-3">
+                    Current time<br>
+                    {{ TimeNow .TZLocation  }}
+                  </div>
+                </div><!-- row -->
               </div><!-- col-10 -->
             </div><!-- col-12 -->
           </div><!-- row -->
