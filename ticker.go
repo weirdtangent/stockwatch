@@ -112,7 +112,7 @@ type TickerUpDown struct {
 	UpDownAction    string       `db:"updown_action"`
 	UpDownFromGrade string       `db:"updown_fromgrade"`
 	UpDownToGrade   string       `db:"updown_tograde"`
-	UpDownDate      string       `db:"updown_date"`
+	UpDownDate      sql.NullTime `db:"updown_date"`
 	UpDownFirm      string       `db:"updown_firm"`
 	UpDownSince     string       `db:"updown_since"`
 	CreateDatetime  sql.NullTime `db:"create_datetime"`

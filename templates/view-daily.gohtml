@@ -83,7 +83,7 @@
               <div class="list-group list-group-flush bg-dark min-box">
                 {{- range .ticker_updowns}}
                 <div class="list-group-item text-info">
-                  <span class="text-light">{{FormatDatetimeStr .UpDownDate "Jan 02"}}</span> :
+                  <span class="text-light">{{.UpDownDate.Time.Format "Jan 02"}}</span> :
                   <span class="{{ GradeColor .UpDownToGrade}}">{{.UpDownToGrade}}</span>
                   <span class="text-light">by</span> {{.UpDownFirm}}{{if .UpDownFromGrade}}<span class="text-light">, previously</span> <span class="{{ GradeColor .UpDownFromGrade}}">{{.UpDownFromGrade}}</span>{{end}}
                   <span class="{{ SinceColor .UpDownSince}}">{{.UpDownSince}}</span>
@@ -95,7 +95,7 @@
               <div class="list-group list-group-flush bg-dark text-info min-box">
                 {{- range .ticker_splits}}
                 <div class="list-group-item">
-                  On <span class="text-light">{{FormatDatetimeStr .SplitDate "Jan 2 2006"}}</span>, split <span class="text-light">{{.SplitRatio}}</span>
+                  On <span class="text-light">{{.SplitDate.Format "Jan 2 2006"}}</span>, split <span class="text-light">{{.SplitRatio}}</span>
                 </div>
                 {{- end}}
               </div>

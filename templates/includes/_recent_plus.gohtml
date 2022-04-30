@@ -9,34 +9,23 @@
                     <div class="row">
                       <div class="col-12">
                         {{if .LiveQuote.QuotePrice }}
-                          <span id="{{.TickerSymbol}}_quote_shareprice">{{- printf "$%.2f" .LiveQuote.QuotePrice}}</span>
-                          {{- if gt .LiveQuote.QuoteChange 0.0 }} <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="text-success fas fa-arrow-up"></i></span>
-                          {{- else if lt .LiveQuote.QuoteChange 0.0 }} <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="text-danger fas fa-arrow-down"></i></span>
-                          {{- else }} <span id="quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="fa-solid fa-equals"></i></span>
-                          {{- end }}
-                          {{- if gt .LiveQuote.QuoteChangePct 5.0 }}<span class="text-success">
-                          {{- else if lt .LiveQuote.QuoteChangePct -5.0 }}<span class="text-danger">
-                          {{- end }}
-                          &nbsp;<span id="{{.TickerSymbol}}_quote_change">{{- printf " $%.2f" .LiveQuote.QuoteChange }}</span>
-                          (<span id="{{.TickerSymbol}}_quote_change_pct">{{ printf "%.2f%%" .LiveQuote.QuoteChangePct }}</span>)
-                          {{- if gt .LiveQuote.QuoteChangePct 5.0 }} <i class="h5 text-warning fa-light fa-chart-line-up"></i></span>
-                          {{- else if lt .LiveQuote.QuoteChangePct -5.0 }} <i class="h5 text-warning fa-light fa-chart-line-down"></i></span>
-                          {{- end }}
+                          <span id="{{.TickerSymbol}}_quote_shareprice">${{printf "%.2f" .LiveQuote.QuotePrice}}</span>
+                          <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="{{ PriceMoveIndicator .LiveQuote.QuoteChange}}"></i></span>
+                          <span class="{{PriceBigMoveColor .LiveQuote.QuoteChangePct}}">
+                            &nbsp;<span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .LiveQuote.QuoteChange}}</span>
+                            (<span id="{{.TickerSymbol}}_quote_change_pct">{{printf "%.2f" .LiveQuote.QuoteChangePct}}%</span>)
+                            <i class="h5 {{PriceBigMoveIndicator .LiveQuoteChangePct}}"></i>
+                          </span>
                           </span><br/>
                           <span class="text-info"> as of </span><span class="text-light small"><span id="{{.TickerSymbol}}_quote_asof">{{ FormatUnixTime .LiveQuote.QuoteTime "Jan 2 15:04:05" }}</span></span>
                         {{- else}}
-                          {{- $diffperc := PriceDiffPercAmt .PriorClose.ClosePrice .LastClose.ClosePrice -}}
-                          <span id="{{.TickerSymbol}}_quote_shareprice">{{- printf "$%.2f" .LastClose.ClosePrice }}</span>
-                          {{- if eq .LastDailyMove "up"}} <i id="{{.TickerSymbol}}_quote_dailymove" class="text-success fas fa-arrow-up"></i>
-                          {{- else if eq .LastDailyMove "down"}} <i id="{{.TickerSymbol}}_quote_dailymove" class="text-danger fas fa-arrow-down"></i>
-                          {{- else }}<i id="{{.TickerSymbol}}_quote_dailymove" class="fa-solid fa-equals"></i>
-                          {{- end}}
-                          {{- if ge $diffperc 5.0}}<span class="text-success">{{end -}}
-                          {{- if le $diffperc -5.0}}<span class="text-danger">{{end -}}
-                          &nbsp;<span id="{{.TickerSymbol}}_quote_change">{{ PriceDiffAmt .PriorClose.ClosePrice .LastClose.ClosePrice }}</span>
-                          (<span id="{{.TickerSymbol}}_quote_change_pct">{{ PriceDiffPerc .PriorClose.ClosePrice .LastClose.ClosePrice }}</span>)
-                          {{- if ge $diffperc 5.0}} <i class="text-success fa-light fa-chart-line-up"></i></span>{{end -}}
-                          {{- if le $diffperc -5.0}} <i class="text-warning fa-light fa-chart-line-down"></i></span>{{end -}}
+                          <span id="{{.TickerSymbol}}_quote_shareprice">${{printf "%.2f" .LastClose.ClosePrice}}</span>
+                          <i id="{{.TickerSymbol}}_quote_dailymove" class="{{PriceMoveIndicator .DiffAmt}}"></i>
+                          <span class="{{PriceBigMoveColor .DiffPerc}}">
+                            &nbsp;<span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .DiffAmt}}</span>
+                            (<span id="{{.TickerSymbol}}_quote_change_pct">{{printf "%.2f" .DiffPerc}}%</span>)
+                            <i class="PriceBigMoveIndicator .DiffAmt"></i></span>
+                          </span>
                           <br/>
                           <span class="text-info"> at close on </span>
                           <span id="{{.TickerSymbol}}_quote_asof" class="h6 text-light small">{{ .LastClose.PriceDatetime.Format "Jan 2" }}</span>

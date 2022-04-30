@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -18,22 +17,6 @@ func FormatUnixTime(unixTime int64, formatStr string) string {
 	EasternTZ, _ := time.LoadLocation("America/New_York")
 	realDate := time.Unix(unixTime, 0).In(EasternTZ)
 	return realDate.Format(formatStr)
-}
-
-func FormatDatetimeStr(dateStr string, formatStr string) string {
-	if formatStr == "" {
-		formatStr = "Jan 2"
-	}
-	var dateObj time.Time
-	if len(dateStr) == 10 {
-		dateObj, _ = time.Parse("2006-01-02", dateStr)
-	} else if len(dateStr) == 19 {
-		dateObj, _ = time.Parse(sqlDatetimeSearchType, dateStr)
-	} else if len(dateStr) == 20 {
-		dateObj, _ = time.Parse("2006-01-02T15:04:05Z", dateStr)
-	}
-
-	return dateObj.Format(formatStr)
 }
 
 func UnixToDatetimeStr(unixTime int64) string {
@@ -89,14 +72,50 @@ func isMarketOpen() bool {
 	return false
 }
 
-func PriceDiffAmt(a, b float64) string {
-	return fmt.Sprintf("$%.2f", b-a)
-}
-
-func PriceDiffPerc(a, b float64) string {
-	return fmt.Sprintf("%.2f%%", (b-a)/a*100)
+func PriceDiffAmt(a, b float64) float64 {
+	return b - a
 }
 
 func PriceDiffPercAmt(a, b float64) float64 {
 	return (b - a) / a * 100
+}
+
+func PriceMoveColorCSS(amt float64) string {
+	if amt > 0 {
+		return "text-success"
+	}
+	if amt < 0 {
+		return "text-danger"
+	}
+	return ""
+}
+
+func PriceBigMoveColorCSS(amt float64) string {
+	if amt > 5 {
+		return "text-success"
+	}
+	if amt < -5 {
+		return "text-danger"
+	}
+	return ""
+}
+
+func PriceMoveIndicatorCSS(amt float64) string {
+	if amt > 0 {
+		return "text-success fas fa-arrow-up"
+	}
+	if amt < 0 {
+		return "text-danger fas fa-arrow-down"
+	}
+	return "fa-solid fa-equals"
+}
+
+func PriceBigMoveIndicatorCSS(amt float64) string {
+	if amt > 5 {
+		return "text-warning fas fa-chart-line-up "
+	}
+	if amt < -5 {
+		return "text-warning fas fa-chart-line-down "
+	}
+	return ""
 }

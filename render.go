@@ -22,15 +22,17 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, deps *Depende
 	webdata["config"] = config
 
 	funcMap := template.FuncMap{
-		"FormatUnixTime":    FormatUnixTime,
-		"FormatDatetimeStr": FormatDatetimeStr,
-		"GradeColor":        GradeColor,
-		"SinceColor":        SinceColor,
-		"PriceDiffAmt":      PriceDiffAmt,
-		"PriceDiffPerc":     PriceDiffPerc,
-		"PriceDiffPercAmt":  PriceDiffPercAmt,
-		"ToUpper":           strings.ToUpper,
-		"ToLower":           strings.ToLower,
+		"FormatUnixTime":        FormatUnixTime,
+		"GradeColor":            GradeColor,
+		"SinceColor":            SinceColor,
+		"PriceDiffAmt":          PriceDiffAmt,
+		"PriceDiffPercAmt":      PriceDiffPercAmt,
+		"PriceMoveColor":        PriceMoveColorCSS,
+		"PriceBigMoveColor":     PriceBigMoveColorCSS,
+		"PriceMoveIndicator":    PriceMoveIndicatorCSS,
+		"PriceBigMoveIndicator": PriceBigMoveIndicatorCSS,
+		"ToUpper":               strings.ToUpper,
+		"ToLower":               strings.ToLower,
 	}
 
 	tmpl := template.New("blank").Funcs(funcMap)

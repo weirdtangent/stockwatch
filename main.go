@@ -17,11 +17,9 @@ const (
 	sqlDatetimeParseType  = "2006-01-02T15:04:05Z"
 	sqlDatetimeSearchType = "2006-01-02 15:04:05"
 
-	volumeUnits = 1_000_000 // factor to reduce volume counts by when graphing
-
-	maxRecentCount = 6
-
-	debugging = true // output DEBUG level logs
+	volumeUnits    = 1_000_000 // factor to reduce volume counts by when graphing
+	maxRecentCount = 6         // limit watcher_recents
+	debugging      = true      // output DEBUG level logs
 
 )
 

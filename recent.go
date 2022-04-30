@@ -24,6 +24,8 @@ type RecentPlus struct {
 	LiveQuote          yhfinance.YFQuote
 	LastClose          TickerDaily
 	PriorClose         TickerDaily
+	DiffAmt            float64
+	DiffPerc           float64
 	LastDailyMove      string
 	LastCheckedNews    sql.NullTime
 	UpdatingNewsNow    bool
@@ -149,6 +151,8 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 			LiveQuote:          quote,
 			LastClose:          lastTickerDaily[0],
 			PriorClose:         lastTickerDaily[1],
+			DiffAmt:            PriceDiffAmt(lastTickerDaily[1].ClosePrice, lastTickerDaily[0].ClosePrice),
+			DiffPerc:           PriceDiffPercAmt(lastTickerDaily[1].ClosePrice, lastTickerDaily[0].ClosePrice),
 			LastDailyMove:      lastDailyMove,
 			LastCheckedNews:    lastCheckedNews,
 			UpdatingNewsNow:    updatingNewsNow,

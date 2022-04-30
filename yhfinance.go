@@ -93,8 +93,8 @@ func fetchTickerInfo(deps *Dependencies, symbol string) (Ticker, error) {
 
 	// create upgrade/downgrade recommendations
 	for _, updown := range summaryResponse.UpgradeDowngradeHistory.Histories {
-		updownDate := UnixToDatetimeStr(updown.GradeDate)
-		UpDown := TickerUpDown{0, ticker.TickerId, updown.Action, updown.FromGrade, updown.ToGrade, updownDate, updown.Firm, "", sql.NullTime{}, sql.NullTime{}}
+		updownDate := time.Unix(updown.GradeDate, 0)
+		UpDown := TickerUpDown{0, ticker.TickerId, updown.Action, updown.FromGrade, updown.ToGrade, sql.NullTime{Valid: true, Time: updownDate}, updown.Firm, "", sql.NullTime{}, sql.NullTime{}}
 		UpDown.createIfNew(deps)
 	}
 
