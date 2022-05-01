@@ -22,4 +22,18 @@ $(document).ready(function() {
             update_quotes();
         }
     })
+
+    $('.btn-close').on('click', function() {
+        var symbol = $(this).data('symbol')
+        var response = $.ajax({
+            type: 'GET',
+            url: '/api/v1/recents?remove=' + symbol,
+            async: false,
+            success: function(response) {
+                if (response.success) {
+                    $("#"+symbol+"_card").animate({opacity:0}, 800, function() { $(this).hide(); });
+                }
+            }
+        });
+    })
 });

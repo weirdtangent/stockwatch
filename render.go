@@ -65,7 +65,7 @@ func renderTemplateDefault(w http.ResponseWriter, r *http.Request, deps *Depende
 	}
 	err = tmpl.ExecuteTemplate(w, tmplname, webdata)
 	if err != nil {
-		sublog.Fatal().Err(err).Str("template", tmplname).Msg("Failed to execute template")
+		sublog.Error().Err(err).Str("template", tmplname).Msg("Failed to execute template")
 	}
 }
 

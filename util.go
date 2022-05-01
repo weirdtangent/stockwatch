@@ -140,7 +140,10 @@ func procTimezoneDir(deps *Dependencies, zoneDir, path string) []Timezone {
 	webdata := deps.webdata
 	var timezones []Timezone
 
-	watcherTZ := webdata["TZLocation"].(string)
+	watcherTZ := "UTC"
+	if webdata["TZLocation"] != nil {
+		watcherTZ = webdata["TZLocation"].(string)
+	}
 
 	files, err := ioutil.ReadDir(zoneDir + path)
 	if err != nil {

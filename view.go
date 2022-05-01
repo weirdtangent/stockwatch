@@ -44,7 +44,7 @@ func viewTickerDailyHandler(deps *Dependencies) http.HandlerFunc {
 		webdata["TickerFavIconCDATA"] = ticker.getFavIconCDATA(deps)
 
 		// Add this ticker to recents list
-		watcherRecents, err := addTickerToRecents(deps, watcher, ticker)
+		watcherRecents, err := addToWatcherRecents(deps, watcher, ticker)
 		if err != nil {
 			sublog.Error().Err(err).Msg("failed to add ticker to recents list")
 		}

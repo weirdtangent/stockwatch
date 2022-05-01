@@ -11,7 +11,7 @@
                       </span>
                     {{- else -}}
                       <span id="{{.TickerSymbol}}_quote_shareprice" class="h4 text-white">${{printf "%.2f" .lastClose.ClosePrice}}</span>
-                      <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="h5 {{PriceMoveIndicator .diffAmt}}"></i></span>
+                      <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="h5 {{if .diffAmt}}{{PriceMoveIndicator .diffAmt}}{{end}}"></i></span>
                       <span class="h5 {{PriceBigMoveColor .diffPerc}}">
                         &nbsp;<span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .diffAmt}}</span>
                         (<span id="{{.TickerSymbol}}_quote_change_pct">{{printf "%.2f" .diffPerc}}%</span>)

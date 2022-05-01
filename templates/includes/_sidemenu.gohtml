@@ -8,12 +8,12 @@
 
           <div class="d-flex flex-column align-items-center pt-3">
             {{if .encWId -}}
-              <h5 class="w-100 text-light text-center welcome mb-0">Welcome back<br>{{.Watcher.WatcherName}}!<br></h5>
+              <h5 class="w-100 text-light text-center welcome mb-0">Welcome back<br>{{.Watcher.WatcherNickname}}!<br></h5>
               {{- if .provider}}<span class="text-light small mb-4">oauth via {{.provider}}</span>{{end}}
             {{- end}}
             <h4><span class="badge bg-warning text-dark"><a class="text-dark text-decoration-none" href="/desktop">Desktop</a></span></h4>
             {{if .encWId -}}
-              <h4><span class="badge bg-warning text-dark"><a class="text-dark text-decoration-none" href="/profile">My Profile</a></span></h4>
+              <h4><span class="badge bg-warning text-dark"><a class="text-dark text-decoration-none" href="/profile/edit">My Profile</a></span></h4>
               <h4><span class="badge bg-warning text-dark"><a class="text-dark text-decoration-none" href="#section2">Holding</a></span></h4>
               <h4><span class="badge bg-warning text-dark"><a class="text-dark text-decoration-none" href="#section3">Watching</a></span></h4>
               <h4><span class="badge bg-warning text-dark"><a class="text-dark text-decoration-none" href="/signout/{{.provider}}">Sign Out</a></span></h4>

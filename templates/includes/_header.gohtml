@@ -30,7 +30,6 @@
   </head>
 
   <body id="page-top" class="{{.config.template_name}}">
-  {{.diffPerc}}<br />
     <div><!-- viewport -->
       <div class="row g-0"><!-- first row -->
         <div class="col-4 col-sm-3 col-md-2 bg-dark full-height left-column"><!-- left column -->
@@ -61,8 +60,10 @@
                       <li class="nav-item me-2 pt-2">Recent:</li>
                       {{range .WatcherRecents -}}
                         <li class="nav-item me-1 pt-2 recent">
-                          <a class="badge {{if .Locked}}text-light bg-success{{else}}text-dark bg-warning{{end}} text-decoration-none me-0" href="/view/{{.TickerSymbol}}"><i class="fas fa-dollar-sign"></i>{{.TickerSymbol}}
-                            <span class="ps-2"><i class="fa-light {{if .Locked}}fa-lock-open{{else}}fa-lock{{end}}"></i></a>
+                          <span id="{{.TickerSymbol}}_lock_badge" class="badge text-dark {{if .Locked}}bg-success{{else}}bg-warning{{end}}">
+                            <a class="text-decoration-none text-dark me-0" href="/view/{{.TickerSymbol}}"><i class="fas fa-dollar-sign"></i>{{.TickerSymbol}}</a>
+                            <span class="ps-2"><i id="{{.TickerSymbol}}_lock_button" data-symbol="{{.TickerSymbol}}" class="lock-button fa-light {{if .Locked}}fa-lock{{else}}fa-lock-open{{end}}"></i>
+                          </span>
                         </li>
                       {{end}}
                     </ul>

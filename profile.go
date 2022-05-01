@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"net/http"
 	"sort"
+
+	"github.com/gorilla/mux"
 )
 
 type ProfileEmail struct {
@@ -13,14 +15,17 @@ type ProfileEmail struct {
 
 type Profile struct {
 	Name           string
-	CreateDatetime sql.NullTime
+	Nickname       string
+	Timezone       string
 	AvatarURL      string
+	CreateDatetime sql.NullTime
 	Emails         []ProfileEmail
 }
 
 func profileHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sublog := deps.logger
+		webdata := deps.webdata
 
 		watcher := checkAuthState(w, r, deps)
 		if watcher.WatcherId == 0 {
@@ -28,8 +33,19 @@ func profileHandler(deps *Dependencies) http.HandlerFunc {
 			return
 		}
 
+		params := mux.Vars(r)
+		status := params["status"]
+
+		if status == "welcome" {
+			webdata["announcement"] = []string{`
+			Welcome to Stockwatch! This is really just a hobby site for me to learn Go programming, but I
+			encourage feedback to let me know cool stuff I should try! I need to work on a feedback form,
+			but meanwhile you can just email request@graystorm.com. I suspect, though, I will most often be
+			thinking, "yeah, I dunno how to do that" ;) Also, these profile settings below don't quite
+			work yet, but I'm working on it!`}
+		}
+
 		// messages := deps.messages
-		webdata := deps.webdata
 		profile, err := getProfile(deps)
 		if err != nil {
 			sublog.Error().Err(err).Msg("failed to get profile info")
@@ -68,8 +84,10 @@ func getProfile(deps *Dependencies) (*Profile, error) {
 	}
 
 	profile.Name = watcher.WatcherName
-	profile.CreateDatetime = watcher.CreateDatetime
+	profile.Nickname = watcher.WatcherNickname
+	profile.Timezone = watcher.WatcherTimezone
 	profile.AvatarURL = watcher.WatcherPicURL
+	profile.CreateDatetime = watcher.CreateDatetime
 
 	rows, err := db.Queryx("SELECT * FROM watcher_email WHERE watcher_id=? ORDER BY email_is_primary DESC, email_address", watcherId)
 	if err != nil {

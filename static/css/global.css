@@ -170,16 +170,6 @@ footer p {
   text-align: -ms-right;
 }
 
-.ticker-card {
-  background: #303030;
-  border: 2px solid transparent;
-}
-
-.ticker-card:hover {
-  background: #303030;
-  border: 2px solid #F5E239;
-}
-
 .nowrap {
   white-space:nowrap;
   text-overflow:ellipsis;

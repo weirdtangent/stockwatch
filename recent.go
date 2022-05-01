@@ -2,6 +2,8 @@ package main
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -28,7 +30,9 @@ type RecentPlus struct {
 	DiffPerc           float64
 	LastDailyMove      string
 	LastCheckedNews    sql.NullTime
+	LastCheckedSince   string
 	UpdatingNewsNow    bool
+	Locked             bool
 }
 
 func getWatcherRecents(deps *Dependencies, watcher Watcher) []WatcherRecent {
@@ -76,6 +80,7 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 
 	symbols := []string{}
 	tickers := []Ticker{}
+	locked := []bool{}
 	exchanges := []Exchange{}
 	quotes := map[string]yhfinance.YFQuote{}
 	// Load up all the tickers and exchanges and fill arrays
@@ -88,6 +93,7 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 		}
 		tickers = append(tickers, ticker)
 		symbols = append(symbols, ticker.TickerSymbol)
+		locked = append(locked, watcherRecent.Locked)
 
 		if ticker.FavIconS3Key == "" {
 			err := ticker.queueSaveFavIcon(deps)
@@ -160,14 +166,16 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 			DiffPerc:           PriceDiffPercAmt(lastTickerDaily[1].ClosePrice, lastTickerDaily[0].ClosePrice),
 			LastDailyMove:      lastDailyMove,
 			LastCheckedNews:    sql.NullTime{Valid: true, Time: lastCheckedNews.Time.In(localTz)},
+			LastCheckedSince:   fmt.Sprintf("%.0f min ago", time.Since(lastCheckedNews.Time).Minutes()),
 			UpdatingNewsNow:    updatingNewsNow,
+			Locked:             locked[n],
 		})
 	}
 
 	return &recentPlus, nil
 }
 
-func addTickerToRecents(deps *Dependencies, watcher Watcher, ticker Ticker) ([]WatcherRecent, error) {
+func addToWatcherRecents(deps *Dependencies, watcher Watcher, ticker Ticker) ([]WatcherRecent, error) {
 	db := deps.db
 	sublog := deps.logger
 
@@ -175,6 +183,25 @@ func addTickerToRecents(deps *Dependencies, watcher Watcher, ticker Ticker) ([]W
 	err := watcherRecent.createOrUpdate(deps)
 	if err != nil {
 		sublog.Error().Err(err).Msg("failed to save to watcher_recent")
+	}
+
+	// if at max already, need to delete an unlocked one before allowing another
+	var count int32
+	err = db.QueryRowx("SELECT count(*) FROM watcher_recent WHERE watcher_id=?", watcher.WatcherId).Scan(&count)
+	if err != nil {
+		sublog.Warn().Err(err).Str("table_name", "watcher_recent").Msg("failed on SELECT")
+		return getWatcherRecents(deps, watcher), err
+	} else {
+		if count >= maxRecentCount {
+			_, err := db.Exec("DELETE FROM watcher_recent WHERE watcher_id=? AND locked=false ORDER BY update_datetime LIMIT ?", watcher.WatcherId, count-maxRecentCount)
+			if err != nil && errors.Is(err, sql.ErrNoRows) {
+				return getWatcherRecents(deps, watcher), err
+			}
+			if err != nil {
+				sublog.Warn().Err(err).Str("table_name", "watcher_recent").Msg("failed on DELETE")
+				return getWatcherRecents(deps, watcher), err
+			}
+		}
 	}
 
 	// add/update to recent table
@@ -185,20 +212,19 @@ func addTickerToRecents(deps *Dependencies, watcher Watcher, ticker Ticker) ([]W
 	}
 	recent.createOrUpdate(deps)
 
-	var count int32
-	err = db.QueryRowx("SELECT count(*) FROM watcher_recent WHERE watcher_id=?", watcher.WatcherId).Scan(&count)
-	if err != nil {
-		sublog.Warn().Err(err).Str("table_name", "watcher_recent").Msg("failed on SELECT")
-	} else {
-		if count > maxRecentCount {
-			_, err := db.Exec("DELETE FROM watcher_recent WHERE watcher_id=? ORDER BY update_datetime LIMIT ?", watcher.WatcherId, count-maxRecentCount)
-			if err != nil {
-				sublog.Warn().Err(err).Str("table_name", "watcher_recent").Msg("failed on DELETE")
-			}
-		}
-	}
-
 	return getWatcherRecents(deps, watcher), err
+}
+
+func removeFromWatcherRecents(deps *Dependencies, watcher Watcher, ticker Ticker) bool {
+	db := deps.db
+	sublog := deps.logger
+
+	_, err := db.Exec("DELETE FROM watcher_recent WHERE watcher_id=? AND ticker_id=? AND locked=false", watcher.WatcherId, ticker.TickerId)
+	if err != nil {
+		sublog.Warn().Err(err).Str("table_name", "watcher_recent").Msg("failed on DELETE")
+		return false
+	}
+	return true
 }
 
 func (r *Recent) createOrUpdate(deps *Dependencies) error {

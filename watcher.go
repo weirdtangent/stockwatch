@@ -11,6 +11,7 @@ type Watcher struct {
 	WatcherId       uint64       `db:"watcher_id"`
 	WatcherSub      string       `db:"watcher_sub"`
 	WatcherName     string       `db:"watcher_name"`
+	WatcherNickname string       `db:"watcher_nickname"`
 	WatcherStatus   string       `db:"watcher_status"`
 	WatcherLevel    string       `db:"watcher_level"`
 	WatcherTimezone string       `db:"watcher_timezone"`
@@ -40,7 +41,7 @@ type WatcherRecent struct {
 }
 
 type WebWatcher struct {
-	WatcherName     string
+	WatcherNickname string
 	WatcherStatus   string
 	WatcherLevel    string
 	WatcherTimezone string
@@ -55,7 +56,7 @@ func getWatcherById(deps *Dependencies, watcherId uint64) (Watcher, error) {
 	return w, err
 }
 
-func updateWatcher(deps *Dependencies, w Watcher, email string) error {
+func updateWatcherFromOAuth(deps *Dependencies, w Watcher, email string) error {
 	db := deps.db
 
 	update := "UPDATE watcher SET watcher_name=?, watcher_pic_url=?, session_id=? WHERE watcher_id=?"
@@ -72,8 +73,8 @@ func updateWatcher(deps *Dependencies, w Watcher, email string) error {
 func createWatcher(deps *Dependencies, w Watcher, email string) (Watcher, error) {
 	db := deps.db
 
-	insert := "INSERT INTO watcher SET watcher_sub=?, watcher_name=?, watcher_status=?, watcher_pic_url=?, session_id=?"
-	_, err := db.Exec(insert, w.WatcherSub, w.WatcherName, w.WatcherStatus, w.WatcherPicURL, w.SessionId)
+	insert := "INSERT INTO watcher SET watcher_sub=?, watcher_name=?, watcher_nickname=?, watcher_status=?, watcher_pic_url=?, session_id=?"
+	_, err := db.Exec(insert, w.WatcherSub, w.WatcherName, w.WatcherNickname, w.WatcherStatus, w.WatcherPicURL, w.SessionId)
 	if err != nil {
 		return Watcher{}, err
 	}
@@ -89,7 +90,7 @@ func createWatcher(deps *Dependencies, w Watcher, email string) (Watcher, error)
 	return w, err
 }
 
-func createOrUpdateWatcher(deps *Dependencies, watcher Watcher, email string) (Watcher, error) {
+func createOrUpdateWatcherFromOAuth(deps *Dependencies, watcher Watcher, email string) (Watcher, error) {
 	watcherId, err := getWatcherIdBySession(deps, watcher.SessionId)
 	if err != nil {
 		return watcher, nil
@@ -107,7 +108,7 @@ func createOrUpdateWatcher(deps *Dependencies, watcher Watcher, email string) (W
 
 	watcher.WatcherId = watcherId
 
-	err = updateWatcher(deps, watcher, email)
+	err = updateWatcherFromOAuth(deps, watcher, email)
 	return watcher, err
 }
 
@@ -129,6 +130,17 @@ func getWatcherBySession(deps *Dependencies, session string) (Watcher, error) {
 		return Watcher{}, nil
 	}
 	return w, err
+}
+
+func isNicknameAvailable(deps *Dependencies, watcherId uint64, nickname string) bool {
+	db := deps.db
+
+	var count int
+	err := db.QueryRowx("SELECT count(*) FROM watcher WHERE watcher_id != ? and watcher_nickname=?", watcherId, nickname).Scan(&count)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return true
+	}
+	return false
 }
 
 func getWatcherIdBySession(deps *Dependencies, session string) (uint64, error) {
@@ -191,24 +203,26 @@ func (wr *WatcherRecent) createOrUpdate(deps *Dependencies) error {
 	return nil
 }
 
-func (wr *WatcherRecent) lock(deps *Dependencies) error {
+func lockWatcherRecent(deps *Dependencies, watcher Watcher, ticker Ticker) bool {
 	db := deps.db
 
 	var update = "UPDATE watcher_recent SET locked=true WHERE watcher_id=? AND ticker_id=?"
-	_, err := db.Exec(update, wr.WatcherId, wr.TickerId)
+	_, err := db.Exec(update, watcher.WatcherId, ticker.TickerId)
 	if err != nil {
 		log.Warn().Err(err).Str("table_name", "watcher_recent").Msg("Failed on UPDATE")
+		return false
 	}
-	return err
+	return true
 }
 
-func (wr *WatcherRecent) unlock(deps *Dependencies) error {
+func unlockWatcherRecent(deps *Dependencies, watcher Watcher, ticker Ticker) bool {
 	db := deps.db
 
 	var update = "UPDATE watcher_recent SET locked=false WHERE watcher_id=? AND ticker_id=?"
-	_, err := db.Exec(update, wr.WatcherId, wr.TickerId)
+	_, err := db.Exec(update, watcher.WatcherId, ticker.TickerId)
 	if err != nil {
 		log.Warn().Err(err).Str("table_name", "watcher_recent").Msg("Failed on UPDATE")
+		return false
 	}
-	return err
+	return true
 }

@@ -1,8 +1,7 @@
 {{- define "_ticker_top" -}}
               <header class="bg-dark pt-2 mb-2 ps-2">
-                <div class="d-flex">
-                  <div>
-                    <div class="text-truncate">
+                <div class="row">
+                  <div class="col-12">
                       <span class="h5 text-info">Symbol:</span>
                       <a class="h3 text-white link-white text-decoration-none" href="/view/{{.ticker.TickerSymbol}}">{{.ticker.TickerSymbol}}</a>
                       <span class="h5 text-light pe-3 text-lowercase">/{{.exchange.ExchangeAcronym}}</span>
@@ -12,9 +11,9 @@
                     </div>
                     {{ template "_ticker_info" . }}
                   </div>
-                  <div class="flex-grow-1 text-end">
+                  {{/* <div class="flex-grow-1 text-end">
                     {{- template "_messages" . }}
-                  </div>
+                  </div> */}}
                 </div>
                 <div class="d-flex">
                   <div class="flex-grow-1 pt-1 pb-2" id="toggle">

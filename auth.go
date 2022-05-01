@@ -44,9 +44,20 @@ func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, goth
 	// get (or create) watcher account based on oauth properties
 	// specifically, based on the oauth_sub value, because email addresses can change
 	// and we want a watchers session and "account" to follow them even if they change
-	watcher := Watcher{0, gothUser.UserID, gothUser.Name, "active", "standard", "", gothUser.AvatarURL, session.ID, sql.NullTime{}, sql.NullTime{}}
-	sublog.Info().Interface("watcher", watcher).Msg("start off")
-	watcher, err := createOrUpdateWatcher(deps, watcher, gothUser.Email)
+	watcher := Watcher{
+		WatcherId:       0,
+		WatcherSub:      gothUser.UserID,
+		WatcherName:     gothUser.Name,
+		WatcherNickname: gothUser.Name,
+		WatcherStatus:   "active",
+		WatcherLevel:    "standard",
+		WatcherTimezone: "",
+		WatcherPicURL:   gothUser.AvatarURL,
+		SessionId:       session.ID,
+		CreateDatetime:  sql.NullTime{},
+		UpdateDatetime:  sql.NullTime{},
+	}
+	watcher, err := createOrUpdateWatcherFromOAuth(deps, watcher, gothUser.Email)
 	if err != nil {
 		sublog.Error().Err(err).Msg("Failed to get/create watcher from one-tap")
 		http.NotFound(w, r)
@@ -94,7 +105,12 @@ func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, goth
 
 	session.Values["encWId"] = encryptId(deps, "watcher", watcher.WatcherId)
 	session.Values["provider"] = gothUser.Provider
-	http.Redirect(w, r, "/desktop", http.StatusFound)
+	// only once do these two dates match - when the watcher is brand new
+	if watcher.CreateDatetime == watcher.UpdateDatetime {
+		http.Redirect(w, r, "/profile/welcome", http.StatusFound)
+	} else {
+		http.Redirect(w, r, "/desktop", http.StatusFound)
+	}
 }
 
 // logout from google one-tap here
@@ -157,9 +173,11 @@ func checkAuthState(w http.ResponseWriter, r *http.Request, deps *Dependencies) 
 		watcherRecents := getWatcherRecents(deps, watcher)
 		webdata["WatcherRecents"] = watcherRecents
 
-		_, err = time.LoadLocation(watcher.WatcherTimezone)
-		if err == nil {
-			webdata["TZLocation"] = watcher.WatcherTimezone
+		if watcher.WatcherTimezone != "" {
+			_, err = time.LoadLocation(watcher.WatcherTimezone)
+			if err == nil {
+				webdata["TZLocation"] = watcher.WatcherTimezone
+			}
 		}
 
 		if session.Values["provider"] != nil {

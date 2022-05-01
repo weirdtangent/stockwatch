@@ -1,0 +1,11 @@
+{{- define "_announcement" }}
+              {{- if .announcement}}
+                <div class="mt-1 col-12 bg-dark opacity-6">
+                  <div class="bg-warning text-dark px-2 py-1">Announcements/Notifications?</div>
+                  {{- range .announcement}}
+                  <p class="px-2 pt-1 pb-2">{{.}}</p>
+                  {{- end}}
+                  <p class="py-2"></p>
+                </div>
+              {{- end}}
+{{- end}}

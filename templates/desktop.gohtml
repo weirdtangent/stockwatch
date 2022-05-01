@@ -22,19 +22,8 @@
           <div class="row g-0 main-content">
             <div class="col-12 px-2 pt-1">
               {{ template "_messageblock" . }}
-
-              {{- if .announcement }}
-                <div class="mt-1 col-12 bg-dark opacity-6">
-                  <div class="bg-warning text-dark px-2 py-1">Announcements/Notifications?</div>
-                  {{- range .announcement}}
-                  <p class="px-2 pt-1 pb-2">{{.}}</p>
-                  {{- end}}
-                  <p class="py-2"></p>
-                </div>
-              {{- end }}
-
+              {{ template "_announcement" . }}
               {{template "_recent_plus" . }}
-
               <div class="row g-0 mt-3">
                 <div id="movers" class="mt-1 col-12 col-lg-4 bg-dark opacity-6 me-2">
                   <div class="bg-warning text-dark px-2 py-1">Movers and Shakers, {{.Movers.ForDate}}</div>

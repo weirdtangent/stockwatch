@@ -295,7 +295,7 @@ func startHTTPServer(deps *Dependencies) {
 	router.HandleFunc("/api/v1/{endpoint}", apiV1Handler(deps)).Methods("GET")
 	router.Handle("/metrics", promhttp.Handler())
 
-	router.HandleFunc("/profile", profileHandler(deps)).Methods("GET")
+	router.HandleFunc("/profile/{status}", profileHandler(deps)).Methods("GET")
 	router.HandleFunc("/desktop", desktopHandler(deps)).Methods("GET")
 	router.HandleFunc("/view/{symbol}", viewTickerDailyHandler(deps)).Methods("GET")
 	router.HandleFunc("/{action:bought|sold}/{symbol}/{acronym}", transactionHandler(deps)).Methods("POST")

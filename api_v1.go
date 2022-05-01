@@ -22,6 +22,8 @@ func apiV1Handler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sublog := deps.logger
 
+		watcher := checkAuthState(w, r, deps)
+
 		w.Header().Add("Content-Type", "application/json")
 
 		params := mux.Vars(r)
@@ -38,9 +40,19 @@ func apiV1Handler(deps *Dependencies) http.HandlerFunc {
 
 		case "quotes":
 			symbolStr := r.FormValue("symbols")
-			// newlog := sublog.With().Str("sumbols", symbolStr).Logger()
-			// deps.logger = &newlog
 			apiQuotes(deps, symbolStr, &jsonResponse)
+
+		case "recents":
+			if r.FormValue("remove") != "" {
+				removeStr := r.FormValue("remove")
+				apiRecents(deps, watcher, "remove", removeStr, &jsonResponse)
+			} else if r.FormValue("lock") != "" {
+				lockStr := r.FormValue("lock")
+				apiRecents(deps, watcher, "lock", lockStr, &jsonResponse)
+			} else if r.FormValue("unlock") != "" {
+				unlockStr := r.FormValue("unlock")
+				apiRecents(deps, watcher, "unlock", unlockStr, &jsonResponse)
+			}
 
 		default:
 			sublog.Error().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", endpoint).Err(fmt.Errorf("failure: call to unknown api endpoint")).Msg("api call failed")
@@ -66,7 +78,7 @@ func apiQuotes(deps *Dependencies, symbolStr string, jsonR *jsonResponseData) {
 		ticker := Ticker{TickerSymbol: symbol}
 		err := ticker.getBySymbol(deps)
 		if err != nil {
-			sublog.Error().Str("symbol", symbol).Msg("Failed to find ticker")
+			sublog.Error().Str("symbol", symbol).Msg("failed to find ticker")
 			continue
 		}
 		validSymbols = append(validSymbols, symbol)
@@ -148,4 +160,54 @@ func apiQuotes(deps *Dependencies, symbolStr string, jsonR *jsonResponseData) {
 		jsonR.Data["is_market_open"] = strconv.FormatBool(false)
 		jsonR.Success = true
 	}
+}
+
+func apiRecents(deps *Dependencies, watcher Watcher, action, symbolStr string, jsonR *jsonResponseData) {
+	sublog := deps.logger
+
+	symbols := strings.Split(symbolStr, ",")
+
+	switch {
+	case action == "remove":
+		for _, symbol := range symbols {
+			if symbol == "" {
+				continue
+			}
+			ticker := Ticker{TickerSymbol: symbol}
+			err := ticker.getBySymbol(deps)
+			if err != nil {
+				sublog.Error().Str("symbol", symbol).Msg("failed to find ticker")
+				continue
+			}
+			removeFromWatcherRecents(deps, watcher, ticker)
+		}
+	case action == "lock":
+		for _, symbol := range symbols {
+			if symbol == "" {
+				continue
+			}
+			ticker := Ticker{TickerSymbol: symbol}
+			err := ticker.getBySymbol(deps)
+			if err != nil {
+				sublog.Error().Str("symbol", symbol).Msg("failed to find ticker")
+				continue
+			}
+			lockWatcherRecent(deps, watcher, ticker)
+		}
+	case action == "unlock":
+		for _, symbol := range symbols {
+			if symbol == "" {
+				continue
+			}
+			ticker := Ticker{TickerSymbol: symbol}
+			err := ticker.getBySymbol(deps)
+			if err != nil {
+				sublog.Error().Str("symbol", symbol).Msg("failed to find ticker")
+				continue
+			}
+			unlockWatcherRecent(deps, watcher, ticker)
+		}
+	}
+	jsonR.Success = true
+	jsonR.Message = "ok"
 }
