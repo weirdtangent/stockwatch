@@ -8,27 +8,27 @@
                         <div class="flex-fill"><img class="favicon me-1 border border-dark mt-0" {{if .TickerFavIconCDATA}}src="data:image/ico;base64,{{.TickerFavIconCDATA}}"{{end}}><a href="/view/{{.TickerSymbol}}" class="text-decoration-none text-dark">{{.TickerSymbol}}/{{.Exchange | ToLower}}</a></div>
                         <div class="g-0 m-0 p-0"><button id="{{.TickerSymbol}}_close_button" data-symbol="{{.TickerSymbol}}" type="button" class="btn-close border border-dark small mt-0 {{if .Locked}}disabled{{end}}" aria-label="Close"></button></div>
                       </div><!-- card-title -->
-                      <div class="card-body small pt-0 px-1">
+                      <div class="card-body small pt-0 px-1 recent-plus-body">
                         <div class="row">
                           <div class="col-12">
                             <div class="nowrap">{{.TickerName}}</div>
                             {{if .LiveQuote.QuotePrice }}
-                              <span id="{{.TickerSymbol}}_quote_shareprice">${{printf "%.2f" .LiveQuote.QuotePrice}}</span>
-                              <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="{{ PriceMoveIndicator .LiveQuote.QuoteChange}}"></i></span>
-                              <span class="{{PriceBigMoveColor .LiveQuote.QuoteChangePct}}">
+                              <span id="{{.TickerSymbol}}_quote_shareprice fs-4">${{printf "%.2f" .LiveQuote.QuotePrice}}</span>
+                              <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="{{ PriceMoveIndicatorCSS .LiveQuote.QuoteChange}}"></i></span>
+                              <span class="{{PriceBigMoveColorCSS .LiveQuote.QuoteChangePct}}">
                                 &nbsp;<span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .LiveQuote.QuoteChange}}</span>
                                 (<span id="{{.TickerSymbol}}_quote_change_pct">{{printf "%.2f" .LiveQuote.QuoteChangePct}}%</span>)
-                                <i class="h5 {{PriceBigMoveIndicator .LiveQuoteChangePct}}"></i>
+                                <i class="h5 {{PriceBigMoveIndicatorCSS .LiveQuoteChangePct}}"></i>
                               </span>
                               </span><br/>
                               <span class="text-info"> as of </span><span class="text-light small"><span id="{{.TickerSymbol}}_quote_asof">{{ FormatUnixTime .LiveQuote.QuoteTime "Jan 2 15:04:05" }}</span></span>
                             {{- else}}
-                              <span id="{{.TickerSymbol}}_quote_shareprice">${{printf "%.2f" .LastClose.ClosePrice}}</span>
-                              <i id="{{.TickerSymbol}}_quote_dailymove" class="{{PriceMoveIndicator .DiffAmt}}"></i>
-                              <span class="{{PriceBigMoveColor .DiffPerc}}">
+                              <span id="{{.TickerSymbol}}_quote_shareprice fs-4">${{printf "%.2f" .LastClose.ClosePrice}}</span>
+                              <i id="{{.TickerSymbol}}_quote_dailymove" class="{{PriceMoveIndicatorCSS .DiffAmt}}"></i>
+                              <span class="{{PriceBigMoveColorCSS .DiffPerc}}">
                                 &nbsp;<span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .DiffAmt}}</span>
                                 (<span id="{{.TickerSymbol}}_quote_change_pct">{{printf "%.2f" .DiffPerc}}%</span>)
-                                <i class="PriceBigMoveIndicator .DiffAmt"></i></span>
+                                <i class="PriceBigMoveIndicatorCSS .DiffAmt"></i></span>
                               </span>
                               <br/>
                               <span class="text-info"> at close on </span>
@@ -36,10 +36,25 @@
                             {{- end}}
                           </div><!-- col-12 -->
                         </div><!-- row -->
+                        <div class="row mt-3">
+                          <div class="col-12 text-warning">
+                            News last 7 days:
+                          </div>
+                          <div class="col-12">
+                            {{- range .Articles }}
+                              <div class="text-white modal-link news-title text-truncate" data-bs-toggle="modal" data-bs-target="#source{{.SourceId}}-id{{.ExternalId}}-modal"
+                                     data-bs-toggle="tooltip" title="{{.Title}}">
+                                <span class="small text-info">{{if .PublishedDatetime.Valid}}{{.PublishedDatetime.Time.Format "Jan 02"}}{{end}}</span>
+                                <a class="text-decoration-none text-light" href="{{.ArticleURL}}">{{.Title}}</a> <i class="far fa-window fa-xs"></i>
+                                <span class="small text-info">{{if .AuthorByline.Valid}} by {{.AuthorByline.String}}{{else if .SourceName.Valid}} from {{.SourceName.String}}{{end}}</span>
+                              </div>
+                            {{- end}}
+                          </div><!-- col-12 -->
+                        </div><!-- row -->
                       </div><!-- card-body -->
                       <div class="card-footer small">
                         Checked News:
-                        <span class="text-info"><span id="{{.TickerSymbol}}_last_checked_news">{{if .LastCheckedNews.Valid }}{{.LastCheckedSince}}{{ else }}-{{end}}</span></span>
+                        <span class="text-info"><span id="{{.TickerSymbol}}_last_checked_since">{{.LastCheckedSince}}</span></span>
                         <i id="{{.TickerSymbol}}_updating_news_now" class="ms-2 mb-2 fad fa-sync fa-spin{{if .UpdatingNewsNow}}{{else}} hide{{end}}"></i>
                       </div><!-- card-footer -->
                     </div><!-- card -->

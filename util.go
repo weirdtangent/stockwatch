@@ -137,13 +137,12 @@ func getTimezones(deps *Dependencies) []Timezone {
 }
 
 func procTimezoneDir(deps *Dependencies, zoneDir, path string) []Timezone {
-	webdata := deps.webdata
 	var timezones []Timezone
 
 	watcherTZ := "UTC"
-	if webdata["TZLocation"] != nil {
-		watcherTZ = webdata["TZLocation"].(string)
-	}
+	// if webdata["TZLocation"] != nil {
+	// 	watcherTZ = webdata["TZLocation"].(string)
+	// }
 
 	files, err := ioutil.ReadDir(zoneDir + path)
 	if err != nil {
@@ -184,4 +183,8 @@ func TimeNow(loc string) string {
 		tzloc, _ = time.LoadLocation("UTC")
 	}
 	return time.Now().In(tzloc).Format(fullDatetime)
+}
+
+func Concat(strs ...string) string {
+	return strings.Trim(strings.Join(strs, ""), " ")
 }

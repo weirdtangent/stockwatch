@@ -6,20 +6,26 @@ import (
 )
 
 func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker, error) {
-	// messages := *(deps.messages)
-	webdata := deps.webdata
 	sublog := deps.logger
+	webdata := deps.webdata
 
 	// load ticker from yhfinance if we don't have it or what we have is > 24 hours old
 	ticker := Ticker{TickerSymbol: symbol}
 	err := ticker.getBySymbol(deps)
-	if err != nil || !ticker.FetchDatetime.Valid || time.Now().Add(time.Hour).Before(ticker.FetchDatetime.Time) || !skipLocalTickerInfo {
-		ticker, err = fetchTickerInfo(deps, symbol)
+	if err != nil || skipLocalTickerInfo {
+		start := time.Now()
+		ticker, err = fetchTickerInfoFromYH(deps, symbol)
 		if err != nil {
 			sublog.Error().Err(err).Str("ticker", symbol).Msg("Fatal: could not load ticker info from source. Redirect back to desktop?")
 			return Ticker{}, err
 		}
-		// messages = append(messages, Message{"Company/Symbol data updated", "success"})
+		sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Str("action", "YHfinance get-summary").Msg("timer")
+	} else if !ticker.FetchDatetime.Valid || ticker.FetchDatetime.Time.Add(24*time.Hour).Before(time.Now()) {
+		// queue update of ticker from YH
+		err := ticker.queueUpdateInfo(deps)
+		if err != nil {
+			sublog.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to queue 'update info' for {symbol}")
+		}
 	}
 
 	tickerDescription, _ := getTickerDescriptionByTickerId(deps, ticker.TickerId)
@@ -34,19 +40,23 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 
 	// if the market is open, lets get a live quote
 	if isMarketOpen() {
-		quote, err := loadTickerQuote(deps, ticker.TickerSymbol)
+		start := time.Now()
+		sublog.Debug().Msg("market is open, lets get live quote from YH")
+		quote, err := fetchTickerQuoteFromYH(deps, ticker.TickerSymbol)
 		if err == nil {
 			webdata["quote"] = quote
-			// messages = append(messages, Message{"Live quote data updated", "success"})
 		}
 		webdata["open"] = true
+		sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Str("action", "YHfinance get live quote").Msg("timer")
 	}
 
 	// if it is a workday after 4 and we don't have the EOD (or not an EOD from
 	// AFTER 4pm) or we don't have the prior workday EOD, get them
 	if ticker.needEODs(deps) {
-		loadTickerEODs(deps, ticker)
-		// messages = append(messages, Message{"Historical data updated", "success"})
+		start := time.Now()
+		sublog.Debug().Msg("going to get EODs from YH")
+		loadTickerEODsFromYH(deps, ticker)
+		sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Str("action", "build charts").Msg("timer")
 	}
 
 	// get Ticker_UpDowns
@@ -64,7 +74,7 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 	webwatches, _ := loadWebWatches(deps, ticker.TickerId)
 
 	// load any recent news
-	articles, _ := getArticlesByTicker(deps, ticker.TickerId)
+	articles, _ := getArticlesByTicker(deps, ticker.TickerId, 20, 180)
 	if len(articles) > 0 {
 		webdata["articles"] = articles
 		for _, article := range articles {
@@ -107,6 +117,7 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 		}
 	}
 
+	start := time.Now()
 	// Build charts
 	var lineChartHTML = chartHandlerTickerDailyLine(deps, ticker, &exchange, ticker_dailies, webwatches)
 	var klineChartHTML = chartHandlerTickerDailyKLine(deps, ticker, &exchange, ticker_dailies, webwatches)
@@ -126,11 +137,12 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 	annPercStrs, annPercValues, _ := ticker.GetFinancials(deps, "Annual", "line", 1)
 	var qtrPercChartHTML = chartHandlerFinancialsLine(deps, ticker, &exchange, qtrPercStrs, qtrPercValues, 1)
 	var annPercChartHTML = chartHandlerFinancialsLine(deps, ticker, &exchange, annPercStrs, annPercValues, 1)
+	sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Str("action", "build charts").Msg("timer")
 
-	localTz, err := time.LoadLocation(webdata["TZLocation"].(string))
-	if err != nil {
-		localTz, _ = time.LoadLocation("UTC")
-	}
+	// localTz, err := time.LoadLocation(webdata["TZLocation"].(string))
+	// if err != nil {
+	localTz, _ := time.LoadLocation("UTC")
+	// }
 
 	webdata["TickerSymbol"] = symbol
 	webdata["ticker"] = ticker
@@ -139,8 +151,8 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 	webdata["timespan"] = timespan
 	webdata["lastClose"] = lastTickerDaily[0]
 	webdata["priorClose"] = lastTickerDaily[1]
-	webdata["diffAmt"] = PriceDiffAmt(lastTickerDaily[1].ClosePrice, lastTickerDaily[0].ClosePrice)
-	webdata["diffPerc"] = PriceDiffPercAmt(lastTickerDaily[1].ClosePrice, lastTickerDaily[0].ClosePrice)
+	webdata["DiffAmt"] = PriceDiffAmt(lastTickerDaily[1].ClosePrice, lastTickerDaily[0].ClosePrice)
+	webdata["DiffPerc"] = PriceDiffPercAmt(lastTickerDaily[1].ClosePrice, lastTickerDaily[0].ClosePrice)
 	webdata["ticker_updowns"] = tickerUpDowns
 	webdata["ticker_attributes"] = tickerAttributes
 	webdata["ticker_splits"] = tickerSplits
@@ -149,6 +161,7 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 	webdata["LastCheckedNews"] = lastCheckedNews.Time.In(localTz)
 	webdata["UpdatingNewsNow"] = updatingNewsNow
 	webdata["watches"] = webwatches
+
 	webdata["lineChart"] = lineChartHTML
 	webdata["klineChart"] = klineChartHTML
 	webdata["qtrBarChart"] = qtrBarChartHTML

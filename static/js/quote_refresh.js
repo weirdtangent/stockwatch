@@ -13,6 +13,9 @@ function quoteRefresh() {
     if (update_count <= 0) {
         return;
     }
+    if (symbols == "") {
+        return;
+    }
     $('#auto_refresh_working').removeClass('hide');
     var response = $.ajax({
         type: 'GET',
@@ -50,7 +53,7 @@ function quoteRefresh() {
                     });
                 }
 
-                phaseChange(response, symbol, 'last_checked_news')
+                phaseChange(response, symbol, 'last_checked_since')
                 if (response.data.symbol+':updating_news_now'=='true' && $('#'+symbol+'_updating_news_now').hasClass('hide')) {
                     $('#'+symbol+'_updating_news_now').removeClass('hide');
                 } else if (response.data.symbol+':updating_news_now'=='false' && !$('#'+symbol+'_updating_news_now').hasClass('hide')) {

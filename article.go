@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"database/sql"
+	"errors"
 	"fmt"
 	"html/template"
 	"regexp"
@@ -63,14 +64,14 @@ type ArticleTag struct {
 }
 
 type WebArticle struct {
-	ArticleId          uint64       `db:"article_id"`
-	SourceId           uint64       `db:"source_id"`
-	ExternalId         string       `db:"external_id"`
-	PublishedDatetime  sql.NullTime `db:"published_datetime"`
-	PubUpdatedDatetime sql.NullTime `db:"pubupdated_datetime"`
-	Title              string       `db:"title"`
-	Body               string       `db:"body"`
-	BodyTemplate       template.HTML
+	ArticleEncId       string
+	ArticleId          uint64         `db:"article_id"`
+	SourceId           uint64         `db:"source_id"`
+	ExternalId         string         `db:"external_id"`
+	PublishedDatetime  sql.NullTime   `db:"published_datetime"`
+	PubUpdatedDatetime sql.NullTime   `db:"pubupdated_datetime"`
+	Title              string         `db:"title"`
+	Body               string         `db:"body"`
 	ArticleURL         string         `db:"article_url"`
 	ImageURL           string         `db:"image_url"`
 	CreateDatetime     sql.NullTime   `db:"create_datetime"`
@@ -82,85 +83,24 @@ type WebArticle struct {
 	Keywords           sql.NullString `db:"keywords"`
 	Tags               sql.NullString `db:"tags"`
 	Symbols            sql.NullString `db:"symbols"`
+	BodyTemplate       template.HTML
 }
 
-// func getArticlesByKeyword(deps *Dependencies, keyword string) ([]WebArticle, error) {
-// 	db := deps.db
-
-// 	if keyword == "" {
-// 		return []WebArticle{}, fmt.Errorf("missing required keyword param")
-// 	}
-
-// 	fromDate := time.Now().AddDate(0, 0, -120).Format(sqlDatetimeSearchType)
-// 	query := `SELECT article.article_id, article.source_id, article.external_id, article.published_datetime, article.pubupdated_datetime,
-// 		            article.title, article.body, article.article_url, article.image_url,
-//                     ANY_VALUE(article_author.byline) AS author_byline,
-// 					ANY_VALUE(article_author.long_bio) AS author_long_bio,
-// 					ANY_VALUE(article_author.image_url) AS author_image_url,
-// 					source.source_name AS source_name,
-// 					GROUP_CONCAT(DISTINCT article_keyword.keyword ORDER BY article_keyword.keyword SEPARATOR ', ') AS keywords,
-// 					GROUP_CONCAT(DISTINCT article_tag.tag ORDER BY article_tag.tag SEPARATOR ', ') AS tags,
-// 					GROUP_CONCAT(DISTINCT article_ticker.ticker_symbol ORDER BY article_ticker.ticker_symbol SEPARATOR ', ') AS symbols
-// 				FROM article
-//  				LEFT JOIN article_author USING (article_id)
-// 				LEFT JOIN article_ticker USING (article_id)
-// 				LEFT JOIN article_keyword USING (article_id)
-// 				LEFT JOIN article_tag USING (article_id)
-// 				LEFT JOIN source USING (source_id)
-// 				WHERE published_datetime > ?
-// 					AND (keyword=? OR tag=? OR ticker_symbol=?)
-//   				GROUP BY article_id
-// 				ORDER BY published_datetime DESC
-//     			LIMIT 6`
-// 	rows, err := db.Queryx(query, fromDate, keyword, keyword, keyword)
-// 	if err != nil {
-// 		log.Warn().Err(err).Msg("Failed to check for articles")
-// 		return []WebArticle{}, err
-// 	}
-// 	defer rows.Close()
-
-// 	bodySHA256 := make(map[string]bool)
-
-// 	var article WebArticle
-// 	articles := make([]WebArticle, 0)
-// 	for rows.Next() {
-// 		err = rows.StructScan(&article)
-// 		if err != nil {
-// 			log.Warn().Err(err).Str("table_name", "article,article_author").Msg("Error reading result rows")
-// 			continue
-// 		}
-// 		if len(article.Body) > 0 {
-// 			sha := fmt.Sprintf("%x", sha256.Sum256([]byte(article.Body)))
-// 			if _, ok := bodySHA256[sha]; ok {
-// 				sublog.Info().Msg("Skipping, seen this article body already")
-// 			} else {
-// 				bodySHA256[sha] = true
-
-// 				quote_rx := regexp.MustCompile(`'`)
-// 				article.Body = string(quote_rx.ReplaceAll([]byte(article.Body), []byte("&apos;")))
-
-// 				http_rx := regexp.MustCompile(`http:`)
-// 				article.Body = string(http_rx.ReplaceAll([]byte(article.Body), []byte("https:")))
-// 				article.AuthorImageURL.String = string(http_rx.ReplaceAll([]byte(article.AuthorImageURL.String), []byte("https:")))
-
-// 				articles = append(articles, article)
-// 			}
-// 		} else {
-// 			articles = append(articles, article)
-// 		}
-// 	}
-// 	if err := rows.Err(); err != nil {
-// 		return []WebArticle{}, err
-// 	}
-
-// 	return articles, nil
-// }
-
-func getArticlesByTicker(deps *Dependencies, ticker_id uint64) ([]WebArticle, error) {
+func getArticlesByTicker(deps *Dependencies, ticker_id uint64, max, days int64) ([]WebArticle, error) {
 	db := deps.db
+	sublog := deps.logger
+
+	if max == 0 || max > 20 {
+		max = 20
+	}
+	if days == 0 || days > 180 {
+		days = 180
+	}
 
 	// go back as far as 180 days but limited to 20 articles
-	fromDate := time.Now().Add(-1 * 180 * 24 * time.Hour).Format(sqlDatetimeSearchType)
+	goback := time.Duration(-1 * 24 * time.Duration(days) * time.Hour)
+	fromDate := time.Now().Add(goback).Format(sqlDatetimeSearchType)
+	sublog.Info().Uint64("ticker_id", ticker_id).Str("from_date", fromDate).Msg("checking for ticker news for {ticker_id} since {from_date}")
 	query := `SELECT article.article_id, article.source_id, article.external_id, article.published_datetime, article.pubupdated_datetime,
 	            article.title, article.body, article.article_url, article.image_url,
                 ANY_VALUE(article_author.byline) AS author_byline,
@@ -176,12 +116,11 @@ func getArticlesByTicker(deps *Dependencies, ticker_id uint64) ([]WebArticle, er
 			  LEFT JOIN article_keyword USING (article_id)
 			  LEFT JOIN article_tag USING (article_id)
 			  LEFT JOIN source USING (source_id)
-			  WHERE published_datetime > ?
-			     AND ticker_id=?
+			  WHERE published_datetime > ? AND ticker_id=?
   			  GROUP BY article_id
 			  ORDER BY published_datetime DESC
-    		  LIMIT 20`
-	rows, err := db.Queryx(query, fromDate, ticker_id)
+    		  LIMIT ?`
+	rows, err := db.Queryx(query, fromDate, ticker_id, max)
 
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to check for articles")
@@ -196,7 +135,7 @@ func getArticlesByTicker(deps *Dependencies, ticker_id uint64) ([]WebArticle, er
 	for rows.Next() {
 		err = rows.StructScan(&article)
 		if err != nil {
-			log.Warn().Err(err).Str("table_name", "article,article_author").Msg("Error reading result rows")
+			log.Warn().Err(err).Str("table_name", "article,article_author").Msg("error reading result rows")
 			continue
 		}
 		sha := fmt.Sprintf("%x", sha256.Sum256([]byte(article.Title)))
@@ -205,6 +144,8 @@ func getArticlesByTicker(deps *Dependencies, ticker_id uint64) ([]WebArticle, er
 			continue
 		}
 		bodySHA256[sha] = true
+		article.ArticleEncId = encryptId(deps, "article", article.ArticleId)
+		article.ArticleId = 0
 
 		quote_rx := regexp.MustCompile(`'`)
 		article.Body = string(quote_rx.ReplaceAll([]byte(article.Body), []byte("&apos;")))
@@ -266,6 +207,8 @@ func getRecentArticles(deps *Dependencies) ([]WebArticle, error) {
 			continue
 		}
 		bodySHA256[sha] = true
+		article.ArticleEncId = encryptId(deps, "article", article.ArticleId)
+		article.ArticleId = 0
 
 		quote_rx := regexp.MustCompile(`'`)
 		article.Body = quote_rx.ReplaceAllString(article.Body, "&apos;")
@@ -284,17 +227,18 @@ func getRecentArticles(deps *Dependencies) ([]WebArticle, error) {
 }
 
 func getNewsLastUpdated(deps *Dependencies, ticker Ticker) (sql.NullTime, bool) {
-	webdata := deps.webdata
 	sublog := deps.logger
 
 	newsLastUpdated := sql.NullTime{Valid: false, Time: time.Time{}}
 	updatingNewsNow := false
 	lastdone := LastDone{Activity: "ticker_news", UniqueKey: ticker.TickerSymbol}
 	err := lastdone.getByActivity(deps)
-	if err != nil {
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		err = ticker.queueUpdateNews(deps)
+		updatingNewsNow = (err == nil)
+		return sql.NullTime{}, updatingNewsNow
+	} else if err != nil {
 		sublog.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get LastDone activity for {symbol}")
-		webdata["NewsLastUpdated"] = newsLastUpdated
-		webdata["UpdatingNewsNow"] = updatingNewsNow
 		return sql.NullTime{}, false
 	}
 	if lastdone.LastStatus == "success" {
@@ -302,23 +246,24 @@ func getNewsLastUpdated(deps *Dependencies, ticker Ticker) (sql.NullTime, bool) 
 		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
 			err = ticker.queueUpdateNews(deps)
 			updatingNewsNow = (err == nil)
+			return sql.NullTime{}, updatingNewsNow
 		} else {
-			if webdata["TZLocation"] != nil {
-				location, err := time.LoadLocation(webdata["TZLocation"].(string))
-				if err != nil {
-					location, _ = time.LoadLocation("UTC")
-				}
-				newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time.In(location)}
-			} else {
-				newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time}
-			}
+			// if webdata["TZLocation"] != nil {
+			// 	location, err := time.LoadLocation(webdata["TZLocation"].(string))
+			// 	if err != nil {
+			// 		location, _ = time.LoadLocation("UTC")
+			// 	}
+			// 	newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time.In(location)}
+			// } else {
+			newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time}
+			// }
 			updatingNewsNow = false
+			return sql.NullTime{}, updatingNewsNow
 		}
-	} else {
-		sublog.Info().Str("symbol", ticker.TickerSymbol).Msg("last try failed, lets try to get news again")
-		err = ticker.queueUpdateNews(deps)
-		updatingNewsNow = (err == nil)
 	}
+	sublog.Info().Str("symbol", ticker.TickerSymbol).Msg("last try failed, lets try to get news again")
+	err = ticker.queueUpdateNews(deps)
+	updatingNewsNow = (err == nil)
 
 	return newsLastUpdated, updatingNewsNow
 }

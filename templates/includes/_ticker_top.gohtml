@@ -11,13 +11,13 @@
                     </div>
                     {{ template "_ticker_info" . }}
                   </div>
-                  {{/* <div class="flex-grow-1 text-end">
+                  <div class="flex-grow-1 text-end">
                     {{- template "_messages" . }}
-                  </div> */}}
-                </div>
-                <div class="d-flex">
-                  <div class="flex-grow-1 pt-1 pb-2" id="toggle">
-                    <hr class="mt-0 ms-0 me-2 text-white opacity-3">
+                  </div>
+                </div><!-- row -->
+
+                <div class="row d-flex">
+                  <div class="flex-grow-1 mx-2" id="toggle">
                     <div class="btn-group" role="group" aria-label="Chart or table to show">
                       <span>Share Charts</span>
                       <input type="radio" class="btn-check" name="pickChart" id="tickerChart1" checked>
@@ -53,10 +53,28 @@
                     </div><!-- btn-group -->
 
                   </div><!-- toggle -->
-                </div><!-- d-flex -->
+                </div><!-- row -->
 
-                <div class="d-flex">
-                  <div class="flex-grow-1 pt-1 pb-2" id="toggle">
+                <div class="row">
+                  <div class="mx-2 btn-group align-middle" role="group" aria-label="Chart or table to show">
+                    <span>Daily Activity</span>
+                    <input type="radio" class="btn-check" name="pickTimespan" id="timespan15" data-href="?ts=15" {{if eq .timespan 15}}checked{{end}}>
+                    <label class="btn-sm btn-outline-success mx-1" for="timespan15">15</label>
+                    <input type="radio" class="btn-check" name="pickTimespan" id="timespan30" data-href="?ts=30" {{if eq .timespan 30}}checked{{end}}>
+                    <label class="btn-sm btn-outline-success mx-1" for="timespan30">30</label>
+                    <input type="radio" class="btn-check" name="pickTimespan" id="timespan45" data-href="?ts=45" {{if eq .timespan 45}}checked{{end}}>
+                    <label class="btn-sm btn-outline-success mx-1" for="timespan45">45</label>
+                    <input type="radio" class="btn-check" name="pickTimespan" id="timespan90" data-href="?ts=90" {{if eq .timespan 90}}checked{{end}}>
+                    <label class="btn-sm btn-outline-success mx-1" for="timespan90">3mo</label>
+                    <input type="radio" class="btn-check" name="pickTimespan" id="timespan180" data-href="?ts=180" {{if eq .timespan 180}}checked{{end}}>
+                    <label class="btn-sm btn-outline-success mx-1" for="timespan180">6mo</label>
+                    <input type="radio" class="btn-check" name="pickTimespan" id="timespan365" data-href="?ts=365" {{if eq .timespan 365}}checked{{end}}>
+                    <label class="btn-sm btn-outline-success mx-1" for="timespan365">1yr</label>
+                  </div>
+                </div><!-- row -->
+
+                <div class="row d-flex">
+                  <div class="flex-grow-1 mx-2 pt-2" id="toggle">
                     <div class="btn-group" role="group" aria-label="Chart or table to show">
                       <span>Financial Charts</span>
 
@@ -78,25 +96,7 @@
                       <input type="radio" class="btn-check" name="pickChart" id="financialsChart6">
                       <label class="btn-sm btn-outline-success ms-2" for="financialsChart6"><i class="fas fa-chart-line"></i> AnnuPerc</label>
                     </div><!-- btn-group -->
-
-                  <hr class="mt-0 ms-0 me-2 text-white opacity-3">
                   </div><!-- toggle -->
-                </div><!-- d-flex -->
+                </div><!-- row -->
               </header>
-
-              <span class="h4 ms-2 align-middle">Daily Activity</span>
-              <div class="btn-group align-middle" role="group" aria-label="Chart or table to show">
-                <input type="radio" class="btn-check" name="pickTimespan" id="timespan15" data-href="?ts=15" {{if eq .timespan 15}}checked{{end}}>
-                <label class="btn-sm btn-outline-success mx-1" for="timespan15">15</label>
-                <input type="radio" class="btn-check" name="pickTimespan" id="timespan30" data-href="?ts=30" {{if eq .timespan 30}}checked{{end}}>
-                <label class="btn-sm btn-outline-success mx-1" for="timespan30">30</label>
-                <input type="radio" class="btn-check" name="pickTimespan" id="timespan45" data-href="?ts=45" {{if eq .timespan 45}}checked{{end}}>
-                <label class="btn-sm btn-outline-success mx-1" for="timespan45">45</label>
-                <input type="radio" class="btn-check" name="pickTimespan" id="timespan90" data-href="?ts=90" {{if eq .timespan 90}}checked{{end}}>
-                <label class="btn-sm btn-outline-success mx-1" for="timespan90">3mo</label>
-                <input type="radio" class="btn-check" name="pickTimespan" id="timespan180" data-href="?ts=180" {{if eq .timespan 180}}checked{{end}}>
-                <label class="btn-sm btn-outline-success mx-1" for="timespan180">6mo</label>
-                <input type="radio" class="btn-check" name="pickTimespan" id="timespan365" data-href="?ts=365" {{if eq .timespan 365}}checked{{end}}>
-                <label class="btn-sm btn-outline-success mx-1" for="timespan365">1yr</label>
-              </div>
 {{- end}}

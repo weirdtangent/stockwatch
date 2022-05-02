@@ -23,8 +23,6 @@ type AddContext struct {
 	deps    *Dependencies
 }
 
-type ContextKey string
-
 func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// lets add request_id to this context and as a response header
 	// but also as a cookie with a short expiration so we can catch
@@ -41,7 +39,7 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		requestId = reqHeader.Get("X-Request-ID")
 	}
 	resHeader.Set("X-Request-ID", requestId)
-	ac.deps.request_id = requestId
+	// ac.deps.request_id = requestId
 
 	// write/update cookie with RID
 	ridCookie = &http.Cookie{
@@ -55,9 +53,6 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, ridCookie)
 
-	// newlog := ac.deps.logger.With().Str("request_id", requestId).Logger()
-	// ac.deps.logger = &newlog
-
 	// redis connection
 	redisPool := &redis.Pool{
 		MaxIdle:     10,
@@ -67,15 +62,7 @@ func (ac *AddContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	defaultConfig := make(map[string]interface{})
-	defaultConfig["is_market_open"] = isMarketOpen()
-	defaultConfig["quote_refresh"] = 20
-
 	ac.deps.redisPool = redisPool
-	ac.deps.config = defaultConfig
-	ac.deps.webdata = make(map[string]interface{})
-
-	ac.deps.nonce = RandStringMask(32)
 
 	ac.handler.ServeHTTP(w, r)
 }
@@ -143,7 +130,8 @@ type ExtraHeader struct {
 }
 
 func (ah *ExtraHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	nonce := ah.deps.nonce
+	nonce := RandStringMask(32)
+	ah.deps.nonce = nonce
 
 	resHeader := w.Header()
 	csp := map[string][]string{
@@ -164,6 +152,7 @@ func (ah *ExtraHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		cspString += fmt.Sprintf("%s %s;\n", category, strings.Join(csp[category], " "))
 	}
 	resHeader.Set("Content-Security-Policy", cspString)
+	resHeader.Set("X-Nonce", nonce)
 
 	reportTo := `{"group":"default","max-age":1800,"endpoints":[{"url":"https://stockwatch.graystorm.com/internal/cspviolations"}],"include_subdomains":true}`
 	resHeader.Set("Report-To", reportTo)

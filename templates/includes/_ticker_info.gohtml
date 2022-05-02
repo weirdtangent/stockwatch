@@ -3,19 +3,19 @@
                     Share price:
                     {{if .quote}}
                       <span id="{{.TickerSymbol}}_quote_shareprice" class="h4 text-white">${{printf "%.2f" .quote.QuotePrice}}</span>
-                      <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="h5 {{PriceMoveIndicator .quote.QuoteChange}}"></i></span>
-                      <span class="h5 {{PriceBigMoveColor .quote.QuoteChangePct}}">
+                      <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="h5 {{PriceMoveIndicatorCSS .quote.QuoteChange}}"></i></span>
+                      <span class="h5 {{PriceBigMoveColorCSS.quote.QuoteChangePct}}">
                         &nbsp;<span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .quote.QuoteChange}}</span>
                         (<span id="{{.TickerSymbol}}_quote_change_pct">{{printf "%.2f" .quote.QuoteChangePct}}%</span>)
-                        <i class="h5 {{PriceBigMoveIndicator .quote.QuoteChangePct}}"></i>
+                        <i class="h5 {{PriceBigMoveIndicatorCSS .quote.QuoteChangePct}}"></i>
                       </span>
                     {{- else -}}
                       <span id="{{.TickerSymbol}}_quote_shareprice" class="h4 text-white">${{printf "%.2f" .lastClose.ClosePrice}}</span>
-                      <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="h5 {{if .diffAmt}}{{PriceMoveIndicator .diffAmt}}{{end}}"></i></span>
-                      <span class="h5 {{PriceBigMoveColor .diffPerc}}">
-                        &nbsp;<span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .diffAmt}}</span>
-                        (<span id="{{.TickerSymbol}}_quote_change_pct">{{printf "%.2f" .diffPerc}}%</span>)
-                        <i class="h5 {{PriceBigMoveIndicator .diffPerc}}"></i>
+                      <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="h5 {{if .DiffAmt}}{{PriceMoveIndicatorCSS .DiffAmt}}{{end}}"></i></span>
+                      <span class="h5 {{PriceBigMoveColorCSS .DiffPerc}}">
+                        &nbsp;<span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .DiffAmt}}</span>
+                        (<span id="{{.TickerSymbol}}_quote_change_pct">{{printf "%.2f" .DiffPerc}}%</span>)
+                        <i class="h5 {{PriceBigMoveIndicatorCSS .DiffPerc}}"></i>
                       </span>
                     {{- end }}
                     <span class="text-info">

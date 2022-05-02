@@ -11,14 +11,14 @@ import (
 
 func viewTickerDailyHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		watcher := checkAuthState(w, r, deps)
-
-		// messages := *(deps.messages)
+		var watcher Watcher
+		watcher, deps = checkAuthState(w, r, deps)
 		webdata := deps.webdata
 		sublog := deps.logger
 
 		params := mux.Vars(r)
 		symbol := params["symbol"]
+		article := r.FormValue("article")
 
 		timespan := 180
 		if tsParam := r.FormValue("ts"); tsParam != "" {
@@ -27,13 +27,11 @@ func viewTickerDailyHandler(deps *Dependencies) http.HandlerFunc {
 			} else if err != nil {
 				sublog.Error().Err(err).Str("ts", tsParam).Msg("invalid timespan (ts) param")
 			}
-			sublog.Info().Int("timespan", timespan).Msg("")
 		}
 
 		ticker, err := loadTickerDetails(deps, symbol, timespan)
 		if err != nil {
 			sublog.Error().Err(err).Msg("Failed to load ticker details for viewing")
-			// messages = append(messages, Message{fmt.Sprintf("Sorry, I had trouble loading that stock: %s", err.Error()), "danger"})
 			renderTemplateDefault(w, r, deps, "desktop")
 			return
 		}
@@ -49,6 +47,10 @@ func viewTickerDailyHandler(deps *Dependencies) http.HandlerFunc {
 			sublog.Error().Err(err).Msg("failed to add ticker to recents list")
 		}
 		webdata["WatcherRecents"] = watcherRecents
+
+		if article != "" {
+			webdata["autoopen_article_encid"] = article
+		}
 
 		renderTemplateDefault(w, r, deps, "view-daily")
 	})

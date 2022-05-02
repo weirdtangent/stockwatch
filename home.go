@@ -6,9 +6,10 @@ import (
 
 func homeHandler(deps *Dependencies, tmplname string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, deps = checkAuthState(w, r, deps)
 		webdata := deps.webdata
-		params := r.URL.Query()
 
+		params := r.URL.Query()
 		signoutParam := params.Get("signout")
 		if signoutParam == "1" {
 			deleteWIDCookie(w, r, deps)

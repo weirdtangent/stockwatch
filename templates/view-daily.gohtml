@@ -39,7 +39,7 @@
               </div>
               <div class="px-2 py-1 bg-dark small text-light min-box">
                 {{- range .articles}}
-                <div class="text-white modal-link news-title text-truncate" data-bs-toggle="modal" data-bs-target="#source{{.SourceId}}-id{{.ExternalId}}-modal">
+                <div class="text-white modal-link news-title text-truncate" data-bs-toggle="modal" data-keyboard="true" data-bs-target="#source-{{.ArticleEncId}}-modal">
                   <span class="small text-info">{{if .PublishedDatetime.Valid}}{{.PublishedDatetime.Time.Format "Jan 02"}}{{end}}</span>
                   {{.Title}} <i class="far fa-window fa-xs"></i>
                   <span class="small text-info">{{if .AuthorByline.Valid}} by {{.AuthorByline.String}}{{else if .SourceName.Valid}} from {{.SourceName.String}}{{end}}</span>
@@ -67,7 +67,7 @@
                 {{- if .AttributeValue}}
                   <div class="list-group-item">
                     <div class="d-flex">
-                      <div>{{.AttributeName -}}
+                      <div class="text-success">{{.AttributeName -}}
                         {{- if .AttributeComment -}}
                         <span class="small text-warning"> {{.AttributeComment}}</span>
                         {{- end -}}
@@ -95,7 +95,7 @@
               <div class="list-group list-group-flush bg-dark text-info min-box">
                 {{- range .ticker_splits}}
                 <div class="list-group-item">
-                  On <span class="text-light">{{.SplitDate.Format "Jan 2 2006"}}</span>, split <span class="text-light">{{.SplitRatio}}</span>
+                  On <span class="text-light">{{.SplitDate}}</span>, split <span class="text-light">{{.SplitRatio}}</span>
                 </div>
                 {{- end}}
               </div>
@@ -107,5 +107,15 @@
   {{ template "_bought" . }}
   {{- template "_sold" . }}
   {{- template "_articles" . }}
+  {{if .autoopen_article_encid}}
+    <script nonce="{{.nonce}}">
+      $(document).ready(function() {
+        if ($('#source-{{.autoopen_article_encid}}-modal').length == 1) {
+          var autoOpen = new bootstrap.Modal($('#source-{{.autoopen_article_encid}}-modal'));
+          autoOpen.show();
+        }
+      });
+    </script>
+  {{end}}
   {{- template "_end" . }}
 {{- end }}

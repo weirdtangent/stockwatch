@@ -24,14 +24,14 @@ type Profile struct {
 
 func profileHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sublog := deps.logger
-		webdata := deps.webdata
-
-		watcher := checkAuthState(w, r, deps)
+		var watcher Watcher
+		watcher, deps = checkAuthState(w, r, deps)
 		if watcher.WatcherId == 0 {
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
+		webdata := deps.webdata
+		sublog := deps.logger
 
 		params := mux.Vars(r)
 		status := params["status"]
@@ -45,11 +45,9 @@ func profileHandler(deps *Dependencies) http.HandlerFunc {
 			work yet, but I'm working on it!`}
 		}
 
-		// messages := deps.messages
 		profile, err := getProfile(deps)
 		if err != nil {
 			sublog.Error().Err(err).Msg("failed to get profile info")
-			// messages = append(messages, Message{fmt.Sprintf("Sorry, error retrieving your profile: %s", err.Error()), "danger"})
 		}
 		webdata["profile"] = profile
 

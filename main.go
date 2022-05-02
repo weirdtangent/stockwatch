@@ -10,7 +10,7 @@ const (
 	awsRegion            = "us-east-1"
 	awsPrivateBucketName = "stockwatch-private"
 
-	skipRedisChecks     = false // always skip the redis cache info
+	skipRedisChecks     = true  // always skip the redis cache info
 	skipLocalTickerInfo = false // always fetch ticker info from yhfinance
 
 	sqlDateParseType      = "2006-01-02"

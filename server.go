@@ -41,7 +41,6 @@ type Dependencies struct {
 	webdata      map[string]interface{}
 	request_id   string
 	nonce        string
-	// messages    []Message
 }
 
 func setupLogging() *Dependencies {
@@ -67,13 +66,9 @@ func setupLogging() *Dependencies {
 	}
 	newlog := log.With().Str("@tag", logTag).Caller().Logger()
 
-	// messages := make([]Message, 100)
 	deps := Dependencies{
 		logger:  &newlog,
-		secrets: make(map[string]*string, 100),
-		// messages: &messages,
-		config:  make(map[string]interface{}, 100),
-		webdata: make(map[string]interface{}, 100),
+		secrets: make(map[string]*string),
 	}
 
 	return &deps
@@ -84,77 +79,15 @@ func getSecrets(deps *Dependencies) {
 	awssess := deps.awssess
 	secrets := deps.secrets
 
-	// get yhfinance api access key and host
-	yf_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "yhfinance_rapidapi_key")
+	secretValues, err := myaws.AWSGetSecret(awssess, "stockwatch")
 	if err != nil {
-		sublog.Fatal().Err(err).
-			Msg("failed to get YHFinance API key")
+		sublog.Fatal().Err(err)
 	}
-	deps.secrets["yhfinance_apikey"] = yf_api_access_key
 
-	yf_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "yhfinance_rapidapi_host")
-	if err != nil {
-		sublog.Fatal().Err(err).
-			Msg("failed to get YHFinance API key")
+	for key := range secretValues {
+		value := secretValues[key]
+		secrets[key] = &value
 	}
-	secrets["yhfinance_apihost"] = yf_api_access_host
-
-	// get msfinance api access key and host
-	ms_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "msfinance_rapidapi_key")
-	if err != nil {
-		sublog.Fatal().Err(err).
-			Msg("failed to get Morningstar API key")
-	}
-	secrets["msfinance_rapidapi_key"] = ms_api_access_key
-
-	ms_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "msfinance_rapidapi_host")
-	if err != nil {
-		sublog.Fatal().Err(err).
-			Msg("failed to get Morningstar API key")
-	}
-	secrets["msfinance_rapidapi_host"] = ms_api_access_host
-
-	// get bbfinance api access key and host
-	bb_api_access_key, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "bbfinance_rapidapi_key")
-	if err != nil {
-		sublog.Fatal().Err(err).
-			Msg("failed to get bbfinance API key")
-	}
-	secrets["bbfinance_rapidapi_key"] = bb_api_access_key
-
-	bb_api_access_host, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "bbfinance_rapidapi_host")
-	if err != nil {
-		sublog.Fatal().Err(err).
-			Msg("failed to get bbfinance API key")
-	}
-	secrets["bbfinance_rapidapi_host"] = bb_api_access_host
-
-	// google svc account
-	google_svc_acct, err := myaws.AWSGetSecretValue(awssess, "stockwatch_google_svc_acct")
-	if err != nil {
-		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
-	}
-	secrets["stockwatch_google_svc_acct"] = google_svc_acct
-
-	// github svc account
-	githubOAuthKey, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "github_oauth_key")
-	if err != nil {
-		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
-	}
-	secrets["github_oauth_key"] = githubOAuthKey
-
-	// stockwatch next url encryption key
-	next_url_key, err := myaws.AWSGetSecretValue(awssess, "stockwatch_next_url_key")
-	if err != nil {
-		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
-	}
-	secrets["next_url_key"] = next_url_key
-
-	skip64_watcher, err := myaws.AWSGetSecretKV(awssess, "stockwatch", "skip64_watcher")
-	if err != nil || *skip64_watcher == "" {
-		sublog.Fatal().Err(err).Msg("failed to retrieve secret")
-	}
-	secrets["skip64_watcher"] = skip64_watcher
 }
 
 func setupSessionsStore(deps *Dependencies) {
@@ -319,8 +252,8 @@ func startHTTPServer(deps *Dependencies) {
 	server := &http.Server{
 		Handler:      chainedMux4,
 		Addr:         ":" + strconv.Itoa(httpPort),
-		WriteTimeout: 10 * time.Second,
-		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
 	}
 
 	if err := server.ListenAndServe(); err != nil {

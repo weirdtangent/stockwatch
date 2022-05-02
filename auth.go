@@ -5,13 +5,97 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/dgryski/go-skip32"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
+	"github.com/rs/zerolog"
 )
+
+// Sets up for a web request - anything but an internal handler will HAVE to call this first and take the new "deps"
+//   also, check for WID cookie, set above when authenticated with Google 1-Tap
+//   plus set some standard webdata keys we'll need for all/most pages
+func checkAuthState(w http.ResponseWriter, r *http.Request, deps *Dependencies) (Watcher, *Dependencies) {
+	// here we make a copy of the permenant "deps" but with new versions of what might change during THIS request:
+	// new request_id, new nonce, new logger, new config, new webdata
+	// so we are not overwriting the same deps addresses that other web requests are also updating
+	resHeader := w.Header()
+	newnonce := resHeader.Get("X-Nonce")
+	newrequestid := resHeader.Get("X-Request-ID")
+	newlog := zerolog.New(os.Stdout).With().Str("request-id", newrequestid).Logger()
+	newconfig := make(map[string]interface{})
+	newwebdata := make(map[string]interface{})
+	newdeps := Dependencies{
+		awssess:      deps.awssess,
+		db:           deps.db,
+		secureCookie: deps.secureCookie,
+		cookieStore:  deps.cookieStore,
+		redisPool:    deps.redisPool,
+		secrets:      deps.secrets,
+		session:      deps.session,
+		request_id:   newrequestid,
+		nonce:        newnonce,
+		logger:       &newlog,
+		config:       newconfig,
+		webdata:      newwebdata,
+	}
+
+	config := newdeps.config
+	config["is_market_open"] = isMarketOpen()
+	config["quote_refresh"] = 20
+	newdeps.config = config
+
+	webdata := newdeps.webdata
+	webdata["nonce"] = newnonce
+	webdata["user-timezone"] = "UTC"
+	webdata["request-id"] = newdeps.request_id
+
+	sublog := newdeps.logger
+	session := newdeps.session
+
+	if session.Values["encWId"] != nil {
+		encWId := session.Values["encWId"].(string)
+		watcherId := decryptedId(deps, "watcher", encWId)
+		watcher, err := getWatcherById(deps, watcherId)
+		if err != nil {
+			sublog.Error().Err(err).Str("encWId", encWId).Msg("failed to load watcher via encWId {encWId}")
+			deleteWIDCookie(w, r, deps)
+			return Watcher{}, &newdeps
+		}
+		if watcher.WatcherStatus != "active" {
+			sublog.Error().Err(err).Str("encWId", encWId).Str("status", watcher.WatcherStatus).Msg("watcher is not active: {status}")
+			deleteWIDCookie(w, r, deps)
+			return Watcher{}, &newdeps
+		}
+
+		sublog.Info().Str("encWId", encWId).Msg("authenticated watcher from session")
+		webdata["encWId"] = encWId
+		webdata["Watcher"] = WebWatcher{watcher.WatcherName, watcher.WatcherStatus, watcher.WatcherLevel, watcher.WatcherTimezone, watcher.WatcherPicURL}
+
+		watcherRecents := getWatcherRecents(deps, watcher)
+		webdata["WatcherRecents"] = watcherRecents
+
+		if watcher.WatcherTimezone != "" {
+			_, err = time.LoadLocation(watcher.WatcherTimezone)
+			if err == nil {
+				webdata["timezone"] = watcher.WatcherTimezone
+			}
+		}
+
+		if session.Values["provider"] != nil {
+			webdata["provider"] = session.Values["provider"].(string)
+		}
+
+		return watcher, &newdeps
+	}
+	sublog.Info().Msg("anonymous visitor")
+	webdata["loggedout"] = 1
+
+	return Watcher{}, &newdeps
+}
 
 func authLoginHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -138,60 +222,6 @@ func deleteWIDCookie(w http.ResponseWriter, r *http.Request, deps *Dependencies)
 	}
 }
 
-// check for WID cookie, set above when authenticated with Google 1-Tap
-// plus set some standard webdata keys we'll need for all/most pages
-func checkAuthState(w http.ResponseWriter, r *http.Request, deps *Dependencies) Watcher {
-	// sc := deps.secureCookie
-	webdata := deps.webdata
-	nonce := deps.nonce
-	session := deps.session
-	sublog := deps.logger
-
-	webdata["config"] = ConfigData{}
-	webdata["nonce"] = nonce
-	webdata["TZLocation"] = "UTC"
-
-	if session.Values["encWId"] != nil {
-		encWId := session.Values["encWId"].(string)
-		watcherId := decryptedId(deps, "watcher", encWId)
-		watcher, err := getWatcherById(deps, watcherId)
-		if err != nil {
-			sublog.Error().Err(err).Str("encWId", encWId).Msg("failed to load watcher via encWId {encWId}")
-			deleteWIDCookie(w, r, deps)
-			return Watcher{}
-		}
-		if watcher.WatcherStatus != "active" {
-			sublog.Error().Err(err).Str("encWId", encWId).Str("status", watcher.WatcherStatus).Msg("watcher is not active: {status}")
-			deleteWIDCookie(w, r, deps)
-			return Watcher{}
-		}
-
-		sublog.Info().Str("encWId", encWId).Msg("authenticated watcher from session")
-		webdata["encWId"] = encWId
-		webdata["Watcher"] = WebWatcher{watcher.WatcherName, watcher.WatcherStatus, watcher.WatcherLevel, watcher.WatcherTimezone, watcher.WatcherPicURL}
-
-		watcherRecents := getWatcherRecents(deps, watcher)
-		webdata["WatcherRecents"] = watcherRecents
-
-		if watcher.WatcherTimezone != "" {
-			_, err = time.LoadLocation(watcher.WatcherTimezone)
-			if err == nil {
-				webdata["TZLocation"] = watcher.WatcherTimezone
-			}
-		}
-
-		if session.Values["provider"] != nil {
-			webdata["provider"] = session.Values["provider"].(string)
-		}
-
-		return watcher
-	}
-	sublog.Info().Msg("anonymous visitor")
-	webdata["loggedout"] = 1
-
-	return Watcher{}
-}
-
 // random string of bytes, use in nonce values, for example
 //   https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-go
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -275,7 +305,13 @@ func encryptId(deps *Dependencies, objectType string, id uint64) string {
 		return ""
 	}
 
-	obfuscated := fmt.Sprintf("%x%x", cipher.Obfus(uint32(id>>32)), cipher.Obfus(uint32(id&0xFFFFFFFF)))
+	obfuscated := ""
+	if (id >> 32) != 0 {
+		obfuscated = fmt.Sprintf("%x%x", cipher.Obfus(uint32(id>>32)), cipher.Obfus(uint32(id&0xFFFFFFFF)))
+	} else {
+		obfuscated = fmt.Sprintf("%x", cipher.Obfus(uint32(id&0xFFFFFFFF)))
+	}
+
 	return obfuscated
 }
 
@@ -284,7 +320,7 @@ func decryptedId(deps *Dependencies, objectType string, obfuscated string) uint6
 	sublog := deps.logger
 	secrets := deps.secrets
 
-	if len(obfuscated) != 16 {
+	if len(obfuscated) != 8 && len(obfuscated) != 16 {
 		err := fmt.Errorf("invalid encrypted id")
 		sublog.Fatal().Str("object", objectType).Err(err).Msg("decryption failed for {object}")
 		return 0
@@ -302,17 +338,22 @@ func decryptedId(deps *Dependencies, objectType string, obfuscated string) uint6
 		return 0
 	}
 
-	left, err := strconv.ParseUint(obfuscated[:8], 16, 32)
+	var left, right, id uint64
+	left, err = strconv.ParseUint(obfuscated[:8], 16, 32)
 	if err != nil {
 		sublog.Fatal().Str("object", objectType).Err(err).Msg("decryption failed for {object}")
 		return 0
 	}
-	right, err := strconv.ParseUint(obfuscated[8:16], 16, 32)
-	if err != nil {
-		sublog.Fatal().Str("object", objectType).Err(err).Msg("decryption failed for {object}")
-		return 0
+	if len(obfuscated) == 16 {
+		right, err = strconv.ParseUint(obfuscated[8:16], 16, 32)
+		if err != nil {
+			sublog.Fatal().Str("object", objectType).Err(err).Msg("decryption failed for {object}")
+			return 0
+		}
+		id = uint64(cipher.Unobfus(uint32(left)))<<32 | uint64(cipher.Unobfus(uint32(right)))
+	} else {
+		id = uint64(cipher.Unobfus(uint32(left)))
 	}
 
-	id := uint64(cipher.Unobfus(uint32(left)))<<32 | uint64(cipher.Unobfus(uint32(right)))
 	return id
 }

@@ -135,6 +135,14 @@ func (t *Ticker) getBySymbol(deps *Dependencies) error {
 	return err
 }
 
+func (t *Ticker) getIdBySymbol(deps *Dependencies) (uint64, error) {
+	db := deps.db
+
+	var tickerId uint64
+	err := db.QueryRowx("SELECT ticker_id FROM ticker WHERE ticker_symbol=?", t.TickerSymbol).Scan(&tickerId)
+	return tickerId, err
+}
+
 func (t *Ticker) getById(deps *Dependencies) error {
 	db := deps.db
 
@@ -179,7 +187,8 @@ func (t *Ticker) createOrUpdate(deps *Dependencies) error {
 	}
 
 	if t.TickerId == 0 {
-		err := t.getBySymbol(deps)
+		var err error
+		t.TickerId, err = t.getIdBySymbol(deps)
 		if errors.Is(err, sql.ErrNoRows) || t.TickerId == 0 {
 			return t.create(deps)
 		}
@@ -431,6 +440,41 @@ func (t Ticker) getSplits(deps *Dependencies) ([]TickerSplit, error) {
 	return tickerSplits, nil
 }
 
+func (t Ticker) queueUpdateInfo(deps *Dependencies) error {
+	awssess := deps.awssess
+	awssvc := sqs.New(awssess)
+	queueName := "stockwatch-tickers"
+
+	urlResult, err := awssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
+		QueueName: &queueName,
+	})
+	if err != nil {
+		return err
+	}
+
+	type TaskTickerNewsBody struct {
+		TickerId     uint64 `json:"ticker_id"`
+		TickerSymbol string `json:"ticker_symbol"`
+		ExchangeId   uint64 `json:"exchange_id"`
+	}
+
+	// get next message from queue, if any
+	queueURL := urlResult.QueueUrl
+	messageBytes, _ := json.Marshal(TaskTickerNewsBody{TickerSymbol: t.TickerSymbol})
+	messageBody := string(messageBytes)
+	messageAttributes := map[string]*sqs.MessageAttributeValue{
+		"action": {
+			DataType:    aws.String("String"),
+			StringValue: aws.String("info"),
+		}}
+	_, err = awssvc.SendMessage(&sqs.SendMessageInput{
+		MessageBody:       aws.String(messageBody),
+		MessageAttributes: messageAttributes,
+		QueueUrl:          queueURL,
+	})
+	return err
+}
+
 func (t Ticker) queueUpdateNews(deps *Dependencies) error {
 	awssess := deps.awssess
 	awssvc := sqs.New(awssess)
@@ -621,13 +665,13 @@ func getLastTickerDaily(deps *Dependencies, ticker_id uint64) ([]TickerDaily, er
 		err := rows.StructScan(&tickerDaily)
 		if err != nil {
 			sublog.Fatal().Err(err).Uint64("ticker_id", ticker_id).Msg("failed to scan ticker_daily into struct")
-			return []TickerDaily{}, err
+			continue
 		}
 		tickerDaily.PriceDatetime, _ = time.Parse(sqlDatetimeParseType, tickerDaily.PriceDate[:11]+tickerDaily.PriceTime+"Z")
 		lastTickerDaily = append(lastTickerDaily, tickerDaily)
 	}
 	if len(lastTickerDaily) != 2 {
-		sublog.Fatal().Err(err).Uint64("ticker_id", ticker_id).Msg("failed to load 2 ticker_daily records into array")
+		sublog.Error().Err(err).Uint64("ticker_id", ticker_id).Msg("failed to load 2 ticker_daily records into array")
 	}
 
 	return lastTickerDaily, nil

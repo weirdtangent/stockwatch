@@ -33,8 +33,8 @@ type SearchResult struct {
 
 func searchHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, deps = checkAuthState(w, r, deps)
 		webdata := deps.webdata
-		// messages := *(deps.messages)
 		sublog := deps.logger
 
 		// if ctx, ok := checkAuthState(w, r, deps); !ok {
@@ -50,7 +50,6 @@ func searchHandler(deps *Dependencies) http.HandlerFunc {
 			searchString := r.FormValue("searchString")
 			searchType := r.FormValue("submit")
 			if searchString == "" || searchType == "" {
-				// messages = append(messages, Message{"search text not entered or invalid search function", "warning"})
 				break
 			}
 			webdata["searchString"] = searchString
@@ -59,48 +58,21 @@ func searchHandler(deps *Dependencies) http.HandlerFunc {
 
 			if searchType == "jump" {
 				searchResultTicker, err := jumpSearch(deps, searchString)
-				if err != nil {
-					// messages = append(messages, Message{"sorry, error returned for that search", "danger"})
+				if err != nil || searchResultTicker.TickerSymbol == "" {
 					break
 				}
-				if searchResultTicker.TickerSymbol == "" {
-					// messages = append(messages, Message{fmt.Sprintf("sorry, nothing found for '%s'", searchString), "warning"})
-					break
-				}
-				sublog.Info().
-					Str("search_provider", "yhfinance").
-					Str("search_type", searchType).
-					Str("search_string", searchString).
-					Str("symbol", searchResultTicker.TickerSymbol).
-					Msg("Search results")
 				http.Redirect(w, r, fmt.Sprintf("/view/%s", searchResultTicker.TickerSymbol), http.StatusFound)
 				return
 			} else if searchType == "search" {
 				searchResults, err := listSearch(deps, searchString, "both")
-				if err != nil {
-					// messages = append(messages, Message{"sorry, error returned for that search", "danger"})
+				if err != nil || len(searchResults) == 0 {
 					break
 				}
-				if len(searchResults) == 0 {
-					// messages = append(messages, Message{fmt.Sprintf("sorry, nothing found for '%s'", searchString), "warning"})
-					break
-				}
-				sublog.Info().
-					Str("search_provider", "yhfinance").
-					Str("search_type", searchType).
-					Str("search_string", searchString).
-					Int("results_count", len(searchResults)).
-					Msg("Search results")
 				webdata["results"] = searchResults
-				break
-			} else {
-				// messages = append(messages, Message{"sorry, search type is unknown", "warning"})
-				break
 			}
 
 		default:
 			log.Warn().Str("search_type", searchType).Msg("Unknown search_type")
-			// messages = append(messages, Message{"sorry, invalid search request", "danger"})
 		}
 
 		renderTemplateDefault(w, r, deps, "searchresults")

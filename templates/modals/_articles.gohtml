@@ -1,10 +1,10 @@
 {{ define "_articles" }}
 {{- range .articles}}
-<div id="source{{.SourceId}}-id{{.ExternalId}}-modal" class="modal fade" aria-labelledby="source{{.SourceId}}-id{{.ExternalId}}-label" aria-hidden="true">
+<div id="source-{{.ArticleEncId}}-modal" class="modal fade" aria-labelledby="source-{{.ArticleEncId}}-label" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable modal-xl news-detail">
     <div class="modal-content h-100">
       <div class="modal-header">
-        <div class="modal-title" id="source{{.SourceId}}-id{{.ExternalId}}-label">{{.Title}}<br/>
+        <div class="modal-title" id="source-{{.ArticleEncId}}-label">{{.Title}}<br/>
           <span class="small text-info">
           {{- if .PublishedDatetime.Valid}}{{.PublishedDatetime.Time.Format "Jan 02"}}{{end}}
           {{- if .AuthorByline.Valid}} by {{.AuthorByline.String}}{{else}} by {{.SourceName.String}}{{end -}}

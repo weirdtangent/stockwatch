@@ -33,6 +33,7 @@ type RecentPlus struct {
 	LastCheckedSince   string
 	UpdatingNewsNow    bool
 	Locked             bool
+	Articles           []WebArticle
 }
 
 func getWatcherRecents(deps *Dependencies, watcher Watcher) []WatcherRecent {
@@ -74,7 +75,6 @@ func getWatcherRecents(deps *Dependencies, watcher Watcher) []WatcherRecent {
 
 func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]RecentPlus, error) {
 	sublog := deps.logger
-	webdata := deps.webdata
 
 	var recentPlus []RecentPlus
 
@@ -126,7 +126,7 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 		// AFTER 4pm) or we don't have the prior workday EOD, get them
 		for _, ticker := range tickers {
 			if ticker.needEODs(deps) {
-				err := loadTickerEODs(deps, ticker)
+				err := loadTickerEODsFromYH(deps, ticker)
 				if err != nil {
 					sublog.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get ticker eods for {symbol}")
 				}
@@ -147,9 +147,21 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 		lastDailyMove, _ := getLastTickerDailyMove(deps, ticker.TickerId)
 
 		lastCheckedNews, updatingNewsNow := getNewsLastUpdated(deps, ticker)
-		localTz, err := time.LoadLocation(webdata["TZLocation"].(string))
+		// localTz, err := time.LoadLocation(webdata["TZLocation"].(string))
+		// if err != nil {
+			localTz, _ := time.LoadLocation("UTC")
+		// }
+
+		// load any recent news
+		tickerArticles, err := getArticlesByTicker(deps, ticker.TickerId, 5, 7)
 		if err != nil {
-			localTz, _ = time.LoadLocation("UTC")
+			sublog.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get articles for {symbol}")
+		} else {
+			for n := range tickerArticles {
+				if tickerArticles[n].ArticleURL == "" {
+					tickerArticles[n].ArticleURL = "/view/" + ticker.TickerSymbol + "?article=" + tickerArticles[n].ArticleEncId
+				}
+			}
 		}
 
 		recentPlus = append(recentPlus, RecentPlus{
@@ -169,6 +181,7 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 			LastCheckedSince:   fmt.Sprintf("%.0f min ago", time.Since(lastCheckedNews.Time).Minutes()),
 			UpdatingNewsNow:    updatingNewsNow,
 			Locked:             locked[n],
+			Articles:           tickerArticles,
 		})
 	}
 

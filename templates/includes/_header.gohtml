@@ -6,12 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel='icon' type='image/x-icon' href='/static/images/favicon.ico' />
     <link rel="stylesheet" href="/static/vendor/yahoo/cssnormalize-min.css" />
+    <link rel="stylesheet" href="/static/vendor/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="/static/css/custom-dark.css" />
     <link rel="stylesheet" href="/static/css/global.css" />
     <link rel="stylesheet" href="/static/css/{{.config.template_name}}.css" />
     <link rel="preconnect" href="https://fonts.gstatic.com" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" />
-    <!-- Google Tag Manager --><script nonce="{{ .nonce }}">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    <!-- Google Tag Manager --><script nonce="{{.nonce}}">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
     j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
@@ -59,10 +60,10 @@
                     <ul class="flex-grow-1 nav">
                       <li class="nav-item me-2 pt-2">Recent:</li>
                       {{range .WatcherRecents -}}
-                        <li class="nav-item me-1 pt-2 recent">
+                        <li class="nav-item pt-2 me-2 recent">
                           <span id="{{.TickerSymbol}}_lock_badge" class="badge text-dark {{if .Locked}}bg-success{{else}}bg-warning{{end}}">
-                            <a class="text-decoration-none text-dark me-0" href="/view/{{.TickerSymbol}}"><i class="fas fa-dollar-sign"></i>{{.TickerSymbol}}</a>
-                            <span class="ps-2"><i id="{{.TickerSymbol}}_lock_button" data-symbol="{{.TickerSymbol}}" class="lock-button fa-light {{if .Locked}}fa-lock{{else}}fa-lock-open{{end}}"></i>
+                            <a class="text-decoration-none text-dark me-0" href="/view/{{.TickerSymbol}}"><i class="ps-1 fas fa-dollar-sign"></i>{{.TickerSymbol}}</a>
+                            <span class="ps-2 pe-1"><i id="{{.TickerSymbol}}_lock_button" data-symbol="{{.TickerSymbol}}" class="lock-button fa-solid {{if .Locked}}fa-lock{{else}}fa-lock-open{{end}}"></i></span>
                           </span>
                         </li>
                       {{end}}

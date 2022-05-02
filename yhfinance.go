@@ -13,7 +13,7 @@ import (
 )
 
 // fetch ticker info (and possibly new exchange) from yhfinance
-func fetchTickerInfo(deps *Dependencies, symbol string) (Ticker, error) {
+func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 	redisPool := deps.redisPool
 	sublog := deps.logger
 	secrets := deps.secrets
@@ -21,8 +21,8 @@ func fetchTickerInfo(deps *Dependencies, symbol string) (Ticker, error) {
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
 
-	apiKey := secrets["yhfinance_apikey"]
-	apiHost := secrets["yhfinance_apihost"]
+	apiKey := secrets["yhfinance_rapidapi_key"]
+	apiHost := secrets["yhfinance_rapidapi_host"]
 
 	// pull recent response from redis (1 day expire), or go get from YF
 	redisKey := "yhfinance/summary/" + symbol
@@ -114,7 +114,7 @@ func fetchTickerInfo(deps *Dependencies, symbol string) (Ticker, error) {
 }
 
 // load ticker up-to-date quote
-func loadTickerQuote(deps *Dependencies, symbol string) (yhfinance.YFQuote, error) {
+func fetchTickerQuoteFromYH(deps *Dependencies, symbol string) (yhfinance.YFQuote, error) {
 	redisPool := deps.redisPool
 	secrets := deps.secrets
 	sublog := deps.logger
@@ -124,8 +124,8 @@ func loadTickerQuote(deps *Dependencies, symbol string) (yhfinance.YFQuote, erro
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
 
-	apiKey := secrets["yhfinance_apikey"]
-	apiHost := secrets["yhfinance_apihost"]
+	apiKey := secrets["yhfinance_rapidapi_key"]
+	apiHost := secrets["yhfinance_rapidapi_host"]
 
 	var quote yhfinance.YFQuote
 
@@ -171,8 +171,8 @@ func loadMultiTickerQuotes(deps *Dependencies, symbols []string) (map[string]yhf
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
 
-	apiKey := secrets["yhfinance_apikey"]
-	apiHost := secrets["yhfinance_apihost"]
+	apiKey := secrets["yhfinance_rapidapi_key"]
+	apiHost := secrets["yhfinance_rapidapi_host"]
 
 	quotes := map[string]yhfinance.YFQuote{}
 
@@ -203,7 +203,7 @@ func loadMultiTickerQuotes(deps *Dependencies, symbols []string) (map[string]yhf
 }
 
 // load ticker historical prices
-func loadTickerEODs(deps *Dependencies, ticker Ticker) error {
+func loadTickerEODsFromYH(deps *Dependencies, ticker Ticker) error {
 	secrets := deps.secrets
 	sublog := deps.logger
 
@@ -214,8 +214,8 @@ func loadTickerEODs(deps *Dependencies, ticker Ticker) error {
 
 	historicalParams := map[string]string{"symbol": ticker.TickerSymbol}
 
-	apiKey := *secrets["yhfinance_apikey"]
-	apiHost := *secrets["yhfinance_apihost"]
+	apiKey := *secrets["yhfinance_rapidapi_key"]
+	apiHost := *secrets["yhfinance_rapidapi_host"]
 	if apiKey == "" || apiHost == "" {
 		sublog.Fatal().Msg("apiKey or apiHost secret is missing")
 	}
@@ -291,8 +291,8 @@ func listSearch(deps *Dependencies, searchString string, resultTypes string) ([]
 	secrets := deps.secrets
 	sublog := deps.logger
 
-	apiKey := secrets["yhfinance_apikey"]
-	apiHost := secrets["yhfinance_apihost"]
+	apiKey := secrets["yhfinance_rapidapi_key"]
+	apiHost := secrets["yhfinance_rapidapi_host"]
 
 	searchResults := make([]SearchResult, 100)
 

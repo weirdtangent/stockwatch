@@ -11,30 +11,28 @@ import (
 )
 
 func renderTemplateDefault(w http.ResponseWriter, r *http.Request, deps *Dependencies, tmplname string) {
-	config := deps.config
 	webdata := deps.webdata
-	// messages := deps.messages
+	config := deps.config
 	sublog := deps.logger
 
-	config["template_name"] = tmplname
-
-	// webdata["messages"] = messages
-	webdata["config"] = config
-
 	funcMap := template.FuncMap{
-		"FormatUnixTime":        FormatUnixTime,
-		"GradeColor":            GradeColor,
-		"SinceColor":            SinceColor,
-		"PriceDiffAmt":          PriceDiffAmt,
-		"PriceDiffPercAmt":      PriceDiffPercAmt,
-		"PriceMoveColor":        PriceMoveColorCSS,
-		"PriceBigMoveColor":     PriceBigMoveColorCSS,
-		"PriceMoveIndicator":    PriceMoveIndicatorCSS,
-		"PriceBigMoveIndicator": PriceBigMoveIndicatorCSS,
-		"TimeNow":               TimeNow,
-		"ToUpper":               strings.ToUpper,
-		"ToLower":               strings.ToLower,
+		"Concat":                   Concat,
+		"FormatUnixTime":           FormatUnixTime,
+		"GradeColor":               GradeColor,
+		"SinceColor":               SinceColor,
+		"PriceDiffAmt":             PriceDiffAmt,
+		"PriceDiffPercAmt":         PriceDiffPercAmt,
+		"PriceMoveColorCSS":        PriceMoveColorCSS,
+		"PriceBigMoveColorCSS":     PriceBigMoveColorCSS,
+		"PriceMoveIndicatorCSS":    PriceMoveIndicatorCSS,
+		"PriceBigMoveIndicatorCSS": PriceBigMoveIndicatorCSS,
+		"TimeNow":                  TimeNow,
+		"ToUpper":                  strings.ToUpper,
+		"ToLower":                  strings.ToLower,
 	}
+
+	config["template_name"] = tmplname
+	webdata["config"] = config
 
 	tmpl := template.New("blank").Funcs(funcMap)
 	tmpl, err := tmpl.ParseGlob("templates/includes/*.gohtml")

@@ -189,3 +189,15 @@ footer p {
   height: 32px !important;
   padding: 4px;
 }
+
+.button-close:hover {
+  cursor: pointer;
+}
+
+.lock-button:hover {
+  cursor: pointer;
+}
+
+.recent-plus-body {
+  height: 14rem;
+}

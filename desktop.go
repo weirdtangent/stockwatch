@@ -6,8 +6,10 @@ import (
 
 func desktopHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var watcher Watcher
+		watcher, deps = checkAuthState(w, r, deps)
+		webdata := deps.webdata
 		sublog := deps.logger
-		watcher := checkAuthState(w, r, deps)
 
 		movers, err := getMovers(deps)
 		if err != nil {
@@ -26,7 +28,6 @@ func desktopHandler(deps *Dependencies) http.HandlerFunc {
 			sublog.Error().Err(err).Msg("failed to get recent_plus")
 		}
 
-		webdata := deps.webdata
 		webdata["Movers"] = movers
 		webdata["Articles"] = articles
 		webdata["WatcherRecents"] = watcherRecents
