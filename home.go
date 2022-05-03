@@ -6,8 +6,9 @@ import (
 
 func homeHandler(deps *Dependencies, tmplname string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, deps = checkAuthState(w, r, deps)
 		webdata := deps.webdata
+
+		checkAuthState(w, r, deps)
 
 		params := r.URL.Query()
 		signoutParam := params.Get("signout")

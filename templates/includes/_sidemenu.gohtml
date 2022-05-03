@@ -1,32 +1,31 @@
 {{- define "_sidemenu" -}}
         <div class="pt-1">
-          {{if and .encWId .Watcher.WatcherPicURL -}}
+          {{if and .encWatcherId .Watcher.WatcherPicURL -}}
           <div class="my-1 text-center">
             <img id="profile_img" class="image-fluid rounded" alt="User's social media profile picture" src="{{.Watcher.WatcherPicURL}}">
           </div>
           {{- end}}
 
           <div class="d-flex flex-column align-items-center pt-3">
-            {{if .encWId -}}
+            {{if .encWatcherId -}}
               <h5 class="w-100 text-light text-center welcome mb-0">Welcome back<br>{{.Watcher.WatcherNickname}}!<br></h5>
               {{- if .provider}}<span class="text-light small mb-4">oauth via {{.provider}}</span>{{end}}
             {{- end}}
             <h4><span class="badge bg-warning text-dark"><a class="text-dark text-decoration-none" href="/desktop">Desktop</a></span></h4>
-            {{if .encWId -}}
+            {{if .encWatcherId -}}
               <h4><span class="badge bg-warning text-dark"><a class="text-dark text-decoration-none" href="/profile/edit">My Profile</a></span></h4>
               <h4><span class="badge bg-warning text-dark"><a class="text-dark text-decoration-none" href="#section2">Holding</a></span></h4>
               <h4><span class="badge bg-warning text-dark"><a class="text-dark text-decoration-none" href="#section3">Watching</a></span></h4>
               <h4><span class="badge bg-warning text-dark"><a class="text-dark text-decoration-none" href="/signout/{{.provider}}">Sign Out</a></span></h4>
             {{- end }}
 
-            {{ if .encWId -}}{{else}}
-              <hr class="m-2 text-white opacity-3">
-
-              <div class="login align-self-center py-2"><a href="/auth/google"><img src="/static/images/vendor/google-sign-in.png"></a></div>
-              <div class="login align-self-center py-2"><a href="/auth/facebook"><img src="/static/images/vendor/facebook-sign-in.png"></a></div>
-              <div class="login align-self-center py-2"><a href="/auth/github" class="bg-primary btn btn-block btn-social btn-github"><i class="fa fa-github"></i> Sign in with GitHub</a></div>
-              <div class="login align-self-center py-2"><a href="/auth/amazon"><img src="/static/images/vendor/amazon-sign-in.png"></a></div>
-              <div class="login align-self-center py-2"><a href="/auth/twitter"><img src="/static/images/vendor/twitter-sign-in.png"></a></div>
+            {{ if .encWatcherId -}}{{else}}
+              <div class="py-5"></div>
+              <div class="login align-self-center py-1"><a href="/auth/google" class="bg-primary btn btn-block btn-social"><i class="fa fa-google pe-2"></i>Sign in with Google</a></div>
+              <div class="login align-self-center py-1"><a href="/auth/facebook" class="bg-primary btn btn-block btn-social"><i class="fa fa-facebook pe-2"></i>Sign in with Facebook</a></div>
+              <div class="login align-self-center py-1"><a href="/auth/github" class="bg-primary btn btn-block btn-social"><i class="fa fa-github pe-2"></i>Sign in with GitHub</a></div>
+              <div class="login align-self-center py-1"><a href="/auth/amazon" class="bg-primary btn btn-block btn-social"><i class="fa fa-amazon pe-2"></i>Sign in with Amazon</a></div>
+              <div class="login align-self-center py-1"><a href="/auth/twitter" class="bg-primary btn btn-block btn-social"><i class="fa fa-twitter pe-2"></i>Sign in with Twitter</a></div>
             {{end}}
           </div>
         </div>

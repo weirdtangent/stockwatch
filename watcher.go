@@ -56,6 +56,14 @@ func getWatcherById(deps *Dependencies, watcherId uint64) (Watcher, error) {
 	return w, err
 }
 
+func updateWatcher(deps *Dependencies, w Watcher) error {
+	db := deps.db
+
+	update := "UPDATE watcher SET watcher_name=?, watcher_nickname=?, update_createtime=now() WHERE watcher_id=?"
+	_, err := db.Exec(update, w.WatcherName, w.WatcherNickname, w.WatcherId)
+	return err
+}
+
 func updateWatcherFromOAuth(deps *Dependencies, w Watcher, email string) error {
 	db := deps.db
 
@@ -93,13 +101,17 @@ func createWatcher(deps *Dependencies, w Watcher, email string) (Watcher, error)
 func createOrUpdateWatcherFromOAuth(deps *Dependencies, watcher Watcher, email string) (Watcher, error) {
 	watcherId, err := getWatcherIdBySession(deps, watcher.SessionId)
 	if err != nil {
-		return watcher, nil
+		watcher.WatcherId = watcherId
+		err := updateWatcherFromOAuth(deps, watcher, email)
+		return watcher, err
 	}
 
 	if watcherId == 0 {
 		watcherId, err = getWatcherIdByEmail(deps, email)
 		if err != nil {
-			return watcher, nil
+			watcher.WatcherId = watcherId
+			err := updateWatcherFromOAuth(deps, watcher, email)
+			return watcher, err
 		}
 		if watcherId == 0 {
 			return createWatcher(deps, watcher, email)
@@ -107,7 +119,6 @@ func createOrUpdateWatcherFromOAuth(deps *Dependencies, watcher Watcher, email s
 	}
 
 	watcher.WatcherId = watcherId
-
 	err = updateWatcherFromOAuth(deps, watcher, email)
 	return watcher, err
 }

@@ -47,7 +47,7 @@ func getGithubCommits(deps *Dependencies) (*string, *[]Commit, error) {
 
 	url := "https://api.github.com/repos/weirdtangent/stockwatch/contents/README.md"
 	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Add("Authorization", "token "+*github_oauth_key)
+	req.Header.Add("Authorization", "token "+github_oauth_key)
 	req.Header.Add("Accept", "application/json;charset=utf-8")
 
 	res, _ := http.DefaultClient.Do(req)
@@ -73,7 +73,7 @@ func getGithubCommits(deps *Dependencies) (*string, *[]Commit, error) {
 
 	url = "https://api.github.com/repos/weirdtangent/stockwatch/commits"
 	req, _ = http.NewRequest("GET", url, nil)
-	req.Header.Add("Authorization", "token "+*github_oauth_key)
+	req.Header.Add("Authorization", "token "+github_oauth_key)
 	req.Header.Add("Accept", "application/json;charset=utf-8")
 
 	res, _ = http.DefaultClient.Do(req)

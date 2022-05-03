@@ -20,8 +20,7 @@ type jsonResponseData struct {
 
 func apiV1Handler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var watcher Watcher
-		watcher, deps = checkAuthState(w, r, deps)
+		watcher := checkAuthState(w, r, deps)
 		sublog := deps.logger
 
 		w.Header().Add("Content-Type", "application/json")

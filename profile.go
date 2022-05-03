@@ -24,14 +24,14 @@ type Profile struct {
 
 func profileHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var watcher Watcher
-		watcher, deps = checkAuthState(w, r, deps)
+		webdata := deps.webdata
+		sublog := deps.logger
+
+		watcher := checkAuthState(w, r, deps)
 		if watcher.WatcherId == 0 {
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
-		webdata := deps.webdata
-		sublog := deps.logger
 
 		params := mux.Vars(r)
 		status := params["status"]
@@ -43,6 +43,7 @@ func profileHandler(deps *Dependencies) http.HandlerFunc {
 			but meanwhile you can just email request@graystorm.com. I suspect, though, I will most often be
 			thinking, "yeah, I dunno how to do that" ;) Also, these profile settings below don't quite
 			work yet, but I'm working on it!`}
+			updateWatcher(deps, watcher)
 		}
 
 		profile, err := getProfile(deps)
@@ -66,7 +67,7 @@ func profileHandler(deps *Dependencies) http.HandlerFunc {
 func getProfile(deps *Dependencies) (*Profile, error) {
 	db := deps.db
 	sublog := deps.logger
-	session := getSession(deps)
+	session := deps.session
 
 	var profile Profile
 

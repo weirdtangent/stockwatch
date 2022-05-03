@@ -6,10 +6,10 @@ import (
 
 func desktopHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var watcher Watcher
-		watcher, deps = checkAuthState(w, r, deps)
 		webdata := deps.webdata
 		sublog := deps.logger
+
+		watcher := checkAuthState(w, r, deps)
 
 		movers, err := getMovers(deps)
 		if err != nil {

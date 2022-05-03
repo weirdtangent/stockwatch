@@ -1,9 +1,5 @@
 package main
 
-import (
-	"github.com/weirdtangent/myaws"
-)
-
 const (
 	httpPort = 3001
 
@@ -35,14 +31,13 @@ var (
 )
 
 func main() {
-	deps := setupLogging()
+	deps := &Dependencies{}
 
-	deps.awssess = myaws.AWSMustConnect("us-east-1", "stockwatch")
-	deps.db = myaws.DBMustConnect(deps.awssess, "stockwatch")
-
-	getSecrets(deps)
-	setupSessionsStore(deps)
+	setupLogging(deps)
+	setupAWS(deps)
+	setupSecrets(deps)
+	setupSessionStore(deps)
 	setupOAuth(deps)
 
-	startHTTPServer(deps)
+	startServer(deps)
 }

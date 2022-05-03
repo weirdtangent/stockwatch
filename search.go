@@ -33,10 +33,10 @@ type SearchResult struct {
 
 func searchHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, deps = checkAuthState(w, r, deps)
 		webdata := deps.webdata
 		sublog := deps.logger
 
+		checkAuthState(w, r, deps)
 		// if ctx, ok := checkAuthState(w, r, deps); !ok {
 		// 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		// 	return

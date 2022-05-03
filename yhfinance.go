@@ -33,7 +33,7 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 		var err error
 		summaryParams := map[string]string{"symbol": symbol}
 		sublog.Info().Str("symbol", symbol).Msg("get {symbol} info from yhfinance api")
-		response, err = yhfinance.GetFromYHFinance(sublog, *apiKey, *apiHost, "summary", summaryParams)
+		response, err = yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "summary", summaryParams)
 		if err != nil {
 			log.Warn().Err(err).Str("ticker", symbol).Msg("failed to retrieve ticker")
 			return Ticker{}, err
@@ -137,7 +137,7 @@ func fetchTickerQuoteFromYH(deps *Dependencies, symbol string) (yhfinance.YFQuot
 	} else {
 		var err error
 		quoteParams := map[string]string{"symbols": symbol}
-		response, err = yhfinance.GetFromYHFinance(sublog, *apiKey, *apiHost, "quote", quoteParams)
+		response, err = yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "quote", quoteParams)
 		if err != nil {
 			log.Warn().Err(err).Msg("Failed to retrieve quote")
 			return quote, err
@@ -179,7 +179,7 @@ func loadMultiTickerQuotes(deps *Dependencies, symbols []string) (map[string]yhf
 	var err error
 	quoteParams := map[string]string{"symbols": strings.Join(symbols, ",")}
 	sublog.Info().Str("symbols", strings.Join(symbols, ",")).Msg("getting multi-symbol quote from yhfinance")
-	fullResponse, err := yhfinance.GetFromYHFinance(sublog, *apiKey, *apiHost, "quote", quoteParams)
+	fullResponse, err := yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "quote", quoteParams)
 	if err != nil {
 		log.Warn().Err(err).Str("symbols", strings.Join(symbols, ",")).Msg("Failed to retrieve quote")
 		return quotes, err
@@ -214,8 +214,8 @@ func loadTickerEODsFromYH(deps *Dependencies, ticker Ticker) error {
 
 	historicalParams := map[string]string{"symbol": ticker.TickerSymbol}
 
-	apiKey := *secrets["yhfinance_rapidapi_key"]
-	apiHost := *secrets["yhfinance_rapidapi_host"]
+	apiKey := secrets["yhfinance_rapidapi_key"]
+	apiHost := secrets["yhfinance_rapidapi_host"]
 	if apiKey == "" || apiHost == "" {
 		sublog.Fatal().Msg("apiKey or apiHost secret is missing")
 	}
@@ -297,7 +297,7 @@ func listSearch(deps *Dependencies, searchString string, resultTypes string) ([]
 	searchResults := make([]SearchResult, 100)
 
 	searchParams := map[string]string{"q": searchString, "region": "US"}
-	response, err := yhfinance.GetFromYHFinance(sublog, *apiKey, *apiHost, "autocomplete", searchParams)
+	response, err := yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "autocomplete", searchParams)
 	if err != nil {
 		return searchResults, err
 	}
