@@ -5,6 +5,9 @@ var scriptName = lastScript;
 var symbols = scriptName.getAttribute('data-symbols');
 var is_market_open = scriptName.getAttribute('data-is-market-open') === "true";
 var quote_refresh = scriptName.getAttribute('data-quote-refresh');
+if (quote_refresh < 20) {
+    quote_refresh = 20;
+}
 
 // every 20 sec for 1 hour = 180 refreshes
 var update_count = 180
@@ -91,11 +94,8 @@ function phaseChange(response, symbol, item) {
     var newValue = response[`data`][dataId]
 
     if (oldValue != newValue) {
-        // console.log(`going to set '${item}' for '${symbol}' from '${oldValue}' to '${newValue}'`);
         $(itemId).animate({opacity: 0}, 400, function() {
             $(itemId).text(newValue).animate({opacity: 1}, 400);
         });
-    } else {
-        // console.log(`leaving '${item}' for '${symbol}' alone since it hasn't changed`);
     }
 }

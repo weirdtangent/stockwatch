@@ -22,45 +22,45 @@ type Article struct {
 	Body               string       `db:"body"`
 	ArticleURL         string       `db:"article_url"`
 	ImageURL           string       `db:"image_url"`
-	CreateDatetime     sql.NullTime `db:"create_datetime"`
-	UpdateDatetime     sql.NullTime `db:"update_datetime"`
+	CreateDatetime     time.Time    `db:"create_datetime"`
+	UpdateDatetime     time.Time    `db:"update_datetime"`
 }
 
 type ArticleTicker struct {
-	ArticleTickerId uint64       `db:"article_ticker_id"`
-	ArticleId       uint64       `db:"article_id"`
-	TickerSymbol    string       `db:"ticker_symbol"`
-	TickerId        uint64       `db:"ticker_id"`
-	CreateDatetime  sql.NullTime `db:"create_datetime"`
-	UpdateDatetime  sql.NullTime `db:"update_datetime"`
+	ArticleTickerId uint64    `db:"article_ticker_id"`
+	ArticleId       uint64    `db:"article_id"`
+	TickerSymbol    string    `db:"ticker_symbol"`
+	TickerId        uint64    `db:"ticker_id"`
+	CreateDatetime  time.Time `db:"create_datetime"`
+	UpdateDatetime  time.Time `db:"update_datetime"`
 }
 
 type ArticleKeyword struct {
-	ArticleKeywordId uint64       `db:"article_keyword_id"`
-	ArticleId        uint64       `db:"article_id"`
-	Keyword          string       `db:"keyword"`
-	CreateDatetime   sql.NullTime `db:"create_datetime"`
-	UpdateDatetime   sql.NullTime `db:"update_datetime"`
+	ArticleKeywordId uint64    `db:"article_keyword_id"`
+	ArticleId        uint64    `db:"article_id"`
+	Keyword          string    `db:"keyword"`
+	CreateDatetime   time.Time `db:"create_datetime"`
+	UpdateDatetime   time.Time `db:"update_datetime"`
 }
 
 type ArticleAuthor struct {
-	ArticleAuthorId uint64       `db:"article_author_id"`
-	ArticleId       uint64       `db:"article_id"`
-	Byline          string       `db:"byline"`
-	JobTitle        string       `db:"job_title"`
-	ShortBio        string       `db:"short_bio"`
-	LongBio         string       `db:"long_bio"`
-	ImageURL        string       `db:"image_url"`
-	CreateDatetime  sql.NullTime `db:"create_datetime"`
-	UpdateDatetime  sql.NullTime `db:"update_datetime"`
+	ArticleAuthorId uint64    `db:"article_author_id"`
+	ArticleId       uint64    `db:"article_id"`
+	Byline          string    `db:"byline"`
+	JobTitle        string    `db:"job_title"`
+	ShortBio        string    `db:"short_bio"`
+	LongBio         string    `db:"long_bio"`
+	ImageURL        string    `db:"image_url"`
+	CreateDatetime  time.Time `db:"create_datetime"`
+	UpdateDatetime  time.Time `db:"update_datetime"`
 }
 
 type ArticleTag struct {
-	ArticleTagId   uint64       `db:"article_tag_id"`
-	ArticleId      uint64       `db:"article_id"`
-	Tag            string       `db:"tag"`
-	CreateDatetime sql.NullTime `db:"create_datetime"`
-	UpdateDatetime sql.NullTime `db:"update_datetime"`
+	ArticleTagId   uint64    `db:"article_tag_id"`
+	ArticleId      uint64    `db:"article_id"`
+	Tag            string    `db:"tag"`
+	CreateDatetime time.Time `db:"create_datetime"`
+	UpdateDatetime time.Time `db:"update_datetime"`
 }
 
 type WebArticle struct {
@@ -74,8 +74,8 @@ type WebArticle struct {
 	Body               string         `db:"body"`
 	ArticleURL         string         `db:"article_url"`
 	ImageURL           string         `db:"image_url"`
-	CreateDatetime     sql.NullTime   `db:"create_datetime"`
-	UpdateDatetime     sql.NullTime   `db:"update_datetime"`
+	CreateDatetime     time.Time      `db:"create_datetime"`
+	UpdateDatetime     time.Time      `db:"update_datetime"`
 	AuthorByline       sql.NullString `db:"author_byline"`
 	AuthorLongBio      sql.NullString `db:"author_long_bio"`
 	AuthorImageURL     sql.NullString `db:"author_image_url"`

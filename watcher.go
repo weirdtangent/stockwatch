@@ -3,41 +3,42 @@ package main
 import (
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/rs/zerolog/log"
 )
 
 type Watcher struct {
-	WatcherId       uint64       `db:"watcher_id"`
-	WatcherSub      string       `db:"watcher_sub"`
-	WatcherName     string       `db:"watcher_name"`
-	WatcherNickname string       `db:"watcher_nickname"`
-	WatcherStatus   string       `db:"watcher_status"`
-	WatcherLevel    string       `db:"watcher_level"`
-	WatcherTimezone string       `db:"watcher_timezone"`
-	WatcherPicURL   string       `db:"watcher_pic_url"`
-	SessionId       string       `db:"session_id"`
-	CreateDatetime  sql.NullTime `db:"create_datetime"`
-	UpdateDatetime  sql.NullTime `db:"update_datetime"`
+	WatcherId       uint64    `db:"watcher_id"`
+	WatcherSub      string    `db:"watcher_sub"`
+	WatcherName     string    `db:"watcher_name"`
+	WatcherNickname string    `db:"watcher_nickname"`
+	WatcherStatus   string    `db:"watcher_status"`
+	WatcherLevel    string    `db:"watcher_level"`
+	WatcherTimezone string    `db:"watcher_timezone"`
+	WatcherPicURL   string    `db:"watcher_pic_url"`
+	SessionId       string    `db:"session_id"`
+	CreateDatetime  time.Time `db:"create_datetime"`
+	UpdateDatetime  time.Time `db:"update_datetime"`
 }
 
 type WatcherEmail struct {
-	WatcherEmailId uint64       `db:"watcher_email_id"`
-	WatcherId      uint64       `db:"watcher_id"`
-	EmailAddress   string       `db:"email_address"`
-	IsPrimary      bool         `db:"email_is_primary"`
-	CreateDatetime sql.NullTime `db:"create_datetime"`
-	UpdateDatetime sql.NullTime `db:"update_datetime"`
+	WatcherEmailId uint64    `db:"watcher_email_id"`
+	WatcherId      uint64    `db:"watcher_id"`
+	EmailAddress   string    `db:"email_address"`
+	IsPrimary      bool      `db:"email_is_primary"`
+	CreateDatetime time.Time `db:"create_datetime"`
+	UpdateDatetime time.Time `db:"update_datetime"`
 }
 
 type WatcherRecent struct {
-	WatcherRecentId uint64       `db:"watcher_recent_id"`
-	WatcherId       uint64       `db:"watcher_id"`
-	TickerId        uint64       `db:"ticker_id"`
-	TickerSymbol    string       `db:"ticker_symbol"`
-	Locked          bool         `db:"locked"`
-	CreateDatetime  sql.NullTime `db:"create_datetime"`
-	UpdateDatetime  sql.NullTime `db:"update_datetime"`
+	WatcherRecentId uint64    `db:"watcher_recent_id"`
+	WatcherId       uint64    `db:"watcher_id"`
+	TickerId        uint64    `db:"ticker_id"`
+	TickerSymbol    string    `db:"ticker_symbol"`
+	Locked          bool      `db:"locked"`
+	CreateDatetime  time.Time `db:"create_datetime"`
+	UpdateDatetime  time.Time `db:"update_datetime"`
 }
 
 type WebWatcher struct {
@@ -204,10 +205,24 @@ func (wr *WatcherRecent) createOrUpdate(deps *Dependencies) error {
 	db := deps.db
 	sublog := deps.logger
 
-	insert_or_update := "INSERT INTO watcher_recent SET watcher_id=?, ticker_id=?, locked=? ON DUPLICATE KEY UPDATE locked=?, update_datetime=NOW()"
+	insert_or_update := "INSERT INTO watcher_recent SET watcher_id=?, ticker_id=?, locked=? ON DUPLICATE KEY UPDATE locked=? update_datetime=now()"
 	_, err := db.Exec(insert_or_update, wr.WatcherId, wr.TickerId, wr.Locked, wr.Locked)
 	if err != nil {
 		sublog.Error().Err(err).Str("table_name", "watcher_recent").Msg("failed on INSERT OR UPDATE")
+		return err
+	}
+
+	return nil
+}
+
+func (wr *WatcherRecent) update(deps *Dependencies, watcher Watcher, ticker Ticker) error {
+	db := deps.db
+	sublog := deps.logger
+
+	insert_or_update := "UPDATE watcher_recent SET locked=?, update_datetime=now() WHERE watcher_id=? and ticker_id=?"
+	_, err := db.Exec(insert_or_update, wr.Locked, wr.WatcherId, wr.TickerId)
+	if err != nil {
+		sublog.Error().Err(err).Str("table_name", "watcher_recent").Msg("failed on UPDATE")
 		return err
 	}
 

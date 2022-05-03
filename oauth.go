@@ -3,16 +3,17 @@ package main
 import (
 	"database/sql"
 	"errors"
+	"time"
 )
 
 type OAuth struct {
-	OAuthId        uint64       `db:"oauth_id"`
-	OAuthIssuer    string       `db:"oauth_issuer"`
-	OAuthSub       string       `db:"oauth_sub"`
-	OAuthIssued    sql.NullTime `db:"oauth_issued"`
-	OAuthExpires   sql.NullTime `db:"oauth_expires"`
-	CreateDatetime sql.NullTime `db:"create_datetime"`
-	UpdateDatetime sql.NullTime `db:"update_datetime"`
+	OAuthId        uint64    `db:"oauth_id"`
+	OAuthIssuer    string    `db:"oauth_issuer"`
+	OAuthSub       string    `db:"oauth_sub"`
+	OAuthIssued    time.Time `db:"oauth_issued"`
+	OAuthExpires   time.Time `db:"oauth_expires"`
+	CreateDatetime time.Time `db:"create_datetime"`
+	UpdateDatetime time.Time `db:"update_datetime"`
 }
 
 func (o *OAuth) create(deps *Dependencies) error {

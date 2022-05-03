@@ -1,23 +1,23 @@
 package main
 
 import (
-	"database/sql"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 )
 
 type Transaction struct {
-	TransactionId       uint64       `db:"transaction_id"`
-	HoldingId           uint64       `db:"holding_id"`
-	WatcherId           uint64       `db:"watcher_id"`
-	TransactionType     string       `db:"transaction_type"`
-	TransactionDateTime string       `db:"transaction_datetime"`
-	Shares              uint64       `db:"shares"`
-	SharePrice          float64      `db:"share_price"`
-	CreateDatetime      sql.NullTime `db:"create_datetime"`
-	UpdateDatetime      sql.NullTime `db:"update_datetime"`
+	TransactionId       uint64    `db:"transaction_id"`
+	HoldingId           uint64    `db:"holding_id"`
+	WatcherId           uint64    `db:"watcher_id"`
+	TransactionType     string    `db:"transaction_type"`
+	TransactionDateTime string    `db:"transaction_datetime"`
+	Shares              uint64    `db:"shares"`
+	SharePrice          float64   `db:"share_price"`
+	CreateDatetime      time.Time `db:"create_datetime"`
+	UpdateDatetime      time.Time `db:"update_datetime"`
 }
 
 func transactionHandler(deps *Dependencies) http.HandlerFunc {

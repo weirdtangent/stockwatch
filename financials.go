@@ -1,6 +1,9 @@
 package main
 
-import "database/sql"
+import (
+	"database/sql"
+	"time"
+)
 
 type Financials struct {
 	FinancialsId   uint64       `db:"financials_id"`
@@ -12,8 +15,8 @@ type Financials struct {
 	ChartType      string       `db:"chart_type"`
 	IsPercentage   bool         `db:"is_percentage"`
 	ChartValue     float64      `db:"chart_value"`
-	CreateDatetime sql.NullTime `db:"create_datetime"`
-	UpdateDatetime sql.NullTime `db:"update_datetime"`
+	CreateDatetime time.Time    `db:"create_datetime"`
+	UpdateDatetime time.Time    `db:"update_datetime"`
 }
 
 type BarFinancials struct {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -23,40 +22,39 @@ func checkAuthState(w http.ResponseWriter, r *http.Request, deps *Dependencies) 
 
 	if session.Values["encWatcherId"] != nil {
 		encWatcherId := session.Values["encWatcherId"].(string)
-		sublog.Info().Str("encWatcherId", encWatcherId).Msg("found {encWatcherId} in session")
-
-		watcherId := decryptedId(deps, "watcher", encWatcherId)
-		watcher, err := getWatcherById(deps, watcherId)
-		if err != nil {
-			sublog.Error().Err(err).Str("encWatcherId", encWatcherId).Msg("failed to load watcher via encWatcherId {encWatcherId}")
-			deleteWIDCookie(w, r, deps)
-			return Watcher{}
-		}
-		if watcher.WatcherStatus != "active" {
-			sublog.Error().Err(err).Str("encWatcherId", encWatcherId).Str("status", watcher.WatcherStatus).Msg("watcher is not active: {status}")
-			deleteWIDCookie(w, r, deps)
-			return Watcher{}
-		}
-
-		sublog.Info().Str("encWatcherId", encWatcherId).Msg("authenticated watcher from session")
-		webdata["encWatcherId"] = encWatcherId
-		webdata["Watcher"] = WebWatcher{watcher.WatcherName, watcher.WatcherStatus, watcher.WatcherLevel, watcher.WatcherTimezone, watcher.WatcherPicURL}
-
-		watcherRecents := getWatcherRecents(deps, watcher)
-		webdata["WatcherRecents"] = watcherRecents
-
-		if watcher.WatcherTimezone != "" {
-			_, err = time.LoadLocation(watcher.WatcherTimezone)
-			if err == nil {
-				webdata["timezone"] = watcher.WatcherTimezone
+		if encWatcherId != "" {
+			watcherId := decryptedId(deps, "watcher", encWatcherId)
+			watcher, err := getWatcherById(deps, watcherId)
+			if err != nil {
+				sublog.Error().Err(err).Str("encWatcherId", encWatcherId).Msg("failed to load watcher via encWatcherId {encWatcherId}")
+				deleteWIDCookie(w, r, deps)
+				return Watcher{}
 			}
-		}
+			if watcher.WatcherStatus != "active" {
+				sublog.Error().Err(err).Str("encWatcherId", encWatcherId).Str("status", watcher.WatcherStatus).Msg("watcher is not active: {status}")
+				deleteWIDCookie(w, r, deps)
+				return Watcher{}
+			}
 
-		if session.Values["provider"] != nil {
-			webdata["provider"] = session.Values["provider"].(string)
-		}
+			webdata["encWatcherId"] = encWatcherId
+			webdata["Watcher"] = WebWatcher{watcher.WatcherName, watcher.WatcherStatus, watcher.WatcherLevel, watcher.WatcherTimezone, watcher.WatcherPicURL}
 
-		return watcher
+			watcherRecents := getWatcherRecents(deps, watcher)
+			webdata["WatcherRecents"] = watcherRecents
+
+			if watcher.WatcherTimezone != "" {
+				_, err = time.LoadLocation(watcher.WatcherTimezone)
+				if err == nil {
+					webdata["timezone"] = watcher.WatcherTimezone
+				}
+			}
+
+			if session.Values["provider"] != nil {
+				webdata["provider"] = session.Values["provider"].(string)
+			}
+
+			return watcher
+		}
 	}
 	sublog.Info().Msg("anonymous visitor")
 	webdata["loggedout"] = 1
@@ -104,8 +102,8 @@ func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, goth
 		WatcherTimezone: "",
 		WatcherPicURL:   gothUser.AvatarURL,
 		SessionId:       "",
-		CreateDatetime:  sql.NullTime{},
-		UpdateDatetime:  sql.NullTime{},
+		CreateDatetime:  time.Now(),
+		UpdateDatetime:  time.Now(),
 	}
 	watcher, err := createOrUpdateWatcherFromOAuth(deps, watcher, gothUser.Email)
 	if err != nil {
@@ -126,10 +124,10 @@ func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, goth
 		OAuthId:        0,
 		OAuthIssuer:    gothUser.Provider,
 		OAuthSub:       gothUser.UserID,
-		OAuthIssued:    sql.NullTime{Valid: true, Time: time.Now()},
-		OAuthExpires:   sql.NullTime{Valid: true, Time: gothUser.ExpiresAt},
-		CreateDatetime: sql.NullTime{Valid: true, Time: time.Now()},
-		UpdateDatetime: sql.NullTime{Valid: true, Time: time.Now()},
+		OAuthIssued:    time.Now(),
+		OAuthExpires:   gothUser.ExpiresAt,
+		CreateDatetime: time.Now(),
+		UpdateDatetime: time.Now(),
 	}
 	err = oauth.createOrUpdate(deps)
 	if err != nil {
@@ -167,7 +165,10 @@ func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, goth
 // logout from google one-tap here
 func signoutHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		session := deps.session
+
 		deleteWIDCookie(w, r, deps)
+		session.Values["encWatcherId"] = ""
 		gothic.Logout(w, r)
 		http.Redirect(w, r, "/", http.StatusFound)
 	})

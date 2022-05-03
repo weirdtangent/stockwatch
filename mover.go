@@ -1,24 +1,24 @@
 package main
 
 import (
-	"database/sql"
 	"sort"
+	"time"
 
 	"github.com/rs/zerolog/log"
 )
 
 type Mover struct {
-	MoverId        uint64       `db:"mover_id"`
-	SourceId       uint64       `db:"source_id"`
-	TickerId       uint64       `db:"ticker_id"`
-	MoverDate      string       `db:"mover_date"`
-	MoverType      string       `db:"mover_type"`
-	LastPrice      float64      `db:"last_price"`
-	PriceChange    float64      `db:"price_change"`
-	PriceChangePct float64      `db:"price_change_pct"`
-	Volume         float64      `db:"volume"`
-	CreateDatetime sql.NullTime `db:"create_datetime"`
-	UpdateDatetime sql.NullTime `db:"update_datetime"`
+	MoverId        uint64    `db:"mover_id"`
+	SourceId       uint64    `db:"source_id"`
+	TickerId       uint64    `db:"ticker_id"`
+	MoverDate      string    `db:"mover_date"`
+	MoverType      string    `db:"mover_type"`
+	LastPrice      float64   `db:"last_price"`
+	PriceChange    float64   `db:"price_change"`
+	PriceChangePct float64   `db:"price_change_pct"`
+	Volume         float64   `db:"volume"`
+	CreateDatetime time.Time `db:"create_datetime"`
+	UpdateDatetime time.Time `db:"update_datetime"`
 }
 
 type WebMover struct {

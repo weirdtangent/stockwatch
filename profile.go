@@ -1,9 +1,9 @@
 package main
 
 import (
-	"database/sql"
 	"net/http"
 	"sort"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -18,7 +18,7 @@ type Profile struct {
 	Nickname       string
 	Timezone       string
 	AvatarURL      string
-	CreateDatetime sql.NullTime
+	CreateDatetime time.Time
 	Emails         []ProfileEmail
 }
 
@@ -46,7 +46,7 @@ func profileHandler(deps *Dependencies) http.HandlerFunc {
 			updateWatcher(deps, watcher)
 		}
 
-		profile, err := getProfile(deps)
+		profile, err := getProfile(deps, watcher)
 		if err != nil {
 			sublog.Error().Err(err).Msg("failed to get profile info")
 		}
@@ -64,23 +64,11 @@ func profileHandler(deps *Dependencies) http.HandlerFunc {
 	})
 }
 
-func getProfile(deps *Dependencies) (*Profile, error) {
+func getProfile(deps *Dependencies, watcher Watcher) (*Profile, error) {
 	db := deps.db
 	sublog := deps.logger
-	session := deps.session
 
 	var profile Profile
-
-	watcherId, err := getWatcherIdBySession(deps, session.ID)
-	if err != nil {
-		sublog.Error().Err(err).Msg("Failed to get profile from session")
-		return &profile, err
-	}
-	watcher, err := getWatcherById(deps, watcherId)
-	if err != nil {
-		sublog.Error().Err(err).Uint64("watcher_id", watcherId).Msg("Failed to get profile from session")
-		return &profile, err
-	}
 
 	profile.Name = watcher.WatcherName
 	profile.Nickname = watcher.WatcherNickname
@@ -88,7 +76,7 @@ func getProfile(deps *Dependencies) (*Profile, error) {
 	profile.AvatarURL = watcher.WatcherPicURL
 	profile.CreateDatetime = watcher.CreateDatetime
 
-	rows, err := db.Queryx("SELECT * FROM watcher_email WHERE watcher_id=? ORDER BY email_is_primary DESC, email_address", watcherId)
+	rows, err := db.Queryx("SELECT * FROM watcher_email WHERE watcher_id=? ORDER BY email_is_primary DESC, email_address", watcher.WatcherId)
 	if err != nil {
 		sublog.Fatal().Err(err).Str("table_name", "watcher_email").Msg("Failed on SELECT")
 	}

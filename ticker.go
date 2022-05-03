@@ -44,8 +44,8 @@ type Ticker struct {
 	FavIconS3Key    string       `db:"favicon_s3key"`
 	FetchDatetime   sql.NullTime `db:"fetch_datetime"`
 	MSPerformanceId string       `db:"ms_performance_id"`
-	CreateDatetime  sql.NullTime `db:"create_datetime"`
-	UpdateDatetime  sql.NullTime `db:"update_datetime"`
+	CreateDatetime  time.Time    `db:"create_datetime"`
+	UpdateDatetime  time.Time    `db:"update_datetime"`
 }
 
 type TickersEODTask struct {
@@ -56,28 +56,28 @@ type TickersEODTask struct {
 }
 
 type TickerAttribute struct {
-	TickerAttributeId uint64       `db:"attribute_id"`
-	TickerId          uint64       `db:"ticker_id"`
-	AttributeName     string       `db:"attribute_name"`
-	AttributeComment  string       `db:"attribute_comment"`
-	AttributeValue    string       `db:"attribute_value"`
-	CreateDatetime    sql.NullTime `db:"create_datetime"`
-	UpdateDatetime    sql.NullTime `db:"update_datetime"`
+	TickerAttributeId uint64    `db:"attribute_id"`
+	TickerId          uint64    `db:"ticker_id"`
+	AttributeName     string    `db:"attribute_name"`
+	AttributeComment  string    `db:"attribute_comment"`
+	AttributeValue    string    `db:"attribute_value"`
+	CreateDatetime    time.Time `db:"create_datetime"`
+	UpdateDatetime    time.Time `db:"update_datetime"`
 }
 
 type TickerDaily struct {
-	TickerDailyId  uint64       `db:"ticker_daily_id"`
-	TickerId       uint64       `db:"ticker_id"`
-	PriceDate      string       `db:"price_date"`
-	PriceTime      string       `db:"price_time"`
-	PriceDatetime  time.Time    `db:"price_datetime"`
-	OpenPrice      float64      `db:"open_price"`
-	HighPrice      float64      `db:"high_price"`
-	LowPrice       float64      `db:"low_price"`
-	ClosePrice     float64      `db:"close_price"`
-	Volume         float64      `db:"volume"`
-	CreateDatetime sql.NullTime `db:"create_datetime"`
-	UpdateDatetime sql.NullTime `db:"update_datetime"`
+	TickerDailyId  uint64    `db:"ticker_daily_id"`
+	TickerId       uint64    `db:"ticker_id"`
+	PriceDate      string    `db:"price_date"`
+	PriceTime      string    `db:"price_time"`
+	PriceDatetime  time.Time `db:"price_datetime"`
+	OpenPrice      float64   `db:"open_price"`
+	HighPrice      float64   `db:"high_price"`
+	LowPrice       float64   `db:"low_price"`
+	ClosePrice     float64   `db:"close_price"`
+	Volume         float64   `db:"volume"`
+	CreateDatetime time.Time `db:"create_datetime"`
+	UpdateDatetime time.Time `db:"update_datetime"`
 }
 
 type TickerDailies struct {
@@ -85,21 +85,21 @@ type TickerDailies struct {
 }
 
 type TickerDescription struct {
-	TickerDescriptionId uint64       `db:"description_id"`
-	TickerId            uint64       `db:"ticker_id"`
-	BusinessSummary     string       `db:"business_summary"`
-	CreateDatetime      sql.NullTime `db:"create_datetime"`
-	UpdateDatetime      sql.NullTime `db:"update_datetime"`
+	TickerDescriptionId uint64    `db:"description_id"`
+	TickerId            uint64    `db:"ticker_id"`
+	BusinessSummary     string    `db:"business_summary"`
+	CreateDatetime      time.Time `db:"create_datetime"`
+	UpdateDatetime      time.Time `db:"update_datetime"`
 }
 
 type TickerIntraday struct {
-	TickerIntradayId uint64       `db:"intraday_id"`
-	TickerId         uint64       `db:"ticker_id"`
-	PriceDate        string       `db:"price_date"`
-	LastPrice        float64      `db:"last_price"`
-	Volume           float64      `db:"volume"`
-	CreateDatetime   sql.NullTime `db:"create_datetime"`
-	UpdateDatetime   sql.NullTime `db:"update_datetime"`
+	TickerIntradayId uint64    `db:"intraday_id"`
+	TickerId         uint64    `db:"ticker_id"`
+	PriceDate        string    `db:"price_date"`
+	LastPrice        float64   `db:"last_price"`
+	Volume           float64   `db:"volume"`
+	CreateDatetime   time.Time `db:"create_datetime"`
+	UpdateDatetime   time.Time `db:"update_datetime"`
 }
 
 type TickerIntradays struct {
@@ -115,17 +115,17 @@ type TickerUpDown struct {
 	UpDownDate      sql.NullTime `db:"updown_date"`
 	UpDownFirm      string       `db:"updown_firm"`
 	UpDownSince     string       `db:"updown_since"`
-	CreateDatetime  sql.NullTime `db:"create_datetime"`
-	UpdateDatetime  sql.NullTime `db:"update_datetime"`
+	CreateDatetime  time.Time    `db:"create_datetime"`
+	UpdateDatetime  time.Time    `db:"update_datetime"`
 }
 
 type TickerSplit struct {
-	TickerSplitId  uint64       `db:"ticker_split_id"`
-	TickerId       uint64       `db:"ticker_id"`
-	SplitDate      string       `db:"split_date"`
-	SplitRatio     string       `db:"split_ratio"`
-	CreateDatetime sql.NullTime `db:"create_datetime"`
-	UpdateDatetime sql.NullTime `db:"update_datetime"`
+	TickerSplitId  uint64    `db:"ticker_split_id"`
+	TickerId       uint64    `db:"ticker_id"`
+	SplitDate      string    `db:"split_date"`
+	SplitRatio     string    `db:"split_ratio"`
+	CreateDatetime time.Time `db:"create_datetime"`
+	UpdateDatetime time.Time `db:"update_datetime"`
 }
 
 func (t *Ticker) getBySymbol(deps *Dependencies) error {
@@ -205,7 +205,7 @@ func (t *Ticker) createOrUpdate(deps *Dependencies) error {
 func (t *Ticker) createOrUpdateAttribute(deps *Dependencies, attributeName, attributeComment, attributeValue string) error {
 	db := deps.db
 
-	attribute := TickerAttribute{0, t.TickerId, attributeName, attributeComment, attributeValue, sql.NullTime{}, sql.NullTime{}}
+	attribute := TickerAttribute{0, t.TickerId, attributeName, attributeComment, attributeValue, time.Now(), time.Now()}
 	err := attribute.getByUniqueKey(deps)
 	if err == nil {
 		var update = "UPDATE ticker_attribute SET attribute_value=? WHERE ticker_id=? AND attribute_name=? AND attribute_comment=?"

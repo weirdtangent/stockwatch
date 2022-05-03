@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"time"
 )
 
 type LastDone struct {
@@ -9,8 +10,8 @@ type LastDone struct {
 	UniqueKey        string       `db:"unique_key"`
 	LastStatus       string       `db:"last_status"`
 	LastDoneDatetime sql.NullTime `db:"lastdone_datetime"`
-	CreateDatetime   sql.NullTime `db:"create_datetime"`
-	UpdateDatetime   sql.NullTime `db:"update_datetime"`
+	CreateDatetime   time.Time    `db:"create_datetime"`
+	UpdateDatetime   time.Time    `db:"update_datetime"`
 }
 
 const (

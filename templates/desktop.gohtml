@@ -3,7 +3,7 @@
           <script src="/static/js/quote_refresh.js"
             data-symbols="{{range .RecentPlus}}{{.TickerSymbol}},{{end}}".slice(0, -1)
             data-is-market-open="{{.config.is_market_open}}"
-            data-quote-refresh="{{.config.quote_refresh}}">
+            data-quote-refresh="20">
           </script>
 
           <div class="row g-0">
@@ -12,7 +12,7 @@
                 <h3 class="py-2 my-0 text-center text-dark">Stockwatch Desktop</h3>
                 <div class="bg-dark px-1 py-1">
                   <span class="small text-info">Info refresh: </span>
-                  <span id="auto_refresh"><i class="ms-2 mb-2 fad fa-sync fa-spin"></i> <span id="auto_refresh_time">{{.config.quote_refresh }} sec</span></span>
+                  <span id="auto_refresh"><i class="ms-2 mb-2 fad fa-sync fa-spin"></i> <span id="auto_refresh_time">20 sec</span></span>
                   <i id="auto_refresh_working" class="ms-2 mb-2 myyellow fad fa-pulse fa-signal-stream hide"></i>
                 </div>
               </div>

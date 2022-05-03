@@ -76,8 +76,8 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 		"",
 		sql.NullTime{},
 		"",
-		sql.NullTime{},
-		sql.NullTime{},
+		time.Now(),
+		time.Now(),
 	}
 	err = ticker.createOrUpdate(deps)
 	if err != nil {
@@ -85,7 +85,7 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 		return Ticker{}, err
 	}
 
-	tickerDescription := TickerDescription{0, ticker.TickerId, summaryResponse.SummaryProfile.LongBusinessSummary, sql.NullTime{}, sql.NullTime{}}
+	tickerDescription := TickerDescription{0, ticker.TickerId, summaryResponse.SummaryProfile.LongBusinessSummary, time.Now(), time.Now()}
 	err = tickerDescription.createOrUpdate(deps)
 	if err != nil {
 		sublog.Error().Err(err).Str("ticker", ticker.TickerSymbol).Msg("Failed to create ticker description")
@@ -94,7 +94,7 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 	// create upgrade/downgrade recommendations
 	for _, updown := range summaryResponse.UpgradeDowngradeHistory.Histories {
 		updownDate := time.Unix(updown.GradeDate, 0)
-		UpDown := TickerUpDown{0, ticker.TickerId, updown.Action, updown.FromGrade, updown.ToGrade, sql.NullTime{Valid: true, Time: updownDate}, updown.Firm, "", sql.NullTime{}, sql.NullTime{}}
+		UpDown := TickerUpDown{0, ticker.TickerId, updown.Action, updown.FromGrade, updown.ToGrade, sql.NullTime{Valid: true, Time: updownDate}, updown.Firm, "", time.Now(), time.Now()}
 		UpDown.createIfNew(deps)
 	}
 
@@ -238,7 +238,7 @@ func loadTickerEODsFromYH(deps *Dependencies, ticker Ticker) error {
 			priceTime = currentTimeStr
 		}
 		priceDatetime, _ := time.Parse(sqlDatetimeParseType, priceDate+" "+priceTime)
-		tickerDaily := TickerDaily{0, ticker.TickerId, priceDate, priceTime, priceDatetime, price.Open, price.High, price.Low, price.Close, price.Volume, sql.NullTime{}, sql.NullTime{}}
+		tickerDaily := TickerDaily{0, ticker.TickerId, priceDate, priceTime, priceDatetime, price.Open, price.High, price.Low, price.Close, price.Volume, time.Now(), time.Now()}
 		err = tickerDaily.createOrUpdate(deps)
 		if err != nil {
 			lastErr = err
@@ -250,7 +250,7 @@ func loadTickerEODsFromYH(deps *Dependencies, ticker Ticker) error {
 
 	for _, split := range historicalResponse.Events {
 		splitDate := FormatUnixTime(split.Date, "2006-01-02")
-		tickerSplit := TickerSplit{0, ticker.TickerId, splitDate, split.SplitRatio, sql.NullTime{}, sql.NullTime{}}
+		tickerSplit := TickerSplit{0, ticker.TickerId, splitDate, split.SplitRatio, time.Now(), time.Now()}
 		err = tickerSplit.createIfNew(deps)
 		if err != nil {
 			lastErr = err
