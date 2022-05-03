@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -133,7 +132,7 @@ func apiQuotes(deps *Dependencies, symbolStr string, jsonR *jsonResponseData) {
 				jsonR.Data[symbol+":quote_dailyrange"] = fmt.Sprintf("$%.2f - $%.2f", quote.QuoteLow, quote.QuoteHigh)
 			}
 		}
-		jsonR.Data["is_market_open"] = strconv.FormatBool(true)
+		jsonR.Data["is_market_open"] = true
 		jsonR.Success = true
 		jsonR.Message = "ok"
 	} else {
@@ -156,7 +155,7 @@ func apiQuotes(deps *Dependencies, symbolStr string, jsonR *jsonResponseData) {
 			jsonR.Data[symbol+":quote_dailyrange"] = fmt.Sprintf("$%.2f - $%.2f", lastTickerDaily[0].LowPrice, lastTickerDaily[1].HighPrice)
 		}
 
-		jsonR.Data["is_market_open"] = strconv.FormatBool(false)
+		jsonR.Data["is_market_open"] = false
 		jsonR.Success = true
 	}
 }

@@ -25,7 +25,7 @@ function quoteRefresh() {
         url: '/api/v1/quotes?symbols=' + symbols,
         async: true,
         success: function(response) {
-            is_market_open = response.data.is_market_open === true;
+            is_market_open = response.data.is_market_open;
             symbols.split(",").forEach(function(item) {
                 if (item == "") { return; }
                 symbol = item;

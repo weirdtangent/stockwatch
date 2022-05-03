@@ -2,10 +2,10 @@
 {{- if .RecentPlus}}
                 <div class="row g-0 row-cols-1 row-cols-md-3 row-cols-xl-6">
                   {{range .RecentPlus}}
-                  <div class="col-1 mt-1 card me-2" id="{{.TickerSymbol}}_card" style="width:14rem;">
+                  <div class="col-12 col-md-2 mt-1 card" id="{{.TickerSymbol}}_card">
                     <div class="card">
-                      <div class="card-title bg-warning text-dark px-1 py-1 d-flex">
-                        <div class="flex-fill"><img class="favicon me-1 border border-dark mt-0" {{if .TickerFavIconCDATA}}src="data:image/ico;base64,{{.TickerFavIconCDATA}}"{{end}}><a href="/view/{{.TickerSymbol}}" class="text-decoration-none text-dark">{{.TickerSymbol}}/{{.Exchange | ToLower}}</a></div>
+                      <div class="card-title bg-warning text-dark d-flex px-1 py-1">
+                        <div class="flex-fill"><img class="favicon me-1 border border-dark mt-0" alt="Tiny logo from company website" {{if .TickerFavIconCDATA}}src="data:image/ico;base64,{{.TickerFavIconCDATA}}"{{end}}><a href="/view/{{.TickerSymbol}}" class="text-decoration-none text-dark">{{.TickerSymbol}}/{{.Exchange | ToLower}}</a></div>
                         <div class="g-0 m-0 p-0"><button id="{{.TickerSymbol}}_close_button" data-symbol="{{.TickerSymbol}}" type="button" class="btn-close border border-dark small mt-0 {{if .Locked}}disabled{{end}}" aria-label="Close"></button></div>
                       </div><!-- card-title -->
                       <div class="card-body small pt-0 px-1 recent-plus-body">
@@ -13,20 +13,20 @@
                           <div class="col-12">
                             <div class="nowrap">{{.TickerName}}</div>
                             {{if .LiveQuote.QuotePrice }}
-                              <span id="{{.TickerSymbol}}_quote_shareprice fs-4">${{printf "%.2f" .LiveQuote.QuotePrice}}</span>
+                              <span id="{{.TickerSymbol}}_quote_shareprice">${{printf "%.2f" .LiveQuote.QuotePrice}}</span>
                               <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="{{ PriceMoveIndicatorCSS .LiveQuote.QuoteChange}}"></i></span>
                               <span class="{{PriceBigMoveColorCSS .LiveQuote.QuoteChangePct}}">
-                                &nbsp;<span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .LiveQuote.QuoteChange}}</span>
+                                <span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .LiveQuote.QuoteChange}}</span>
                                 (<span id="{{.TickerSymbol}}_quote_change_pct">{{printf "%.2f" .LiveQuote.QuoteChangePct}}%</span>)
-                                <i class="h5 {{PriceBigMoveIndicatorCSS .LiveQuoteChangePct}}"></i>
+                                <i class="h5 {{PriceBigMoveIndicatorCSS .LiveQuote.QuoteChangePct}}"></i>
                               </span>
-                              </span><br/>
+                              <br/>
                               <span class="text-info"> as of </span><span class="text-light small"><span id="{{.TickerSymbol}}_quote_asof">{{ FormatUnixTime .LiveQuote.QuoteTime "Jan 2 15:04:05" }}</span></span>
                             {{- else}}
-                              <span id="{{.TickerSymbol}}_quote_shareprice fs-4">${{printf "%.2f" .LastClose.ClosePrice}}</span>
+                              <span id="{{.TickerSymbol}}_quote_shareprice" class="fs-6">${{printf "%.2f" .LastClose.ClosePrice}}</span>
                               <i id="{{.TickerSymbol}}_quote_dailymove" class="{{PriceMoveIndicatorCSS .DiffAmt}}"></i>
                               <span class="{{PriceBigMoveColorCSS .DiffPerc}}">
-                                &nbsp;<span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .DiffAmt}}</span>
+                                <span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .DiffAmt}}</span>
                                 (<span id="{{.TickerSymbol}}_quote_change_pct">{{printf "%.2f" .DiffPerc}}%</span>)
                                 <i class="PriceBigMoveIndicatorCSS .DiffAmt"></i></span>
                               </span>
@@ -42,9 +42,8 @@
                           </div>
                           <div class="col-12">
                             {{- range .Articles }}
-                              <div class="text-white modal-link news-title text-truncate" data-bs-toggle="modal" data-bs-target="#source{{.SourceId}}-id{{.ExternalId}}-modal"
-                                     data-bs-toggle="tooltip" title="{{.Title}}">
-                                <span class="small text-info">{{if .PublishedDatetime.Valid}}{{.PublishedDatetime.Time.Format "Jan 02"}}{{end}}</span>
+                              <div class="text-white modal-link news-title text-truncate" data-bs-toggle="modal" data-bs-target="#source{{.SourceId}}-id{{.ExternalId}}-modal" title="{{.Title}}">
+                                <span class="small text-info">{{if .PublishedDatetime.Valid}}{{.PublishedDatetime.Time.Format "01/02"}}{{end}}</span>
                                 <a class="text-decoration-none text-light" href="{{.ArticleURL}}">{{.Title}}</a> <i class="far fa-window fa-xs"></i>
                                 <span class="small text-info">{{if .AuthorByline.Valid}} by {{.AuthorByline.String}}{{else if .SourceName.Valid}} from {{.SourceName.String}}{{end}}</span>
                               </div>

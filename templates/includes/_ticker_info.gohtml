@@ -4,7 +4,7 @@
                     {{if .quote}}
                       <span id="{{.TickerSymbol}}_quote_shareprice" class="h4 text-white">${{printf "%.2f" .quote.QuotePrice}}</span>
                       <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="h5 {{PriceMoveIndicatorCSS .quote.QuoteChange}}"></i></span>
-                      <span class="h5 {{PriceBigMoveColorCSS.quote.QuoteChangePct}}">
+                      <span class="h5 {{PriceBigMoveColorCSS .quote.QuoteChangePct}}">
                         &nbsp;<span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .quote.QuoteChange}}</span>
                         (<span id="{{.TickerSymbol}}_quote_change_pct">{{printf "%.2f" .quote.QuoteChangePct}}%</span>)
                         <i class="h5 {{PriceBigMoveIndicatorCSS .quote.QuoteChangePct}}"></i>

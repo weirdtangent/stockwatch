@@ -31,7 +31,7 @@
   </head>
 
   <body id="page-top" class="{{.config.template_name}}">
-    <div><!-- viewport -->
+    <div class="container"><!-- viewport -->
       <div class="row g-0"><!-- first row -->
         <div class="col-4 col-sm-3 col-md-2 bg-dark full-height left-column"><!-- left column -->
           <div class="logo">
@@ -44,34 +44,32 @@
 
         <div class="col-8 col-sm-3 col-md-10 top-box"><!-- content -->
           <div class="container-fluid">
-
-            <div class="row g-0 bg-primary">
-              <div class="col-5">
+            <div class="row g-0 bg-primary pb-3">
+              <div class="col-4">
                 <form class="form-control bg-primary no-border" method="POST" action="/search/ticker">
-                  <input class=" form-control-sm" name="searchString" type="search" autofocus size=30 placeholder="Symbol or Company name" aria-label="Symbol Search"{{if .searchString}} value="{{.searchString}}"{{end}}>
-                  <button class=" form-control-sm bg-light text-dark" type="submit" name="submit" value="jump">Jump</button>
-                  <button class=" form-control-sm bg-light text-dark" type="submit" name="submit" value="search">Search</button>
+                  <input class="form-control-sm" name="searchString" type="search" autofocus size=20 placeholder="Symbol/Company name" aria-label="Symbol Search"{{if .searchString}} value="{{.searchString}}"{{end}}>
+                  <button class="badge bg-warning text-dark" type="submit" name="submit" value="jump">JUMP</button>
+                  <button class="badge bg-warning text-dark" type="submit" name="submit" value="search">SEARCH</button>
                 </form>
               </div>
-
-              <div class="col-5 align-self-center">
+              <div class="col-6 align-self-center">
                 {{- if not .hideRecents}}
                   {{- if .WatcherRecents}}
-                    <ul class="flex-grow-1 nav">
-                      <li class="nav-item me-2 pt-2">Recent:</li>
-                      {{range .WatcherRecents -}}
-                        <li class="nav-item pt-2 me-2 recent">
+                    <div class="flex-grow-1">
+                      <ul class="nav">
+                        {{range .WatcherRecents -}}
+                        <li class="nav-item pt-1 me-2 recent">
                           <span id="{{.TickerSymbol}}_lock_badge" class="badge text-dark {{if .Locked}}bg-success{{else}}bg-warning{{end}}">
                             <a class="text-decoration-none text-dark me-0" href="/view/{{.TickerSymbol}}"><i class="ps-1 fas fa-dollar-sign"></i>{{.TickerSymbol}}</a>
                             <span class="ps-2 pe-1"><i id="{{.TickerSymbol}}_lock_button" data-symbol="{{.TickerSymbol}}" class="lock-button fa-solid {{if .Locked}}fa-lock{{else}}fa-lock-open{{end}}"></i></span>
                           </span>
                         </li>
-                      {{end}}
-                    </ul>
+                        {{end}}
+                      </ul>
+                    </div>
                   {{- end}}
                 {{- end}}
               </div>
-
               <div id="is_market_open_color" class="col-2 flush-right {{if .config.is_market_open}}text-success{{else}}text-danger{{end}}">
                 <div class="me-2 text-light">US MARKETS</div>
                 <div class="me-2"><i class="fad fa-power-off"></i> <span id="is_market_open">{{if .config.is_market_open}}TRADING{{else}}CLOSED{{end}}</span></div>

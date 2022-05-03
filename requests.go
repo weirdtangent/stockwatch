@@ -69,6 +69,7 @@ func (rh requestHandler) requestHandler(h http.HandlerFunc) http.HandlerFunc {
 		// per-request setup
 		rh.deps.webdata = make(map[string]interface{})
 		rh.deps.config = make(map[string]interface{})
+		rh.deps.config["is_market_open"] = isMarketOpen()
 		rh.deps.nonce = RandStringMask(32)
 
 		// Content Security Policy

@@ -1,28 +1,37 @@
 {{- define "_footer" }}
-        </div><!-- row -->
+          </div><!-- content -->
+        </div><!-- container-fluid -->
+      </div><!-- first-row -->
+    </div><!-- viewport -->
 
-        <footer class="footer fixed-bottom fs-6 align-middle text-light row">
-          <div class="col-4 col-sm-3 col-md-2">
-            <p class="lh-1 small"><a class="py-0 mt-0" href="/about">About</a></p>
-            <p class="lh-1 small">
+    <footer class="footer mt-auto fs-6 bg-secondary text-light">
+      <div class="container">
+        <div class="row pt-3 mx-1 small">
+          <div class="col-6">
+            <p><a class="py-0 mt-0" href="/about">About</a></p>
+            <p>
+              Email to <a href="mailto:request@graystorm.com?subject=Stockwatch%20Permission%20Request&body=My%20Google%20email%20address%20is%3a%20" class="text-decoration-none">Request</a> Google OAuth<br/>
+              access while in testing.<br/>
+              Or browse the <a href="https://github.com/weirdtangent/stockwatch" target="_blank" class="text-decoration-none"><i class="fab fa-github"></i> Repo</a>.
+            </p>
+            <p>
+              &copy;2021-22 <a href="mailto:jeff@graystorm.com" class="text-decoration-none">Graystorm Technlogies LLC</a>
+            </p>
+          </div><!-- col -->
+          <div class="col-6 text-end">
+            <p>
               <a class="py-0 mt-0" href="/privacy">Privacy Policy</a><br>
               contact <a href="mailto:privacy@graystorm.com" class="text-decoration-none">privacy@graystorm.com</a>
             </p>
-            <p class="lh-1 small"><a class="py-0 mt-0" href="/terms">Terms and Conditions</a></p>
-            <p class="lh-1 small">
-              Market data/news pulled via RapidAPI: <a href="https://rapidapi.com/apidojo/api/yahoo-finance1" target="_blank">Yahoo Finance</a>,
+            <p><a class="py-0 mt-0" href="/terms">Terms and Conditions</a></p>
+            <p>
+              Market data/news pulled via RapidAPI:<br/>
+              <a href="https://rapidapi.com/apidojo/api/yahoo-finance1" target="_blank">Yahoo Finance</a>,
               <a href="https://rapidapi.com/apidojo/api/morning-star" target="_blank">MorningStar</a>, and
               <a href="https://rapidapi.com/apidojo/api/bloomberg-market-and-financial-news" target="_blank">Bloomberg</a>.
             </p>
-            <p class="lh-1 small">
-              &copy;2021 -
-              <a href="mailto:jeff@graystorm.com" class="text-decoration-none">Graystorm Technlogies LLC</a>
-            </p>
-            <p class="lh-1 small">
-              Email to <a href="mailto:request@graystorm.com?subject=Stockwatch%20Permission%20Request&body=My%20Google%20email%20address%20is%3a%20" class="text-decoration-none">Request</a> Google OAuth access while in testing.
-              Or browse the <a href="https://github.com/weirdtangent/stockwatch" target="_blank" class="text-decoration-none"><i class="fab fa-github"></i> Repo</a>.
-            </p>
-          </div>
-        </footer>
-      </div><!-- viewport -->
+          </div><!-- col -->
+        </div><!-- row -->
+      </div><!-- container -->
+    </footer>
 {{- end}}
