@@ -178,6 +178,9 @@ func procTimezoneDir(deps *Dependencies, zoneDir, path string) []Timezone {
 }
 
 func TimeNow(loc string) string {
+	if loc == "" {
+		loc = "UTC"
+	}
 	tzloc, err := time.LoadLocation(loc)
 	if err != nil {
 		tzloc, _ = time.LoadLocation("UTC")

@@ -78,7 +78,7 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 	if len(articles) > 0 {
 		webdata["articles"] = articles
 		for _, article := range articles {
-			key := fmt.Sprintf("_source%d-id%s-body_template", article.SourceId, article.ExternalId)
+			key := fmt.Sprintf("_source%d-id%s", article.SourceId, article.ExternalId)
 			webdata[key] = article
 		}
 	}

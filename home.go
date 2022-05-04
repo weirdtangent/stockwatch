@@ -23,7 +23,7 @@ func homeHandler(deps *Dependencies, tmplname string) http.HandlerFunc {
 			webdata["hideRecents"] = true
 		}
 		if tmplname == "about" {
-			webdata["about-contents_template"], webdata["commits"], _ = getGithubCommits(deps)
+			webdata["about"], webdata["commits"], _ = getGithubCommits(deps)
 		}
 		if len(nextParam) > 0 {
 			webdata["next"] = nextParam

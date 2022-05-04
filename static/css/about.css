@@ -1,0 +1,21 @@
+dt a,
+dt a:visited,
+dt a:hover {
+    cursor: pointer;
+    color: red !important;
+}
+
+.iframe-container {
+  overflow: hidden;
+  padding-top: 100%;
+  position: relative;
+}
+
+.iframe-container iframe {
+  border: 0;
+  height: 100%;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 100%;
+}

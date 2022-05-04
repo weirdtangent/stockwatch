@@ -38,6 +38,7 @@ func main() {
 	setupSecrets(deps)
 	setupSessionStore(deps)
 	setupOAuth(deps)
+	setupTemplates(deps)
 
 	startServer(deps)
 }

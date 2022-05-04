@@ -11,23 +11,46 @@
           <div class="row g-0 main-content">
             <div class="col-12 px-2 pt-2">
               {{ template "_messageblock" . }}
-              <div class="mt-3 col-10 offset-1 bg-dark">
+              <div class="pb-1 col-10 offset-1 bg-dark">
                 <h4 class="ps-2 bg-warning text-dark">About</h4>
-                <div class="mx-2 my-2 pb-2">
-                  {{template "about-contents"}}
+                <div class="mx-2 my-2 iframe-container">
+                  {{/* {{template "about-contents"}} */}}
+                  <iframe srcdoc='
+                    <html>
+                      <head>
+                        <base target="_blank">
+                          <link rel="stylesheet" href="/static/vendor/yahoo/cssnormalize-min.css" />
+                          <link rel="stylesheet" href="/static/vendor/bootstrap/css/bootstrap.min.css">
+                          <link rel="stylesheet" href="/static/css/custom-dark.css" />
+                          <link rel="stylesheet" href="/static/css/global.css" />
+                          <link rel="stylesheet" href="/static/css/about-iframe.css" />
+                          <link rel="preconnect" href="https://fonts.gstatic.com" />
+                          <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" />
+                      </head>
+                      <body>
+                        <div class="container-fluid">
+                          <div class="row">
+                            <div class="col-12">
+                              {{.about}}
+                            </div>
+                          </div>
+                        </div>
+                      </body>
+                    </html>
+                    '></iframe>
                 </div>
               </div><!-- col-10 -->
 
               <div class="mt-3 col-10 offset-1 bg-dark">
                 <h4 class="ps-2 bg-warning text-dark">Latest Changes (commits)</h4>
                 <div class="mx-2 my-2 pb-2">
-                  <dl class="list-group">
+                  <dl class="list-group lh-1">
                   {{range .commits}}
                     <dt class="list-group-item list-group-item-primary">
-                      {{.Commit.Author.Date}} by <a href="{{.Author.URL}}" target="_blank">{{.Author.Login}}</a>
-                      SHA: <a class="small text-danger" href="{{.URL}}" target="_blank">{{.SHA}}</a>
+                      {{.Commit.Author.Date}} by <a class="text-decoration-none" href="{{.Author.URL}}" target="_blank">{{.Author.Login}}</a>
+                      SHA: <a class="small text-decoration-none" href="{{.URL}}" target="_blank">{{.SHA}}</a>
                     </dt>
-                    <dd class="list-group-item ps-5">{{.Commit.Message}}</dd>
+                    <dd class="list-group-item ps-4 text-light">{{.Commit.Message}}</dd>
                   {{end}}
                   </dl>
                 </div>

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"html/template"
 	"net/http"
 	"os"
 	"strconv"
@@ -34,11 +35,12 @@ type Dependencies struct {
 	awsconfig    *aws.Config
 	awssess      *session.Session
 	db           *sqlx.DB
-	ddb *dynamodb.DynamoDB
+	ddb          *dynamodb.DynamoDB
 	logger       *zerolog.Logger
 	secureCookie *securecookie.SecureCookie
 	cookieStore  *dynastore.Store
 	redisPool    *redis.Pool
+	templates    *template.Template
 	secrets      map[string]string
 	session      *sessions.Session
 	config       map[string]interface{}
@@ -149,6 +151,42 @@ func setupOAuth(deps *Dependencies) {
 	)
 
 	gothic.Store = cookieStore
+}
+
+func setupTemplates(deps *Dependencies) {
+	sublog := deps.logger
+
+	funcMap := template.FuncMap{
+		"Concat":                   Concat,
+		"FormatUnixTime":           FormatUnixTime,
+		"GradeColor":               GradeColor,
+		"SinceColor":               SinceColor,
+		"PriceDiffAmt":             PriceDiffAmt,
+		"PriceDiffPercAmt":         PriceDiffPercAmt,
+		"PriceMoveColorCSS":        PriceMoveColorCSS,
+		"PriceBigMoveColorCSS":     PriceBigMoveColorCSS,
+		"PriceMoveIndicatorCSS":    PriceMoveIndicatorCSS,
+		"PriceBigMoveIndicatorCSS": PriceBigMoveIndicatorCSS,
+		"TimeNow":                  TimeNow,
+		"ToUpper":                  strings.ToUpper,
+		"ToLower":                  strings.ToLower,
+	}
+
+	tmpl := template.New("blank").Funcs(funcMap)
+	tmpl, err := tmpl.ParseGlob("templates/includes/*.gohtml")
+	if err != nil {
+		sublog.Fatal().Err(err).Str("template_dir", "templates/includes").Msg("failed to parse include template(s)")
+	}
+	tmpl, err = tmpl.ParseGlob("templates/modals/*.gohtml")
+	if err != nil {
+		sublog.Fatal().Err(err).Str("template_dir", "templates/modals").Msg("failed to parse modal template(s)")
+	}
+	tmpl, err = tmpl.ParseGlob("templates/*.gohtml")
+	if err != nil {
+		sublog.Fatal().Err(err).Str("template_dir", "templates").Msg("Failed to parse top-level template(s)")
+	}
+
+	deps.templates = tmpl
 }
 
 func startServer(deps *Dependencies) {

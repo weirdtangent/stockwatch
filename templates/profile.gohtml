@@ -19,7 +19,7 @@
                     <h5 class="text-info">Name</h5>
                     <ul>
                       <li>{{.profile.Name}}</li>
-                      <li><span class="text-info">First login:</span> {{.profile.CreateDatetime.Time.Format "Jan 02 2006"}}</li>
+                      <li><span class="text-info">First login:</span> {{.profile.CreateDatetime.Format "Jan 02 2006"}}</li>
                     </ul>
 
                     <h5 class="text-info">Email Addresses (from OAuth Sign-ins)</h5>
@@ -56,7 +56,7 @@
                   </div>
                   <div class="col-3 text-center pt-0 pb-2">
                     Current time<br>
-                    <span id="current_time">{{ TimeNow .TZLocation  }}</span>
+                    <span id="current_time">{{ TimeNow "UTC"  }}</span>
                   </div>
 
 

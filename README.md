@@ -25,4 +25,3 @@ My first attempt at a Go web app... and I had to go crazy... :shrug:
   * Secrets
   * DynamoDB
   * SQS
-
