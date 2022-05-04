@@ -12,7 +12,7 @@ import (
 
 func chartHandlerFinancialsBar(deps *Dependencies, ticker Ticker, exchange *Exchange, periodStrs []string, barValues []map[string]float64) template.HTML {
 	nonce := deps.nonce
-	mainX := "880px"
+	mainX := "700px"
 	mainY := "400px"
 
 	// acctg := accounting.Accounting{Symbol: "$", Precision: 0}
@@ -80,10 +80,8 @@ func chartHandlerFinancialsBar(deps *Dependencies, ticker Ticker, exchange *Exch
 
 func chartHandlerFinancialsLine(deps *Dependencies, ticker Ticker, exchange *Exchange, periodStrs []string, lineValues []map[string]float64, isPercentage int) template.HTML {
 	nonce := deps.nonce
-	mainX := "580px"
+	mainX := "700px"
 	mainY := "400px"
-
-	// acctg := accounting.Accounting{Symbol: "$", Precision: 0}
 
 	var lineData = map[string][]opts.LineData{}
 	var legendStrs = []string{}

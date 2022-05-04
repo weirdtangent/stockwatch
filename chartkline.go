@@ -15,9 +15,9 @@ func chartHandlerTickerDailyKLine(deps *Dependencies, ticker Ticker, exchange *E
 	nonce := deps.nonce
 	sublog := deps.logger
 
-	mainX := "880px"
+	mainX := "700px"
 	mainY := "280px"
-	smallX := "880px"
+	smallX := "700px"
 	smallY := "200px"
 
 	// build data needed

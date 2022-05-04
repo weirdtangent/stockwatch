@@ -6,38 +6,40 @@
             data-quote-refresh="20">
           </script>
 
-          <div class="row g-0 bg-secondary mb-2">
+          <div class="row g-0 bg-dark pb-2">
             <div class="col-12">
               {{ template "_ticker_top" . }}
             </div>
           </div>
 
-          <div class="row g-1">
-            <div class="col-12 col-xl-8 ms-1">
-              <div class="px-2 py-1 bg-warning text-dark">Chart/Table</div>
-              <div class="px-2 py-3 bg-dark text-light minx-box">
-                {{ template "_chart_js" }}
-                <div id="tickerChart1elem" class="doubleChart">{{.lineChart}}
-                </div>
-                <div id="tickerChart2elem" class="doubleChart extraChart">{{.klineChart}}</div>
-                <div id="financialsChart1elem" class="extraChart">{{.qtrBarChart}}</div>
-                <div id="financialsChart2elem" class="extraChart">{{.annBarChart}}</div>
-                <div id="financialsChart3elem" class="extraChart">{{.qtrLineChart}}</div>
-                <div id="financialsChart4elem" class="extraChart">{{.annLineChart}}</div>
-                <div id="financialsChart5elem" class="extraChart">{{.qtrPercChart}}</div>
-                <div id="financialsChart6elem" class="extraChart">{{.annPercChart}}</div>
-
-                {{- template "_eod-table" . }}
-              </div>
-
-              <div class="mt-1 px-2 py-1 bg-warning text-dark d-flex">
-                <div class="flex-grow-1">Related News and Stories</div>
-                <div>Last Checked News:
-                  <span id="{{.TickerSymbol}}_last_checked_news">{{if .LastCheckedNews.Valid }}{{.LastCheckedNews.Time.Format "Jan 02 15:04 MST"}}{{ else }}-{{end}}</span>
-                  <i id="updating_news_now" class="ms-2 mb-2 fad fa-sync fa-spin{{if .UpdatingNewsNow}}{{else}} hide{{end}}"></i>
+          <div class="row g-0 bg-dark row-flex">
+            <div class="col-sm-12 col-xxl-8 d-flex flex-column">
+              <div class="d-none d-xxl-block">
+                <div class="mx-1 px-2 bg-warning text-dark">Chart/Table</div>
+                <div class="mx-1 bg-white text-light minx-box">
+                  {{ template "_chart_js" }}
+                  <div id="tickerChart1elem" class="doubleChart">{{.lineChart}}</div>
+                  <div id="tickerChart2elem" class="doubleChart extraChart">{{.klineChart}}</div>
+                  <div id="financialsChart1elem" class="extraChart">{{.qtrBarChart}}</div>
+                  <div id="financialsChart2elem" class="extraChart">{{.annBarChart}}</div>
+                  <div id="financialsChart3elem" class="extraChart">{{.qtrLineChart}}</div>
+                  <div id="financialsChart4elem" class="extraChart">{{.annLineChart}}</div>
+                  <div id="financialsChart5elem" class="extraChart">{{.qtrPercChart}}</div>
+                  <div id="financialsChart6elem" class="extraChart">{{.annPercChart}}</div>
+                  {{- template "_eod-table" . }}
                 </div>
               </div>
-              <div class="px-2 py-1 bg-dark small text-light min-box">
+
+              <div class="mx-1 mt-2 bg-warning text-dark">
+                <div class="d-flex">
+                  <div class="px-2 flex-fill">Related News</div>
+                  <div class="px-2 ">Last Checked:
+                    <span id="{{.TickerSymbol}}_last_checked_news">{{if .LastCheckedNews.Valid }}{{.LastCheckedNews.Time.Format "Jan 02 15:04 MST"}}{{ else }}-{{end}}</span>
+                    <i id="updating_news_now" class="ms-2 mb-2 fad fa-sync fa-spin{{if .UpdatingNewsNow}}{{else}} hide{{end}}"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="mx-1 px-2 pb-3 bg-dark small text-light min-box">
                 {{- range .articles}}
                 <div class="text-white modal-link news-title text-truncate" data-bs-toggle="modal" data-keyboard="true" data-bs-target="#source-{{.ArticleEncId}}-modal">
                   <span class="small text-info">{{if .PublishedDatetime.Valid}}{{.PublishedDatetime.Time.Format "Jan 02"}}{{end}}</span>
@@ -47,8 +49,10 @@
                 {{- end}}
               </div>
 
-              <div class="mt-1 px-2 py-1 bg-warning text-dark">Business Summary</div>
-              <div class="px-2 py-1 bg-dark text-light small min-box">
+              <div class="mx-1 mt-2 bg-warning text-dark">
+                <div class="px-2">Business Summary</div>
+              </div>
+              <div class="mx-1 px-2 pb-3 flex-grow-1 bg-dark text-light small min-box">
                 {{.ticker_description.BusinessSummary}}
                 <br><br>
                 {{.ticker.CompanyName}}<br>
@@ -60,12 +64,12 @@
               </div>
             </div><!-- col-12/col-8 left column -->
 
-            <div class="col-12 col-xl-3">
-              <div class="px-2 py-1 bg-warning text-dark">Financial Details</div>
-              <div class="list-group list-group-flush bg-dark text-info min-box">
+            <div class="col-12 col-xxl-4 d-flex flex-column">
+              <div class="mx-1 px-2 bg-warning text-dark">Financial Details</div>
+              <div class="mx-1 pb-3 lh-1 list-group list-group-flush bg-dark min-box">
                 {{- range .ticker_attributes}}
                 {{- if .AttributeValue}}
-                  <div class="list-group-item">
+                  <div class="list-group-item px-1">
                     <div class="d-flex">
                       <div class="text-success">{{.AttributeName -}}
                         {{- if .AttributeComment -}}
@@ -79,10 +83,10 @@
                 {{- end}}
               </div>
 
-              <div class="mt-1 px-2 py-1 bg-warning text-dark">Up/Downs (last 90 days)</div>
-              <div class="list-group list-group-flush bg-dark min-box">
+              <div class="mx-1 mt-2 px-2 bg-warning text-dark">Up/Downs (last 90 days)</div>
+              <div class="mx-1 pb-3 lh-1 list-group list-group-flush bg-dark min-box">
                 {{- range .ticker_updowns}}
-                <div class="list-group-item text-info">
+                <div class="list-group-item text-info px-1">
                   <span class="text-light">{{.UpDownDate.Time.Format "Jan 02"}}</span> :
                   <span class="{{ GradeColor .UpDownToGrade}}">{{.UpDownToGrade}}</span>
                   <span class="text-light">by</span> {{.UpDownFirm}}{{if .UpDownFromGrade}}<span class="text-light">, previously</span> <span class="{{ GradeColor .UpDownFromGrade}}">{{.UpDownFromGrade}}</span>{{end}}
@@ -91,20 +95,19 @@
                 {{- end}}
               </div>
 
-              <div class="mt-1 px-2 py-1 bg-warning text-dark">Historical Splits</div>
-              <div class="list-group list-group-flush bg-dark text-info min-box">
+              <div class="mx-1 mt-2 px-2 bg-warning text-dark">Historical Splits</div>
+              <div class="mx-1 pb-3 lh-1 flex-grow-1 list-group list-group-flush bg-dark min-box">
                 {{- range .ticker_splits}}
-                <div class="list-group-item">
-                  On <span class="text-light">{{.SplitDate}}</span>, split <span class="text-light">{{.SplitRatio}}</span>
+                <div class="list-group-item text-info px-1">
+                  <span class="text-light">{{.SplitDate.Format "Jan 02, 2006"}}</span> - split <span class="text-light">{{.SplitRatio}}</span>
                 </div>
                 {{- end}}
               </div>
-            </div><!-- col-6/col-4 right column -->
+            </div><!-- col-12/col-4 right column -->
           </div><!-- row -->
 
-          <div class="row g-0 mb-5"></div>
   {{- template "_footer" . }}
-  {{ template "_bought" . }}
+  {{- template "_bought" . }}
   {{- template "_sold" . }}
   {{- template "_articles" . }}
   {{if .autoopen_article_encid}}

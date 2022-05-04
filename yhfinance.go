@@ -249,8 +249,7 @@ func loadTickerEODsFromYH(deps *Dependencies, ticker Ticker) error {
 	}
 
 	for _, split := range historicalResponse.Events {
-		splitDate := FormatUnixTime(split.Date, "2006-01-02")
-		tickerSplit := TickerSplit{0, ticker.TickerId, splitDate, split.SplitRatio, time.Now(), time.Now()}
+		tickerSplit := TickerSplit{0, ticker.TickerId, time.Unix(split.Date, 0), split.SplitRatio, time.Now(), time.Now()}
 		err = tickerSplit.createIfNew(deps)
 		if err != nil {
 			lastErr = err

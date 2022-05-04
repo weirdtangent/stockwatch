@@ -17,9 +17,9 @@ func chartHandlerTickerDailyLine(deps *Dependencies, ticker Ticker, exchange *Ex
 	nonce := deps.nonce
 	sublog := deps.logger
 
-	mainX := "880px"
+	mainX := "700px"
 	mainY := "280px"
-	smallX := "880px"
+	smallX := "700px"
 	smallY := "200px"
 	legendStrs := []string{"Closing Price", "20-Day MA", "50-Day MA", "200-Day MA"}
 

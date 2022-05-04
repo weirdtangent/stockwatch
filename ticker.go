@@ -122,7 +122,7 @@ type TickerUpDown struct {
 type TickerSplit struct {
 	TickerSplitId  uint64    `db:"ticker_split_id"`
 	TickerId       uint64    `db:"ticker_id"`
-	SplitDate      string    `db:"split_date"`
+	SplitDate      time.Time `db:"split_date"`
 	SplitRatio     string    `db:"split_ratio"`
 	CreateDatetime time.Time `db:"create_datetime"`
 	UpdateDatetime time.Time `db:"update_datetime"`

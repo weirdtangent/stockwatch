@@ -1,22 +1,29 @@
 {{- define "_ticker_top" -}}
-              <header class="bg-dark pt-2 mb-2 ps-2">
+              <header class="bg-dark pt-2 ps-2">
                 <div class="row">
-                  <div class="col-12">
-                      <span class="h5 text-info">Symbol:</span>
-                      <a class="h3 text-white link-white text-decoration-none" href="/view/{{.ticker.TickerSymbol}}">{{.ticker.TickerSymbol}}</a>
-                      <span class="h5 text-light pe-3 text-lowercase">/{{.exchange.ExchangeAcronym}}</span>
-                      <span class="h5 text-info">Name:</span>
-                      <span class="h3 text-white">{{.ticker.TickerName}}</span>
-                      {{if .TickerFavIconCDATA}}<img class="favicon_big mb-3 ms-1" src="data:image/ico;base64,{{.TickerFavIconCDATA}}">{{end -}}
-                    </div>
+                  <div class="col-12 col-xl-4 align-top">
+                    <span class="h5 text-info">Symbol:</span>
+                    <a class="h4 text-white link-white text-decoration-none" href="/view/{{.ticker.TickerSymbol}}">{{.ticker.TickerSymbol}}</a>
+                    <span class="h5 text-light pe-3 text-lowercase">/{{.exchange.ExchangeAcronym}}</span>
+                  </div>
+                  <div class="col-9 col-xl-7 align-top">
+                    <span class="h5 text-info">Name:</span>
+                    <span class="h4 text-white">{{.ticker.TickerName}}</span>
+                  </div>
+                  <div class="col-3">
+                    {{if .TickerFavIconCDATA}}<img class="favicon_big mb-3 ms-1" src="data:image/ico;base64,{{.TickerFavIconCDATA}}">{{end -}}
+                  </div>
+                </div><!-- row -->
+                <div class="row d-block d-xxl-flex">
+                  <div class="col-12 col-xxl-9">
                     {{ template "_ticker_info" . }}
                   </div>
-                  <div class="flex-grow-1 text-end">
+                  <div class="col-12 col-xxl-3 flex-grow-1 text-end">
                     {{- template "_messages" . }}
                   </div>
                 </div><!-- row -->
 
-                <div class="row d-flex">
+                <div class="row d-none d-xxl-flex">
                   <div class="flex-grow-1 mx-2" id="toggle">
                     <div class="btn-group" role="group" aria-label="Chart or table to show">
                       <span>Share Charts</span>
@@ -55,7 +62,7 @@
                   </div><!-- toggle -->
                 </div><!-- row -->
 
-                <div class="row">
+                <div class="row d-none d-xxl-flex">
                   <div class="mx-2 btn-group align-middle" role="group" aria-label="Chart or table to show">
                     <span>Daily Activity</span>
                     <input type="radio" class="btn-check" name="pickTimespan" id="timespan15" data-href="?ts=15" {{if eq .timespan 15}}checked{{end}}>
@@ -73,7 +80,7 @@
                   </div>
                 </div><!-- row -->
 
-                <div class="row d-flex">
+                <div class="row d-none d-xxl-flex">
                   <div class="flex-grow-1 mx-2 pt-2" id="toggle">
                     <div class="btn-group" role="group" aria-label="Chart or table to show">
                       <span>Financial Charts</span>

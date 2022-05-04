@@ -201,3 +201,7 @@ footer p {
 .recent-plus-body {
   height: 14rem;
 }
+
+.min-box {
+  min-height: 100px;
+}

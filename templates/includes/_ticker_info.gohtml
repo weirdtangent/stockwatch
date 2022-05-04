@@ -23,13 +23,16 @@
                     {{- else}}at close on </span><span id="{{.TickerSymbol}}_quote_asof" class="h6 text-light">{{ .lastClose.PriceDatetime.Format "Jan 2" }}</span>
                     {{- end}}
                   </div>
+
                   <div class="small text-info">
-                    <span id="{{.TickerSymbol}}_ticker_quote_info" class="hide">
+                    <span id="{{.TickerSymbol}}_ticker_quote_info">
+                      {{- if .is_market_open}}
                       Ask: <span id="{{.TickerSymbol}}_quote_ask" class="h6 text-light">{{if .quote}}{{ printf "$%.2f" .quote.QuoteAsk}}{{end}}</span> for <span id="{{.TickerSymbol}}_quote_asksize" class="h6 text-light pe-2">{{if .quote}}{{.quote.QuoteAskSize}}{{end}}</span>
                       Bid: <span id="{{.TickerSymbol}}_quote_bid" class="h6 text-light">{{if .quote}}{{ printf "$%.2f" .quote.QuoteBid}}{{end}}</span> for <span id="{{.TickerSymbol}}_quote_bidsize" class="h6 text-light pe-2">{{if .quote}}{{.quote.QuoteBidSize}}{{end}}</span>
+                      {{- end}}
                       Today's range: <span id="{{.TickerSymbol}}_quote_range" class="h6 text-light">{{if .quote}}{{ printf "$%.2f" .quote.QuoteLow }} - {{ printf "$%.2f" .quote.QuoteHigh }}{{end}}</span>
                     </span>
-                    <span id="{{.TickerSymbol}}_ticker_eod_info" class="hide">
+                    <span id="{{.TickerSymbol}}_ticker_eod_info">
                       Open: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.OpenPrice }}</span>
                       High: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.HighPrice }}</span>
                       Low: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.LowPrice }}</span>
