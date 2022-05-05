@@ -88,7 +88,7 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 	tickerDescription := TickerDescription{0, ticker.TickerId, summaryResponse.SummaryProfile.LongBusinessSummary, time.Now(), time.Now()}
 	err = tickerDescription.createOrUpdate(deps)
 	if err != nil {
-		sublog.Error().Err(err).Str("ticker", ticker.TickerSymbol).Msg("Failed to create ticker description")
+		sublog.Error().Err(err).Str("ticker", ticker.TickerSymbol).Msg("failed to create ticker description")
 	}
 
 	// create upgrade/downgrade recommendations
@@ -139,13 +139,13 @@ func fetchTickerQuoteFromYH(deps *Dependencies, symbol string) (yhfinance.YFQuot
 		quoteParams := map[string]string{"symbols": symbol}
 		response, err = yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "quote", quoteParams)
 		if err != nil {
-			log.Warn().Err(err).Msg("Failed to retrieve quote")
+			log.Warn().Err(err).Msg("failed to retrieve quote")
 			return quote, err
 		}
 		if response != "" {
 			_, err = redisConn.Do("SET", redisKey, response, "EX", 20)
 			if err != nil {
-				sublog.Error().Err(err).Str("redis_key", redisKey).Msg("Failed to save to redis")
+				sublog.Error().Err(err).Str("redis_key", redisKey).Msg("failed to save to redis")
 			}
 		}
 	}
@@ -181,7 +181,7 @@ func loadMultiTickerQuotes(deps *Dependencies, symbols []string) (map[string]yhf
 	sublog.Info().Str("symbols", strings.Join(symbols, ",")).Msg("getting multi-symbol quote from yhfinance")
 	fullResponse, err := yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "quote", quoteParams)
 	if err != nil {
-		log.Warn().Err(err).Str("symbols", strings.Join(symbols, ",")).Msg("Failed to retrieve quote")
+		log.Warn().Err(err).Str("symbols", strings.Join(symbols, ",")).Msg("failed to retrieve quote")
 		return quotes, err
 	}
 	var quoteResponse yhfinance.YFGetQuotesResponse
@@ -192,7 +192,7 @@ func loadMultiTickerQuotes(deps *Dependencies, symbols []string) (map[string]yhf
 		redisKey := "yhfinance/quote/" + symbol
 		_, err = redisConn.Do("SET", redisKey, response, "EX", 20)
 		if err != nil {
-			sublog.Error().Err(err).Str("ticker", symbol).Str("redis_key", redisKey).Msg("Failed to save to redis")
+			sublog.Error().Err(err).Str("ticker", symbol).Str("redis_key", redisKey).Msg("failed to save to redis")
 		}
 
 		sublog.Info().Str("symbol", symbol).Msg("found yhfinance quote response for {symbol}")
@@ -221,7 +221,7 @@ func loadTickerEODsFromYH(deps *Dependencies, ticker Ticker) error {
 	}
 	response, err := yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "historical", historicalParams)
 	if err != nil {
-		sublog.Warn().Err(err).Str("ticker", ticker.TickerSymbol).Msg("Failed to retrieve historical prices")
+		sublog.Warn().Err(err).Str("ticker", ticker.TickerSymbol).Msg("failed to retrieve historical prices")
 		return err
 	}
 
@@ -245,7 +245,7 @@ func loadTickerEODsFromYH(deps *Dependencies, ticker Ticker) error {
 		}
 	}
 	if lastErr != nil {
-		log.Warn().Err(err).Str("ticker", ticker.TickerSymbol).Msg("Failed to load at least one historical price")
+		log.Warn().Err(err).Str("ticker", ticker.TickerSymbol).Msg("failed to load at least one historical price")
 	}
 
 	for _, split := range historicalResponse.Events {
@@ -256,7 +256,7 @@ func loadTickerEODsFromYH(deps *Dependencies, ticker Ticker) error {
 		}
 	}
 	if lastErr != nil {
-		log.Warn().Err(err).Str("ticker", ticker.TickerSymbol).Msg("Failed to load at least one historical split")
+		log.Warn().Err(err).Str("ticker", ticker.TickerSymbol).Msg("failed to load at least one historical split")
 	}
 
 	return nil

@@ -30,8 +30,8 @@ func viewTickerDailyHandler(deps *Dependencies) http.HandlerFunc {
 
 		ticker, err := loadTickerDetails(deps, symbol, timespan)
 		if err != nil {
-			sublog.Error().Err(err).Msg("Failed to load ticker details for viewing")
-			renderTemplateDefault(w, r, deps, "desktop")
+			sublog.Error().Err(err).Msg("failed to load ticker details for viewing")
+			renderTemplate(w, r, deps, "desktop")
 			return
 		}
 
@@ -51,6 +51,6 @@ func viewTickerDailyHandler(deps *Dependencies) http.HandlerFunc {
 			webdata["autoopen_article_encid"] = article
 		}
 
-		renderTemplateDefault(w, r, deps, "view-daily")
+		renderTemplate(w, r, deps, "view-daily")
 	})
 }

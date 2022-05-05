@@ -100,21 +100,19 @@ func createWatcher(deps *Dependencies, w Watcher, email string) (Watcher, error)
 }
 
 func createOrUpdateWatcherFromOAuth(deps *Dependencies, watcher Watcher, email string) (Watcher, error) {
+	sublog := deps.logger
+
 	watcherId, err := getWatcherIdBySession(deps, watcher.SessionId)
 	if err != nil {
-		watcher.WatcherId = watcherId
-		err := updateWatcherFromOAuth(deps, watcher, email)
 		return watcher, err
 	}
-
 	if watcherId == 0 {
 		watcherId, err = getWatcherIdByEmail(deps, email)
 		if err != nil {
-			watcher.WatcherId = watcherId
-			err := updateWatcherFromOAuth(deps, watcher, email)
 			return watcher, err
 		}
 		if watcherId == 0 {
+			sublog.Info().Msg("not found by oauth session nor email, must be a new watcher")
 			return createWatcher(deps, watcher, email)
 		}
 	}
@@ -163,12 +161,15 @@ func getWatcherIdBySession(deps *Dependencies, session string) (uint64, error) {
 	err := db.QueryRowx("SELECT watcher_id FROM watcher WHERE session_id=?", session).Scan(&watcherId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			sublog.Info().Msg("no rows returned for getWatcherIdBySession")
 			return 0, nil
 		} else {
-			sublog.Warn().Err(err).Str("table_name", "watcher").Msg("Failed to check for existing record")
+			sublog.Warn().Err(err).Str("table_name", "watcher").Msg("failed to check for existing record")
+			return 0, err
 		}
 	}
-	return watcherId, err
+	sublog.Info().Str("session", session).Uint64("watcher_id", watcherId).Msg("matched {session} with {watcher_id}")
+	return watcherId, nil
 }
 
 func getWatcherIdByEmail(deps *Dependencies, email string) (uint64, error) {
@@ -179,11 +180,14 @@ func getWatcherIdByEmail(deps *Dependencies, email string) (uint64, error) {
 	err := db.QueryRowx("SELECT watcher_id FROM watcher_email WHERE email_address=?", email).Scan(&watcherId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			sublog.Info().Msg("no rows returned for getWatcherIdByEmail")
 			return 0, nil
 		} else {
-			sublog.Warn().Err(err).Str("table_name", "watcher").Msg("Failed to check for existing record")
+			sublog.Warn().Err(err).Str("table_name", "watcher").Msg("failed to check for existing record")
+			return 0, err
 		}
 	}
+	sublog.Info().Str("email", email).Uint64("watcher_id", watcherId).Msg("matched {email} with {watcher_id}")
 	return watcherId, err
 }
 
@@ -235,7 +239,7 @@ func lockWatcherRecent(deps *Dependencies, watcher Watcher, ticker Ticker) bool 
 	var update = "UPDATE watcher_recent SET locked=true WHERE watcher_id=? AND ticker_id=?"
 	_, err := db.Exec(update, watcher.WatcherId, ticker.TickerId)
 	if err != nil {
-		log.Warn().Err(err).Str("table_name", "watcher_recent").Msg("Failed on UPDATE")
+		log.Warn().Err(err).Str("table_name", "watcher_recent").Msg("failed on UPDATE")
 		return false
 	}
 	return true
@@ -247,7 +251,7 @@ func unlockWatcherRecent(deps *Dependencies, watcher Watcher, ticker Ticker) boo
 	var update = "UPDATE watcher_recent SET locked=false WHERE watcher_id=? AND ticker_id=?"
 	_, err := db.Exec(update, watcher.WatcherId, ticker.TickerId)
 	if err != nil {
-		log.Warn().Err(err).Str("table_name", "watcher_recent").Msg("Failed on UPDATE")
+		log.Warn().Err(err).Str("table_name", "watcher_recent").Msg("failed on UPDATE")
 		return false
 	}
 	return true

@@ -36,6 +36,6 @@ func transactionHandler(deps *Dependencies) http.HandlerFunc {
 
 		sublog.Info().Uint64("watcher_id", watcher.WatcherId).Str("action", action).Float64("shares", Shares).Float64("share_price", SharePrice).Str("purchase_date", PurchaseDate).Str("symbol", symbol).Str("acronym", acronym).Msg("transaction recorded")
 
-		renderTemplateDefault(w, r, deps, "update")
+		renderTemplate(w, r, deps, "update")
 	})
 }

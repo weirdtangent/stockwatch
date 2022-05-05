@@ -75,6 +75,6 @@ func searchHandler(deps *Dependencies) http.HandlerFunc {
 			log.Warn().Str("search_type", searchType).Msg("Unknown search_type")
 		}
 
-		renderTemplateDefault(w, r, deps, "searchresults")
+		renderTemplate(w, r, deps, "searchresults")
 	})
 }

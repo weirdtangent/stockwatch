@@ -6,17 +6,17 @@
             data-quote-refresh="20">
           </script>
 
-          <div class="row g-0 bg-dark pb-2">
-            <div class="col-12">
+          <div class="row g-2 bg-transparent px-2 py-1">
+            <div class="col-12 bg-dark">
               {{ template "_ticker_top" . }}
             </div>
           </div>
 
-          <div class="row g-0 bg-dark row-flex">
-            <div class="col-sm-12 col-xxl-8 d-flex flex-column">
-              <div class="d-none d-xxl-block">
-                <div class="mx-1 px-2 bg-warning text-dark">Chart/Table</div>
-                <div class="mx-1 bg-white text-light minx-box">
+          <div class="row g-2 bg-transparent row-flex ps-1 pt-1">
+            <div class="col-sm-12 col-xxl-8 d-flex flex-column bg-transparent">
+              <div class="d-none d-xxl-block ms-1 mb-2">
+                <div class="bg-warning text-dark ps-3 py-1">Chart/Table</div>
+                <div class="bg-white text-light minx-box">
                   {{ template "_chart_js" }}
                   <div id="tickerChart1elem" class="doubleChart">{{.lineChart}}</div>
                   <div id="tickerChart2elem" class="doubleChart extraChart">{{.klineChart}}</div>
@@ -30,78 +30,88 @@
                 </div>
               </div>
 
-              <div class="mx-1 mt-2 bg-warning text-dark">
-                <div class="d-flex">
-                  <div class="px-2 flex-fill">Related News</div>
-                  <div class="px-2 ">Last Checked:
-                    <span id="{{.TickerSymbol}}_last_checked_news">{{if .LastCheckedNews.Valid }}{{.LastCheckedNews.Time.Format "Jan 02 15:04 MST"}}{{ else }}-{{end}}</span>
-                    <i id="updating_news_now" class="ms-2 mb-2 fad fa-sync fa-spin{{if .UpdatingNewsNow}}{{else}} hide{{end}}"></i>
+              <div class="ms-1 mb-2">
+                <div class="bg-warning text-dark ps-2 py-1">
+                  <div class="d-flex">
+                    <div class="px-2 flex-fill">Related News</div>
+                    <div class="px-2 ">Last Checked:
+                      <span id="{{.TickerSymbol}}_last_checked_news">{{if .LastCheckedNews.Valid }}{{.LastCheckedNews.Time.Format "Jan 02 15:04 MST"}}{{ else }}-{{end}}</span>
+                      <i id="updating_news_now" class="ms-2 mb-2 fad fa-sync fa-spin{{if .UpdatingNewsNow}}{{else}} hide{{end}}"></i>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div class="mx-1 px-2 pb-3 bg-dark small text-light min-box">
-                {{- range .articles}}
-                <div class="text-white modal-link news-title text-truncate" data-bs-toggle="modal" data-keyboard="true" data-bs-target="#source-{{.ArticleEncId}}-modal">
-                  <span class="small text-info">{{if .PublishedDatetime.Valid}}{{.PublishedDatetime.Time.Format "Jan 02"}}{{end}}</span>
-                  {{.Title}} <i class="far fa-window fa-xs"></i>
-                  <span class="small text-info">{{if .AuthorByline.Valid}} by {{.AuthorByline.String}}{{else if .SourceName.Valid}} from {{.SourceName.String}}{{end}}</span>
+                <div class="bg-dark small text-light min-box px-2 py-1">
+                  {{- range .articles}}
+                  <div class="text-white modal-link news-title text-truncate" data-bs-toggle="modal" data-keyboard="true" data-bs-target="#source-{{.ArticleEncId}}-modal">
+                    <span class="small text-info">{{if .PublishedDatetime.Valid}}{{.PublishedDatetime.Time.Format "Jan 02"}}{{end}}</span>
+                    {{.Title}} <i class="far fa-window fa-xs"></i>
+                    <span class="small text-info">{{if .AuthorByline.Valid}} by {{.AuthorByline.String}}{{else if .SourceName.Valid}} from {{.SourceName.String}}{{end}}</span>
+                  </div>
+                  {{- end}}
                 </div>
-                {{- end}}
               </div>
 
-              <div class="mx-1 mt-2 bg-warning text-dark">
-                <div class="px-2">Business Summary</div>
-              </div>
-              <div class="mx-1 px-2 pb-3 flex-grow-1 bg-dark text-light small min-box">
-                {{.ticker_description.BusinessSummary}}
-                <br><br>
-                {{.ticker.CompanyName}}<br>
-                {{.ticker.Address}}<br>
-                {{.ticker.City}}, {{.ticker.State}} {{.ticker.Zip}}
-                <br>{{.ticker.Country}}<br>
-                <br>
-                {{.ticker.Phone}} <a href="{{.ticker.Website}}" target="_blank">{{.ticker.Website}}</a>
+              <div class="ms-1 mb-2">
+                <div class="bg-warning text-dark ps-2 py-1">
+                  <div class="px-2 flex-fill">Business Summary</div>
+                </div>
+                <div class="flex-grow-1 bg-dark text-light small min-box px-2 py-1">
+                  {{.ticker_description.BusinessSummary}}
+                  <br><br>
+                  {{.ticker.CompanyName}}<br>
+                  {{.ticker.Address}}<br>
+                  {{.ticker.City}}, {{.ticker.State}} {{.ticker.Zip}}
+                  <br>{{.ticker.Country}}<br>
+                  <br>
+                  {{.ticker.Phone}} <a href="{{.ticker.Website}}" target="_blank">{{.ticker.Website}}</a>
+                </div>
               </div>
             </div><!-- col-12/col-8 left column -->
 
-            <div class="col-12 col-xxl-4 d-flex flex-column">
-              <div class="mx-1 px-2 bg-warning text-dark">Financial Details</div>
-              <div class="mx-1 pb-3 lh-1 list-group list-group-flush bg-dark min-box">
-                {{- range .ticker_attributes}}
-                {{- if .AttributeValue}}
-                  <div class="list-group-item px-1">
-                    <div class="d-flex">
-                      <div class="text-success">{{.AttributeName -}}
-                        {{- if .AttributeComment -}}
-                        <span class="small text-warning"> {{.AttributeComment}}</span>
-                        {{- end -}}
+            <div class="col-12 col-xxl-4 d-flex flex-column bg-transparent">
+              <div class="me-1 mb-2">
+                <div class="bg-warning text-dark ps-2 py-1">Financial Details</div>
+                <div class="list-group list-group-flush bg-dark min-box lh-1 px-2 py-1">
+                  {{- range .ticker_attributes}}
+                  {{- if .AttributeValue}}
+                    <div class="list-group-item px-1">
+                      <div class="d-flex">
+                        <div class="text-success">{{.AttributeName -}}
+                          {{- if .AttributeComment -}}
+                          <span class="small text-warning"> {{.AttributeComment}}</span>
+                          {{- end -}}
+                        </div>
+                        <div class="ms-auto text-light">{{.AttributeValue}}</div>
                       </div>
-                      <div class="ms-auto text-light">{{.AttributeValue}}</div>
                     </div>
+                  {{- end}}
+                  {{- end}}
+                </div>
+              </div>
+
+              <div class="me-1 mb-2">
+                <div class="bg-warning text-dark ps-2 py-1">Up/Downs (last 90 days)</div>
+                <div class="list-group list-group-flush bg-dark min-box lh-1 px-2 py-1">
+                  {{- range .ticker_updowns}}
+                  <div class="list-group-item text-info px-1">
+                    <span class="text-light">{{.UpDownDate.Time.Format "Jan 02"}}</span> :
+                    <span class="{{ GradeColor .UpDownToGrade}}">{{.UpDownToGrade}}</span>
+                    <span class="text-light">by</span> {{.UpDownFirm}}{{if .UpDownFromGrade}}<span class="text-light">, previously</span> <span class="{{ GradeColor .UpDownFromGrade}}">{{.UpDownFromGrade}}</span>{{end}}
+                    <span class="{{ SinceColor .UpDownSince}}">{{.UpDownSince}}</span>
                   </div>
-                {{- end}}
-                {{- end}}
+                  {{- end}}
+                </div>
               </div>
 
-              <div class="mx-1 mt-2 px-2 bg-warning text-dark">Up/Downs (last 90 days)</div>
-              <div class="mx-1 pb-3 lh-1 list-group list-group-flush bg-dark min-box">
-                {{- range .ticker_updowns}}
-                <div class="list-group-item text-info px-1">
-                  <span class="text-light">{{.UpDownDate.Time.Format "Jan 02"}}</span> :
-                  <span class="{{ GradeColor .UpDownToGrade}}">{{.UpDownToGrade}}</span>
-                  <span class="text-light">by</span> {{.UpDownFirm}}{{if .UpDownFromGrade}}<span class="text-light">, previously</span> <span class="{{ GradeColor .UpDownFromGrade}}">{{.UpDownFromGrade}}</span>{{end}}
-                  <span class="{{ SinceColor .UpDownSince}}">{{.UpDownSince}}</span>
+              <div class="me-1 mb-2">
+                <div class="bg-warning text-dark ps-2 -y-1">Historical Splits</div>
+                <div class="flex-grow-1 list-group list-group-flush bg-dark min-box lh-1 px-2 py-1">
+                  {{- range .ticker_splits}}
+                  <div class="list-group-item text-info px-1">
+                    <span class="text-light">{{.SplitDate.Format "Jan 02, 2006"}}</span> - split <span class="text-light">{{.SplitRatio}}</span>
+                  </div>
+                  {{- end}}
                 </div>
-                {{- end}}
-              </div>
-
-              <div class="mx-1 mt-2 px-2 bg-warning text-dark">Historical Splits</div>
-              <div class="mx-1 pb-3 lh-1 flex-grow-1 list-group list-group-flush bg-dark min-box">
-                {{- range .ticker_splits}}
-                <div class="list-group-item text-info px-1">
-                  <span class="text-light">{{.SplitDate.Format "Jan 02, 2006"}}</span> - split <span class="text-light">{{.SplitRatio}}</span>
-                </div>
-                {{- end}}
               </div>
             </div><!-- col-12/col-4 right column -->
           </div><!-- row -->

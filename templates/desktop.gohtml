@@ -2,8 +2,9 @@
 {{ template "_header" . }}
           <script src="/static/js/quote_refresh.js"
             data-symbols="{{range .RecentPlus}}{{.TickerSymbol}},{{end}}"
+            data-symbol-count={{len .RecentPlus}}
             data-is-market-open="{{.config.is_market_open}}"
-            data-quote-refresh="20">
+            data-quote-refresh=20>
           </script>
 
           <div class="row g-0">
@@ -12,22 +13,22 @@
                 <h3 class="py-2 my-0 text-center text-dark">Stockwatch Desktop</h3>
                 <div class="bg-dark px-1 py-1">
                   <span class="small text-info">Info refresh: </span>
-                  <span id="auto_refresh"><i class="ms-2 mb-2 fad fa-sync fa-spin"></i> <span id="auto_refresh_time">20 sec</span></span>
-                  <i id="auto_refresh_working" class="ms-2 mb-2 myyellow fad fa-pulse fa-signal-stream hide"></i>
+                  <span id="auto_refresh_link"><i id="auto_refresh" class="ms-2 mb-2 fad {{if gt (len .RecentPlus) 0}}fa-sync fa-spin{{else}}fa-pause-circle{{end}}"></i> <span id="auto_refresh_time">{{if gt (len .RecentPlus) 0}}20 sec{{else}}paused{{end}}</span>
+                  <i id="auto_refresh_working" class="ms-2 mb-2 myyellow fad fa-pulse fa-signal-stream hide"></i></span>
                 </div>
               </div>
             </div>
           </div>
 
           <div class="row g-0 main-content">
-            <div class="col-12 px-2 pt-1">
+            <div class="col-12 px-2">
               {{- template "_messageblock" . }}
               {{- template "_announcement" . }}
               {{- template "_recent_plus" . }}
-              <div class="row g-0 mt-1">
-                <div id="movers" class="mt-1 col-12 col-lg-4 bg-dark opacity-6 pe-lg-1">
+              <div class="row g-2 mt-1">
+                <div id="movers" class="mt-1 col-12 col-lg-4 bg-transparent">
                   <div class="bg-warning text-dark px-2 py-1">Movers and Shakers, {{.Movers.ForDate}}</div>
-                  <div id="carouselMovers" class="carousel slide mx-2 my-2" data-bs-ride="carousel">
+                  <div id="carouselMovers" class="carousel slide carousel-fade bg-dark px-2 py-1" data-bs-ride="carousel" data-bs-interval="8000">
                     <div class="carousel-indicators">
                       <button type="button" data-bs-target="#carouselMovers" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Gainers"></button>
                       <button type="button" data-bs-target="#carouselMovers" data-bs-slide-to="1" aria-label="Losers"></button>
@@ -62,9 +63,9 @@
                   </div>
                 </div><!-- col-12/6 movers and shakers -->
 
-                <div class="mt-1 col-12 col-lg-8 bg-dark opacity-6 ps-lg-1">
+                <div class="mt-1 col-12 col-lg-8 bg-transparent">
                   <div class="bg-warning text-dark px-2 py-1">Recent Market/Financial News</div>
-                  <div class="">
+                  <div class="bg-dark px-2 py-1">
                     {{range .Articles}}
                       {{- if .ArticleURL}}
                       <div class="text-light bg-dark row g-0 mx-2 pb-1 small nowrap">
@@ -97,7 +98,7 @@
                                 <span class="small">
                                   {{- printf "$%.2f " .Mover.LastPrice -}}
                                   <i class="{{PriceMoveIndicatorCSS .Mover.PriceChange}}"></i>
-                                  <span class="{{PriceBigMoveColorCSS .Mover.PriceChangePct}}">{{- printf " $%.2f" .Mover.PriceChange}} ({{printf "%.2f%%" .Mover.PriceChangePct}}) {{printf "@ %.0f" .Mover.Volume -}}</span>
+                                  <span class="{{PriceBigMoveColorCSS .Mover.PriceChangePct}}">{{printf " $%.2f" .Mover.PriceChange}} ({{printf "%.2f%%" .Mover.PriceChangePct}}) {{.Mover.VolumeStr}}</span>
                                 </span>
                               </a>
                             </li>

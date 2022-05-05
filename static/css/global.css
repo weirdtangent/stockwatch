@@ -50,6 +50,7 @@ div.logo {
 
 body.home .main-content,
 body.desktop .main-content,
+body.view-daily .main-content,
 body.terms .main-content,
 body.about .main-content,
 body.profile .main-content,
@@ -204,4 +205,15 @@ footer p {
 
 .min-box {
   min-height: 100px;
+}
+
+.btn-social img {
+  width: 192px !important;
+}
+
+a.btn-social,
+a.btn-social:hover,
+a.btn-social:visited,
+a.btn-social:active {
+  color: #444444 !important;
 }

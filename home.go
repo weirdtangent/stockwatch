@@ -30,6 +30,6 @@ func homeHandler(deps *Dependencies, tmplname string) http.HandlerFunc {
 		}
 		webdata["loggedout"] = true
 
-		renderTemplateDefault(w, r, deps, tmplname)
+		renderTemplate(w, r, deps, tmplname)
 	})
 }

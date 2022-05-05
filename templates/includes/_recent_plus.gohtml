@@ -1,8 +1,8 @@
 {{- define "_recent_plus" -}}
 {{- if .RecentPlus}}
-                <div class="row g-0 row-cols-1 row-cols-md-3 row-cols-xl-6">
+                <div class="row g-2 mt-1 row-cols-1 row-cols-md-3 row-cols-xl-6">
                   {{range .RecentPlus}}
-                  <div class="col-12 col-md-2 mt-1 card" id="{{.TickerSymbol}}_card">
+                  <div class="col-12 col-md-2 card border-0 bg-transparent" id="{{.TickerSymbol}}_card">
                     <div class="card">
                       <div class="card-title bg-warning text-dark d-flex px-1 py-1">
                         <div class="flex-fill"><img class="favicon me-1 border border-dark mt-0" alt="Tiny logo from company website" {{if .TickerFavIconCDATA}}src="data:image/ico;base64,{{.TickerFavIconCDATA}}"{{end}}><a href="/view/{{.TickerSymbol}}" class="text-decoration-none text-dark">{{.TickerSymbol}}/{{.Exchange | ToLower}}</a></div>
@@ -52,7 +52,7 @@
                         </div><!-- row -->
                       </div><!-- card-body -->
                       <div class="card-footer small">
-                        Checked News:
+                        Checked News:<br/>
                         <span class="text-info"><span id="{{.TickerSymbol}}_last_checked_since">{{.LastCheckedSince}}</span></span>
                         <i id="{{.TickerSymbol}}_updating_news_now" class="ms-2 mb-2 fad fa-sync fa-spin{{if .UpdatingNewsNow}}{{else}} hide{{end}}"></i>
                       </div><!-- card-footer -->

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -82,15 +83,17 @@ func apiQuotes(deps *Dependencies, symbolStr string, jsonR *jsonResponseData) {
 		validSymbols = append(validSymbols, symbol)
 		validTickers = append(validTickers, ticker)
 
-		newsLastUpdated, updatingNewsNow := getNewsLastUpdated(deps, ticker)
-		if newsLastUpdated.Valid {
-			jsonR.Data[symbol+":last_checked_news"] = newsLastUpdated.Time.Format("Jan 02 15:04")
+		lastCheckedNews, updatingNewsNow := getNewsLastUpdated(deps, ticker)
+		if lastCheckedNews.Valid {
+			jsonR.Data[symbol+":last_checked_news"] = lastCheckedNews.Time.Format("Jan 02 15:04")
+			jsonR.Data[symbol+":last_checked_since"] = fmt.Sprintf("%.0f min ago", time.Since(lastCheckedNews.Time).Minutes())
 		} else {
 			if updatingNewsNow {
 				jsonR.Data[symbol+":last_checked_news"] = "checking now"
 			} else {
-				jsonR.Data[symbol+":last_checked_news"] = "not yet"
+				jsonR.Data[symbol+":last_checked_news"] = "unknown"
 			}
+			jsonR.Data[symbol+":last_checked_since"] = "unknown"
 		}
 		jsonR.Data[symbol+":updating_news_now"] = updatingNewsNow
 	}
@@ -99,7 +102,7 @@ func apiQuotes(deps *Dependencies, symbolStr string, jsonR *jsonResponseData) {
 	if isMarketOpen() {
 		quotes, err := loadMultiTickerQuotes(deps, symbols)
 		if err != nil {
-			sublog.Error().Msg("Failed to get live quotes")
+			sublog.Error().Msg("failed to get live quotes")
 			jsonR.Success = false
 			jsonR.Message = "Failure: could not load quote"
 			return

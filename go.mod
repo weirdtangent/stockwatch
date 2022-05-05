@@ -17,6 +17,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/markbates/goth v1.71.1
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
+	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c // indirect
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/common v0.34.0 // indirect
 	github.com/rs/zerolog v1.26.1

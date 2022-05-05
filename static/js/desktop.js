@@ -10,14 +10,14 @@ $(document).ready(function() {
         $("#ticker_eod_info").show();
     }
 
-    $('#auto_refresh').on('click', function() {
-        if ($('#auto_refresh > i').hasClass("fa-spin")) {
-            $('#auto_refresh > i').animate({opacity: 0}, 400, function() { ($('#auto_refresh > i').removeClass("fa-spin").addClass("fa-pause-circle").animate({opacity: 1}, 400)) });
+    $('#auto_refresh_link').on('click', function() {
+        if ($('#auto_refresh').hasClass("fa-spin")) {
+            $('#auto_refresh').animate({opacity: 0}, 400, function() { ($('#auto_refresh').removeClass("fa-spin").removeClass("fa-sync").addClass("fa-pause-circle").animate({opacity: 1}, 400)) });
             $('#auto_refresh_time').animate({opacity: 0}, 400, function() { ($('#auto_refresh_time').text("paused").animate({opacity: 1}, 400)) });
             update_count = 0;
         } else {
-            $('#auto_refresh > i').animate({opacity: 0}, 400, function() { ($('#auto_refresh > i').removeClass("fa-pause-circle").addClass("fa-spin").animate({opacity: 1}, 400)) });
-            $('#auto_refresh_time').animate({opacity: 0}, 400, function() { ($('#auto_refresh_time').text("20 sec").animate({opacity: 1}, 400)) });
+            $('#auto_refresh').animate({opacity: 0}, 400, function() { ($('#auto_refresh').removeClass("fa-pause-circle").addClass("fa-sync").addClass("fa-spin").animate({opacity: 1}, 400)) });
+            $('#auto_refresh_time').animate({opacity: 0}, 400, function() { ($('#auto_refresh_time').text(quote_refresh + " sec").animate({opacity: 1}, 400)) });
             update_count = 180;
             update_quotes();
         }

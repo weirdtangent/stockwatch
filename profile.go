@@ -60,7 +60,7 @@ func profileHandler(deps *Dependencies) http.HandlerFunc {
 
 		webdata["timezones"] = timezones
 
-		renderTemplateDefault(w, r, deps, "profile")
+		renderTemplate(w, r, deps, "profile")
 	})
 }
 
@@ -78,7 +78,7 @@ func getProfile(deps *Dependencies, watcher Watcher) (*Profile, error) {
 
 	rows, err := db.Queryx("SELECT * FROM watcher_email WHERE watcher_id=? ORDER BY email_is_primary DESC, email_address", watcher.WatcherId)
 	if err != nil {
-		sublog.Fatal().Err(err).Str("table_name", "watcher_email").Msg("Failed on SELECT")
+		sublog.Fatal().Err(err).Str("table_name", "watcher_email").Msg("failed on SELECT")
 	}
 	defer rows.Close()
 

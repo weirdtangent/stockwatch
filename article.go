@@ -123,7 +123,7 @@ func getArticlesByTicker(deps *Dependencies, ticker_id uint64, max, days int64) 
 	rows, err := db.Queryx(query, fromDate, ticker_id, max)
 
 	if err != nil {
-		log.Warn().Err(err).Msg("Failed to check for articles")
+		log.Warn().Err(err).Msg("failed to check for articles")
 		return []WebArticle{}, err
 	}
 	defer rows.Close()
@@ -186,7 +186,7 @@ func getRecentArticles(deps *Dependencies) ([]WebArticle, error) {
 	rows, err := db.Queryx(query, fromDate)
 
 	if err != nil {
-		log.Warn().Err(err).Msg("Failed to check for articles")
+		log.Warn().Err(err).Msg("failed to check for articles")
 		return []WebArticle{}, err
 	}
 	defer rows.Close()
@@ -241,27 +241,21 @@ func getNewsLastUpdated(deps *Dependencies, ticker Ticker) (sql.NullTime, bool) 
 		sublog.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get LastDone activity for {symbol}")
 		return sql.NullTime{}, false
 	}
+
+	if lastdone.LastDoneDatetime.Valid {
+		newsLastUpdated = lastdone.LastDoneDatetime // .In(TZLocation)
+	}
 	if lastdone.LastStatus == "success" {
-		newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time}
 		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
+			sublog.Info().Str("symbol", ticker.TickerSymbol).Msg("it has been long enough, queue news check for {symbol}")
 			err = ticker.queueUpdateNews(deps)
 			updatingNewsNow = (err == nil)
-			return sql.NullTime{}, updatingNewsNow
+			return newsLastUpdated, updatingNewsNow
 		} else {
-			// if webdata["TZLocation"] != nil {
-			// 	location, err := time.LoadLocation(webdata["TZLocation"].(string))
-			// 	if err != nil {
-			// 		location, _ = time.LoadLocation("UTC")
-			// 	}
-			// 	newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time.In(location)}
-			// } else {
-			newsLastUpdated = sql.NullTime{Valid: true, Time: lastdone.LastDoneDatetime.Time}
-			// }
-			updatingNewsNow = false
-			return sql.NullTime{}, updatingNewsNow
+			return newsLastUpdated, false
 		}
 	}
-	sublog.Info().Str("symbol", ticker.TickerSymbol).Msg("last try failed, lets try to get news again")
+	sublog.Info().Str("symbol", ticker.TickerSymbol).Msg("last try failed, queue news check for {symbol}")
 	err = ticker.queueUpdateNews(deps)
 	updatingNewsNow = (err == nil)
 

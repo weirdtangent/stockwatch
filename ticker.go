@@ -600,7 +600,7 @@ func (td *TickerDaily) create(deps *Dependencies) error {
 	var insert = "INSERT INTO ticker_daily SET ticker_id=?, price_date=?, price_time=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=?"
 	_, err := db.Exec(insert, td.TickerId, td.PriceDate, td.PriceTime, td.OpenPrice, td.HighPrice, td.LowPrice, td.ClosePrice, td.Volume)
 	if err != nil {
-		sublog.Fatal().Err(err).Str("table_name", "ticker_daily").Msg("Failed on INSERT")
+		sublog.Fatal().Err(err).Str("table_name", "ticker_daily").Msg("failed on INSERT")
 	}
 	return err
 }
@@ -621,7 +621,7 @@ func (td *TickerDaily) createOrUpdate(deps *Dependencies) error {
 	var update = "UPDATE ticker_daily SET price_time=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=? WHERE ticker_id=? AND price_date=?"
 	_, err := db.Exec(update, td.PriceTime, td.OpenPrice, td.HighPrice, td.LowPrice, td.ClosePrice, td.Volume, td.TickerId, td.PriceDate)
 	if err != nil {
-		log.Warn().Err(err).Str("table_name", "ticker_daily").Msg("Failed on UPDATE")
+		log.Warn().Err(err).Str("table_name", "ticker_daily").Msg("failed on UPDATE")
 	}
 	return err
 }
@@ -767,7 +767,7 @@ func (tud *TickerUpDown) createIfNew(deps *Dependencies) error {
 	var insert = "INSERT INTO ticker_updown SET ticker_id=?, updown_action=?, updown_fromgrade=?, updown_tograde=?, updown_date=?, updown_firm=?"
 	_, err = db.Exec(insert, tud.TickerId, tud.UpDownAction, tud.UpDownFromGrade, tud.UpDownToGrade, tud.UpDownDate, tud.UpDownFirm)
 	if err != nil {
-		sublog.Fatal().Err(err).Str("table_name", "ticker_updown").Msg("Failed on INSERT")
+		sublog.Fatal().Err(err).Str("table_name", "ticker_updown").Msg("failed on INSERT")
 	}
 	return err
 }
@@ -796,7 +796,7 @@ func (ts *TickerSplit) createIfNew(deps *Dependencies) error {
 	var insert = "INSERT INTO ticker_split SET ticker_id=?, split_date=?, split_ratio=?"
 	_, err = db.Exec(insert, ts.TickerId, ts.SplitDate, ts.SplitRatio)
 	if err != nil {
-		sublog.Fatal().Err(err).Str("table_name", "ticker_split").Msg("Failed on INSERT")
+		sublog.Fatal().Err(err).Str("table_name", "ticker_split").Msg("failed on INSERT")
 	}
 	return err
 }

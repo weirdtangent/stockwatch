@@ -23,6 +23,8 @@ import (
 	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/google"
 	"github.com/markbates/goth/providers/twitter"
+	"github.com/markbates/goth/providers/yahoo"
+	"github.com/oxtoacart/bpool"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -41,10 +43,12 @@ type Dependencies struct {
 	cookieStore  *dynastore.Store
 	redisPool    *redis.Pool
 	templates    *template.Template
+	bufpool      *bpool.BufferPool
 	secrets      map[string]string
 	session      *sessions.Session
 	config       map[string]interface{}
 	webdata      map[string]interface{}
+	messages     []Message
 	request_id   string
 	nonce        string
 }
@@ -127,7 +131,7 @@ func setupSessionStore(deps *Dependencies) {
 		dynastore.HTTPOnly(),
 		dynastore.Domain("stockwatch.graystorm.com"),
 		dynastore.Path("/"),
-		dynastore.MaxAge(24*60*60),
+		dynastore.MaxAge(60*60*24*365),
 		dynastore.Codecs(secureCookie),
 	)
 	if err != nil {
@@ -148,6 +152,7 @@ func setupOAuth(deps *Dependencies) {
 		github.New(secrets["github_api_key"], secrets["github_api_secret"], "https://stockwatch.graystorm.com/auth/github/callback"),
 		google.New(secrets["google_oauth_client_id"], secrets["google_oauth_client_secret"], "https://stockwatch.graystorm.com/auth/google/callback", "openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"),
 		twitter.New(secrets["twitter_api_key"], secrets["twitter_api_secret"], "https://stockwatch.graystorm.com/auth/twitter/callback"),
+		yahoo.New(secrets["yahoo_client_id"], secrets["yahoo_client_secret"], "https://stockwatch.graystorm.com/auth/yahoo/callback", "openid", "profile", "email"),
 	)
 
 	gothic.Store = cookieStore
@@ -183,10 +188,12 @@ func setupTemplates(deps *Dependencies) {
 	}
 	tmpl, err = tmpl.ParseGlob("templates/*.gohtml")
 	if err != nil {
-		sublog.Fatal().Err(err).Str("template_dir", "templates").Msg("Failed to parse top-level template(s)")
+		sublog.Fatal().Err(err).Str("template_dir", "templates").Msg("failed to parse top-level template(s)")
 	}
 
 	deps.templates = tmpl
+
+	deps.bufpool = bpool.NewBufferPool(64 * 1024)
 }
 
 func startServer(deps *Dependencies) {

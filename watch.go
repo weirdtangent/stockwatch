@@ -8,7 +8,7 @@ func loadWebWatches(deps *Dependencies, ticker_id uint64) ([]WebWatch, error) {
 	if err != nil {
 		sublog.Fatal().Err(err).
 			Str("table_name", "watch").
-			Msg("Failed on SELECT")
+			Msg("failed on SELECT")
 	}
 	defer rows.Close()
 

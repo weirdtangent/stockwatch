@@ -43,13 +43,13 @@
         </div><!-- left column -->
 
         <div class="col-8 col-sm-3 col-md-10 top-box"><!-- content -->
-          <div class="container-fluid">
+          <div class="container-fluid{{if eq .config.template_name "view-daily"}} main-content{{end}}">
             <div class="row g-0 bg-primary pb-3">
               <div class="col-4">
                 <form class="form-control bg-primary no-border" method="POST" action="/search/ticker">
                   <input class="form-control-sm" name="searchString" type="search" autofocus size=20 placeholder="Symbol/Company name" aria-label="Symbol Search"{{if .searchString}} value="{{.searchString}}"{{end}}>
-                  <button class="badge bg-warning text-dark" type="submit" name="submit" value="jump">JUMP</button>
-                  <button class="badge bg-warning text-dark" type="submit" name="submit" value="search">SEARCH</button>
+                  <button class="badge bg-warning text-dark" type="submit" name="submit" value="jump">Jump</button>
+                  <button class="badge bg-warning text-dark" type="submit" name="submit" value="search">Search</button>
                 </form>
               </div>
               <div class="col-6 align-self-center">

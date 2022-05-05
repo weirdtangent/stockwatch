@@ -26,7 +26,7 @@ func chartHandlerTickerDailyLine(deps *Dependencies, ticker Ticker, exchange *Ex
 	// build data needed
 	days := len(dailies)
 	if days == 0 {
-		html, _ := renderTemplateToString("_emptychart", nil)
+		html, _ := renderTemplateToString(deps, "_emptychart", nil)
 		return html
 	}
 

@@ -16,7 +16,7 @@ func renderToHtml(deps *Dependencies, c interface{}) template.HTML {
 	r := c.(chartrender.Renderer)
 	err := r.Render(&buf)
 	if err != nil {
-		sublog.Error().Err(err).Msg("Failed to render line chart")
+		sublog.Error().Err(err).Msg("failed to render line chart")
 		return ""
 	}
 

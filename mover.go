@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -8,15 +9,16 @@ import (
 )
 
 type Mover struct {
-	MoverId        uint64    `db:"mover_id"`
-	SourceId       uint64    `db:"source_id"`
-	TickerId       uint64    `db:"ticker_id"`
-	MoverDate      string    `db:"mover_date"`
-	MoverType      string    `db:"mover_type"`
-	LastPrice      float64   `db:"last_price"`
-	PriceChange    float64   `db:"price_change"`
-	PriceChangePct float64   `db:"price_change_pct"`
-	Volume         float64   `db:"volume"`
+	MoverId        uint64  `db:"mover_id"`
+	SourceId       uint64  `db:"source_id"`
+	TickerId       uint64  `db:"ticker_id"`
+	MoverDate      string  `db:"mover_date"`
+	MoverType      string  `db:"mover_type"`
+	LastPrice      float64 `db:"last_price"`
+	PriceChange    float64 `db:"price_change"`
+	PriceChangePct float64 `db:"price_change_pct"`
+	Volume         float64 `db:"volume"`
+	VolumeStr      string
 	CreateDatetime time.Time `db:"create_datetime"`
 	UpdateDatetime time.Time `db:"update_datetime"`
 }
@@ -88,7 +90,7 @@ func getMovers(deps *Dependencies) (Movers, error) {
 
 	rows, err := db.Queryx(`SELECT * FROM mover WHERE mover_date=?`, latestDateStr)
 	if err != nil {
-		sublog.Error().Err(err).Str("mover_date", latestDateStr).Msg("Failed to load movers")
+		sublog.Error().Err(err).Str("mover_date", latestDateStr).Msg("failed to load movers")
 		return movers, err
 	}
 	defer rows.Close()
@@ -96,6 +98,11 @@ func getMovers(deps *Dependencies) (Movers, error) {
 	mover := Mover{}
 	for rows.Next() {
 		err = rows.StructScan(&mover)
+		if mover.Volume > 1_000_000 {
+			mover.VolumeStr = fmt.Sprintf("%.2fM", mover.Volume/1_000_000)
+		} else if mover.Volume > 1_000 {
+			mover.VolumeStr = fmt.Sprintf("%.2fK", mover.Volume/1_000)
+		}
 		if err != nil {
 			log.Warn().Err(err).Str("table_name", "mover").Msg("Error reading result rows")
 		} else {

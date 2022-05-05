@@ -62,7 +62,7 @@ func getGithubCommits(deps *Dependencies) (*string, *[]Commit, error) {
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		sublog.Error().Err(err).Int("status_code", res.StatusCode).Msg("Failed to ready body of response")
+		sublog.Error().Err(err).Int("status_code", res.StatusCode).Msg("failed to ready body of response")
 		return &readme, &commitsResponse, err
 	}
 
@@ -88,7 +88,7 @@ func getGithubCommits(deps *Dependencies) (*string, *[]Commit, error) {
 
 	body, err = io.ReadAll(res.Body)
 	if err != nil {
-		sublog.Error().Err(err).Int("status_code", res.StatusCode).Msg("Failed to ready body of response")
+		sublog.Error().Err(err).Int("status_code", res.StatusCode).Msg("failed to ready body of response")
 		return &readme, &commitsResponse, err
 	}
 

@@ -53,7 +53,7 @@ func getWatcherRecents(deps *Dependencies, watcher Watcher) []WatcherRecent {
 	  WHERE watcher_id=?
 	  ORDER BY watcher_recent.update_datetime DESC`, watcher.WatcherId)
 	if err != nil {
-		sublog.Error().Err(err).Str("table_name", "watcher_recent").Msg("Failed on SELECT")
+		sublog.Error().Err(err).Str("table_name", "watcher_recent").Msg("failed on SELECT")
 		return []WatcherRecent{}
 	}
 	defer rows.Close()
@@ -163,6 +163,10 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 				}
 			}
 		}
+		lastCheckedSince := "unknown"
+		if lastCheckedNews.Valid {
+			lastCheckedSince = fmt.Sprintf("%.0f min ago", time.Since(lastCheckedNews.Time).Minutes())
+		}
 
 		recentPlus = append(recentPlus, RecentPlus{
 			TickerId:           ticker.TickerId,
@@ -178,7 +182,7 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 			DiffPerc:           PriceDiffPercAmt(lastTickerDaily[1].ClosePrice, lastTickerDaily[0].ClosePrice),
 			LastDailyMove:      lastDailyMove,
 			LastCheckedNews:    sql.NullTime{Valid: true, Time: lastCheckedNews.Time.In(localTz)},
-			LastCheckedSince:   fmt.Sprintf("%.0f min ago", time.Since(lastCheckedNews.Time).Minutes()),
+			LastCheckedSince:   lastCheckedSince,
 			UpdatingNewsNow:    updatingNewsNow,
 			Locked:             locked[n],
 			Articles:           tickerArticles,

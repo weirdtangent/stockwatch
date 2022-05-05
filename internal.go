@@ -45,7 +45,7 @@ func JSONReportHandler(deps *Dependencies) http.HandlerFunc {
 
 		_, err := s3svc.PutObject(inputPutObj)
 		if err != nil {
-			log.Warn().Err(err).Str("bucket", "stockwatch-graystorm").Str("key", logKey).Msg("Failed to upload to S3 bucket")
+			log.Warn().Err(err).Str("bucket", "stockwatch-graystorm").Str("key", logKey).Msg("failed to upload to S3 bucket")
 		}
 	})
 }

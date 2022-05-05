@@ -1,2 +1,10 @@
 {{- define "_messageblock" -}}
+  {{- if .messages}}
+    {{template "_message" . }}
+    <script nonce="{{.nonce}}">
+      $(document).ready(function() {
+        $('#messages-modal').modal('show')
+      });
+    </script>
+  {{- end}}
 {{- end}}

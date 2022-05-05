@@ -64,9 +64,12 @@ func checkAuthState(w http.ResponseWriter, r *http.Request, deps *Dependencies) 
 
 func authLoginHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sublog := deps.logger
+
 		if user, err := gothic.CompleteUserAuth(w, r); err == nil {
 			signinUser(deps, w, r, user)
 		} else {
+			sublog.Error().Err(err).Str("handler", "authLoginHandler").Msg("failed to complete auth")
 			gothic.BeginAuthHandler(w, r)
 		}
 	})
@@ -78,7 +81,9 @@ func authCallbackHandler(deps *Dependencies) http.HandlerFunc {
 
 		user, err := gothic.CompleteUserAuth(w, r)
 		if err != nil {
-			sublog.Error().Err(err).Msg("Failed to complete auth")
+			sublog.Error().Err(err).Str("handler", "authCallbackHandler").Msg("failed to complete auth")
+			deps.messages = append(deps.messages, Message{Text: fmt.Sprintf("Sorry, failed to complete oauth - %s", err), Level: "error"})
+			renderTemplate(w, r, deps, "home")
 			return
 		}
 		signinUser(deps, w, r, user)
@@ -86,12 +91,13 @@ func authCallbackHandler(deps *Dependencies) http.HandlerFunc {
 }
 
 func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, gothUser goth.User) {
-	sublog := deps.logger
+	sublog := deps.logger.With().Str("handler", "signinUser").Logger()
 	session := deps.session
 
 	// get (or create) watcher account based on oauth properties
 	// specifically, based on the oauth_sub value, because email addresses can change
 	// and we want a watchers session and "account" to follow them even if they change
+	sublog.Info().Str("gothUserId", gothUser.UserID).Str("gothName", gothUser.Name).Msg("signinUser called")
 	watcher := Watcher{
 		WatcherId:       0,
 		WatcherSub:      gothUser.UserID,
@@ -101,13 +107,13 @@ func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, goth
 		WatcherLevel:    "standard",
 		WatcherTimezone: "",
 		WatcherPicURL:   gothUser.AvatarURL,
-		SessionId:       "",
+		SessionId:       deps.session.ID,
 		CreateDatetime:  time.Now(),
 		UpdateDatetime:  time.Now(),
 	}
 	watcher, err := createOrUpdateWatcherFromOAuth(deps, watcher, gothUser.Email)
 	if err != nil {
-		sublog.Error().Err(err).Msg("Failed to get/create watcher from one-tap")
+		sublog.Error().Err(err).Msg("failed to get/create watcher from one-tap")
 		http.NotFound(w, r)
 		return
 	}
@@ -148,7 +154,7 @@ func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, goth
 		}
 		http.SetCookie(w, widCookie)
 	} else {
-		sublog.Error().Err(err).Msg("Failed to encode cookie")
+		sublog.Error().Err(err).Msg("failed to encode cookie")
 	}
 
 	session.Values["encWatcherId"] = encryptId(deps, "watcher", watcher.WatcherId)

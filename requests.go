@@ -130,6 +130,9 @@ func (rh requestHandler) requestHandler(h http.HandlerFunc) http.HandlerFunc {
 			},
 		}
 
+		// messages
+		rh.deps.messages = []Message{}
+
 		rh.handler.ServeHTTP(w, r)
 
 		// we've been around the block, log the request/time-to-respond
@@ -154,7 +157,7 @@ func (rh requestHandler) requestHandler(h http.HandlerFunc) http.HandlerFunc {
 				Int("status_code", recorder.Status).
 				Str("remote_ip_addr", remote_ip_addr).
 				Int64("response_time", time.Since(start).Nanoseconds()).
-				Msg("")
+				Msg("request")
 		}
 	})
 }
