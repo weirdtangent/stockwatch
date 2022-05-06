@@ -67,7 +67,7 @@ div.paragraph {
   max-width: 750px;
 }
 
-#auto_refresh:hover {
+#auto_refresh_link:hover {
   color: #F5E239;
   cursor: pointer;
 }

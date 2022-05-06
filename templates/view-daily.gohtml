@@ -35,8 +35,8 @@
                   <div class="d-flex">
                     <div class="px-2 flex-fill">Related News</div>
                     <div class="px-2 ">Last Checked:
-                      <span id="{{.TickerSymbol}}_last_checked_news">{{if .LastCheckedNews.Valid }}{{.LastCheckedNews.Time.Format "Jan 02 15:04 MST"}}{{ else }}-{{end}}</span>
-                      <i id="updating_news_now" class="ms-2 mb-2 fad fa-sync fa-spin{{if .UpdatingNewsNow}}{{else}} hide{{end}}"></i>
+                      <span id="{{.TickerSymbol}}_last_checked_news">{{.LastCheckedSince}}</span>
+                      <i id="{{.TickerSymbol}}_updating_news_now" class="ms-2 mb-2 fad fa-sync fa-spin{{if .UpdatingNewsNow}}{{else}} hide{{end}}"></i>
                     </div>
                   </div>
                 </div>

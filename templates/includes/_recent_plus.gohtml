@@ -2,7 +2,7 @@
 {{- if .RecentPlus}}
                 <div class="row g-2 mt-1 row-cols-1 row-cols-md-3 row-cols-xl-6">
                   {{range .RecentPlus}}
-                  <div class="col-12 col-md-2 card border-0 bg-transparent" id="{{.TickerSymbol}}_card">
+                  <div class="col-12 col-md-6 col-lg-4 col-xl-2 card border-0 bg-transparent" id="{{.TickerSymbol}}_card">
                     <div class="card">
                       <div class="card-title bg-warning text-dark d-flex px-1 py-1">
                         <div class="flex-fill"><img class="favicon me-1 border border-dark mt-0" alt="Tiny logo from company website" {{if .TickerFavIconCDATA}}src="data:image/ico;base64,{{.TickerFavIconCDATA}}"{{end}}><a href="/view/{{.TickerSymbol}}" class="text-decoration-none text-dark">{{.TickerSymbol}}/{{.Exchange | ToLower}}</a></div>
@@ -13,7 +13,7 @@
                           <div class="col-12">
                             <div class="nowrap">{{.TickerName}}</div>
                             {{if .LiveQuote.QuotePrice }}
-                              <span id="{{.TickerSymbol}}_quote_shareprice">${{printf "%.2f" .LiveQuote.QuotePrice}}</span>
+                              <span class="fs-5" id="{{.TickerSymbol}}_quote_shareprice">${{printf "%.2f" .LiveQuote.QuotePrice}}</span><br/>
                               <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="{{ PriceMoveIndicatorCSS .LiveQuote.QuoteChange}}"></i></span>
                               <span class="{{PriceBigMoveColorCSS .LiveQuote.QuoteChangePct}}">
                                 <span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .LiveQuote.QuoteChange}}</span>
@@ -23,7 +23,7 @@
                               <br/>
                               <span class="text-info"> as of </span><span class="text-light small"><span id="{{.TickerSymbol}}_quote_asof">{{ FormatUnixTime .LiveQuote.QuoteTime "Jan 2 15:04:05" }}</span></span>
                             {{- else}}
-                              <span id="{{.TickerSymbol}}_quote_shareprice" class="fs-6">${{printf "%.2f" .LastClose.ClosePrice}}</span>
+                              <span class="fs-5" id="{{.TickerSymbol}}_quote_shareprice" class="fs-6">${{printf "%.2f" .LastClose.ClosePrice}}</span><br/>
                               <i id="{{.TickerSymbol}}_quote_dailymove" class="{{PriceMoveIndicatorCSS .DiffAmt}}"></i>
                               <span class="{{PriceBigMoveColorCSS .DiffPerc}}">
                                 <span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .DiffAmt}}</span>

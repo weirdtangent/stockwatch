@@ -13,8 +13,11 @@
                 <h3 class="py-2 my-0 text-center text-dark">Stockwatch Desktop</h3>
                 <div class="bg-dark px-1 py-1">
                   <span class="small text-info">Info refresh: </span>
-                  <span id="auto_refresh_link"><i id="auto_refresh" class="ms-2 mb-2 fad {{if gt (len .RecentPlus) 0}}fa-sync fa-spin{{else}}fa-pause-circle{{end}}"></i> <span id="auto_refresh_time">{{if gt (len .RecentPlus) 0}}20 sec{{else}}paused{{end}}</span>
-                  <i id="auto_refresh_working" class="ms-2 mb-2 myyellow fad fa-pulse fa-signal-stream hide"></i></span>
+                  <span id="auto_refresh_link">
+                    <i id="auto_refresh" class="ms-2 mb-2 fad {{if gt (len .RecentPlus) 0}}fa-sync fa-spin{{else}}fa-pause-circle{{end}}"></i>
+                    <span id="auto_refresh_time">{{if gt (len .RecentPlus) 0}}{{if .config.is_market_open}}20 sec{{else}}5 min{{end}}{{else}}paused{{end}}</span>
+                  </span>
+                  <i id="auto_refresh_working" class="ms-2 mb-2 myyellow fad fa-pulse fa-signal-stream hide"></i>
                 </div>
               </div>
             </div>
@@ -26,7 +29,7 @@
               {{- template "_announcement" . }}
               {{- template "_recent_plus" . }}
               <div class="row g-2 mt-1">
-                <div id="movers" class="mt-1 col-12 col-lg-4 bg-transparent">
+                <div id="movers" class="mt-1 col-12 col-lg-6 col-xxl-4 bg-transparent">
                   <div class="bg-warning text-dark px-2 py-1">Movers and Shakers, {{.Movers.ForDate}}</div>
                   <div id="carouselMovers" class="carousel slide carousel-fade bg-dark px-2 py-1" data-bs-ride="carousel" data-bs-interval="8000">
                     <div class="carousel-indicators">
@@ -36,7 +39,7 @@
                     </div>
                     <div class="carousel-inner">
                       <div class="carousel-item active">
-                        <div class="bg-success rounded mx-2 my-2">
+                        <div class="bg-success rounded m-1">
                           <h5 class="text-dark pt-2 ps-2">Gainers (by % gain)</h5>
                           <ul class="list-group small px-2 pb-5 nowrap">
                             {{range .Movers.SortGainers}} {{- template "_mover" . }} {{end}}
@@ -44,7 +47,7 @@
                         </div>
                       </div>
                       <div class="carousel-item">
-                        <div class="bg-danger rounded mx-2 my-2">
+                        <div class="bg-danger rounded m-1">
                           <h5 class="text-dark pt-2 ps-2">Losers (by % loss)</h5>
                           <ul class="list-group small px-2 pb-5 nowrap">
                             {{range .Movers.SortLosers}} {{- template "_mover" . }} {{end}}
@@ -52,7 +55,7 @@
                         </div>
                       </div>
                       <div class="carousel-item">
-                        <div class="bg-primary rounded mx-2 my-2">
+                        <div class="bg-primary rounded m-1">
                           <h5 class="text-dark pt-2 ps-2">Actives (by volume)</h5>
                           <ul class="list-group small px-2 pb-5 nowrap">
                             {{range .Movers.Actives}} {{- template "_mover" . }} {{end}}
@@ -63,8 +66,18 @@
                   </div>
                 </div><!-- col-12/6 movers and shakers -->
 
-                <div class="mt-1 col-12 col-lg-8 bg-transparent">
-                  <div class="bg-warning text-dark px-2 py-1">Recent Market/Financial News</div>
+                <div class="mt-1 col-12 col-lg-6 col-xxl-8 bg-transparent">
+
+                  <div class="bg-warning text-dark px-2 py-1">
+                    <div class="d-flex">
+                      <div class="px-2 flex-fill">Financial News</div>
+                      <div class="px-2">Last Checked:
+                        <span id="last_checked_news">{{.LastCheckedSince}}</span>
+                        <i id="updating_news_now" class="ms-2 mb-2 fad fa-sync fa-spin{{if .UpdatingNewsNow}}{{else}} hide{{end}}"></i>
+                      </div>
+                    </div>
+                  </div>
+
                   <div class="bg-dark px-2 py-1">
                     {{range .Articles}}
                       {{- if .ArticleURL}}
@@ -93,7 +106,7 @@
 {{- end }}
 
 {{ define "_mover" }}
-                            <li class="list-group-item list-group-item-success text-dark dt-mover mv-gainer">
+                            <li class="list-group-item list-group-item-success text-dark dt-mover mv-gainer px-2">
                               <a href="/view/{{.Ticker.TickerSymbol}}" class="h6 ps-1 pe-2 text-dark text-decoration-none" title="{{.Ticker.TickerName}}">{{.Ticker.TickerSymbol}}
                                 <span class="small">
                                   {{- printf "$%.2f " .Mover.LastPrice -}}

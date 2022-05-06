@@ -146,10 +146,10 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 		lastTickerDaily, _ := getLastTickerDaily(deps, ticker.TickerId)
 		lastDailyMove, _ := getLastTickerDailyMove(deps, ticker.TickerId)
 
-		lastCheckedNews, updatingNewsNow := getNewsLastUpdated(deps, ticker)
+		lastCheckedNews, lastCheckedSince, updatingNewsNow := getTickerNewsLastUpdated(deps, ticker)
 		// localTz, err := time.LoadLocation(webdata["TZLocation"].(string))
 		// if err != nil {
-		localTz, _ := time.LoadLocation("UTC")
+		// localTz, _ := time.LoadLocation("UTC")
 		// }
 
 		// load any recent news
@@ -162,10 +162,6 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 					tickerArticles[n].ArticleURL = "/view/" + ticker.TickerSymbol + "?article=" + tickerArticles[n].ArticleEncId
 				}
 			}
-		}
-		lastCheckedSince := "unknown"
-		if lastCheckedNews.Valid {
-			lastCheckedSince = fmt.Sprintf("%.0f min ago", time.Since(lastCheckedNews.Time).Minutes())
 		}
 
 		recentPlus = append(recentPlus, RecentPlus{
@@ -181,7 +177,7 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 			DiffAmt:            PriceDiffAmt(lastTickerDaily[1].ClosePrice, lastTickerDaily[0].ClosePrice),
 			DiffPerc:           PriceDiffPercAmt(lastTickerDaily[1].ClosePrice, lastTickerDaily[0].ClosePrice),
 			LastDailyMove:      lastDailyMove,
-			LastCheckedNews:    sql.NullTime{Valid: true, Time: lastCheckedNews.Time.In(localTz)},
+			LastCheckedNews:    sql.NullTime{Valid: true, Time: lastCheckedNews.Time}, // .In(localTz)},
 			LastCheckedSince:   lastCheckedSince,
 			UpdatingNewsNow:    updatingNewsNow,
 			Locked:             locked[n],

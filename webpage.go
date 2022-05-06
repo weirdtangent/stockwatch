@@ -59,13 +59,12 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 		sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Str("action", "build charts").Msg("timer")
 	}
 
-	// get Ticker_UpDowns
 	tickerUpDowns, _ := ticker.getUpDowns(deps, 90)
 	tickerAttributes, _ := ticker.getAttributes(deps)
 	tickerSplits, _ := ticker.getSplits(deps)
 	lastTickerDaily, _ := getLastTickerDaily(deps, ticker.TickerId)
 	lastTickerDailyMove, _ := getLastTickerDailyMove(deps, ticker.TickerId)
-	lastCheckedNews, updatingNewsNow := getNewsLastUpdated(deps, ticker)
+	lastCheckedNews, lastCheckedSince, updatingNewsNow := getTickerNewsLastUpdated(deps, ticker)
 
 	// load up to last 100 days of EOD data
 	ticker_dailies, _ := ticker.getTickerEODs(deps, timespan)
@@ -141,7 +140,7 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 
 	// localTz, err := time.LoadLocation(webdata["TZLocation"].(string))
 	// if err != nil {
-	localTz, _ := time.LoadLocation("UTC")
+	// localTz, _ := time.LoadLocation("UTC")
 	// }
 
 	webdata["TickerSymbol"] = symbol
@@ -158,9 +157,11 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 	webdata["ticker_splits"] = tickerSplits
 	webdata["last_ticker_daily_move"] = lastTickerDailyMove
 	webdata["ticker_dailies"] = TickerDailies{ticker_dailies}
-	webdata["LastCheckedNews"] = lastCheckedNews.Time.In(localTz)
+	webdata["LastCheckedNews"] = lastCheckedNews
+	webdata["LastCheckedSince"] = lastCheckedSince
 	webdata["UpdatingNewsNow"] = updatingNewsNow
 	webdata["watches"] = webwatches
+	webdata["TickerFavIconCDATA"] = ticker.getFavIconCDATA(deps)
 
 	webdata["lineChart"] = lineChartHTML
 	webdata["klineChart"] = klineChartHTML

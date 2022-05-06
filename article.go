@@ -226,38 +226,80 @@ func getRecentArticles(deps *Dependencies) ([]WebArticle, error) {
 	return articles, nil
 }
 
-func getNewsLastUpdated(deps *Dependencies, ticker Ticker) (sql.NullTime, bool) {
+func getTickerNewsLastUpdated(deps *Dependencies, ticker Ticker) (sql.NullTime, string, bool) {
 	sublog := deps.logger
 
-	newsLastUpdated := sql.NullTime{Valid: false, Time: time.Time{}}
+	lastCheckedNews := sql.NullTime{Valid: false, Time: time.Time{}}
+	lastCheckedSince := "unknown"
 	updatingNewsNow := false
+
 	lastdone := LastDone{Activity: "ticker_news", UniqueKey: ticker.TickerSymbol}
 	err := lastdone.getByActivity(deps)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		err = ticker.queueUpdateNews(deps)
 		updatingNewsNow = (err == nil)
-		return sql.NullTime{}, updatingNewsNow
+		return sql.NullTime{}, "", updatingNewsNow
 	} else if err != nil {
 		sublog.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get LastDone activity for {symbol}")
-		return sql.NullTime{}, false
+		return sql.NullTime{}, "", false
 	}
 
 	if lastdone.LastDoneDatetime.Valid {
-		newsLastUpdated = lastdone.LastDoneDatetime // .In(TZLocation)
+		lastCheckedNews = lastdone.LastDoneDatetime // .In(TZLocation)
+		lastCheckedSince = fmt.Sprintf("%.0f min ago", time.Since(lastCheckedNews.Time).Minutes())
 	}
 	if lastdone.LastStatus == "success" {
 		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
 			sublog.Info().Str("symbol", ticker.TickerSymbol).Msg("it has been long enough, queue news check for {symbol}")
 			err = ticker.queueUpdateNews(deps)
 			updatingNewsNow = (err == nil)
-			return newsLastUpdated, updatingNewsNow
+			return lastCheckedNews, lastCheckedSince, updatingNewsNow
 		} else {
-			return newsLastUpdated, false
+			return lastCheckedNews, lastCheckedSince, false
 		}
 	}
 	sublog.Info().Str("symbol", ticker.TickerSymbol).Msg("last try failed, queue news check for {symbol}")
 	err = ticker.queueUpdateNews(deps)
 	updatingNewsNow = (err == nil)
 
-	return newsLastUpdated, updatingNewsNow
+	return lastCheckedNews, lastCheckedSince, updatingNewsNow
+}
+
+func getFinancialNewsLastUpdated(deps *Dependencies) (sql.NullTime, string, bool) {
+	sublog := deps.logger
+
+	lastCheckedNews := sql.NullTime{Valid: false, Time: time.Time{}}
+	lastCheckedSince := "unknown"
+	updatingNewsNow := false
+
+	lastdone := LastDone{Activity: "financial_news", UniqueKey: "stockwatch"}
+	err := lastdone.getByActivity(deps)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		// err = queueUpdateNews(deps)
+		// updatingNewsNow = (err == nil)
+		return lastCheckedNews, lastCheckedSince, updatingNewsNow
+	} else if err != nil {
+		sublog.Error().Err(err).Str("task", "financial_news").Msg("failed to get LastDone activity for {task}")
+		return sql.NullTime{}, "", false
+	}
+
+	if lastdone.LastDoneDatetime.Valid {
+		lastCheckedNews = lastdone.LastDoneDatetime // .In(TZLocation)
+		lastCheckedSince = fmt.Sprintf("%.0f min ago", time.Since(lastCheckedNews.Time).Minutes())
+	}
+	if lastdone.LastStatus == "success" {
+		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
+			// sublog.Info().Str("task", "financial_news").Msg("it has been long enough, queue {task}")
+			// err = queueUpdateNews(deps)
+			// updatingNewsNow = (err == nil)
+			return lastCheckedNews, lastCheckedSince, updatingNewsNow
+		} else {
+			return lastCheckedNews, lastCheckedSince, false
+		}
+	}
+	sublog.Info().Str("task", "financial_news").Msg("last try failed, queue {task}")
+	// err = queueUpdateNews(deps)
+	// updatingNewsNow = (err == nil)
+
+	return lastCheckedNews, lastCheckedSince, updatingNewsNow
 }

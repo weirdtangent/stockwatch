@@ -6,7 +6,7 @@
           </div>
           {{- end}}
 
-          <div class="d-flex flex-column align-items-center pt-3">
+          <div class="nav d-flex flex-column align-items-center pt-3">
             {{if .encWatcherId -}}
               <h5 class="w-100 text-light text-center welcome mb-0">Welcome back<br>{{.Watcher.WatcherNickname}}!<br></h5>
               {{- if .provider}}<span class="text-light small mb-4">oauth via {{.provider}}</span>{{end}}

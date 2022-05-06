@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -83,19 +82,31 @@ func apiQuotes(deps *Dependencies, symbolStr string, jsonR *jsonResponseData) {
 		validSymbols = append(validSymbols, symbol)
 		validTickers = append(validTickers, ticker)
 
-		lastCheckedNews, updatingNewsNow := getNewsLastUpdated(deps, ticker)
+		lastCheckedNews, lastCheckedSince, updatingNewsNow := getTickerNewsLastUpdated(deps, ticker)
+		jsonR.Data[symbol+":last_checked_since"] = lastCheckedSince
+		jsonR.Data[symbol+":updating_news_now"] = updatingNewsNow
 		if lastCheckedNews.Valid {
 			jsonR.Data[symbol+":last_checked_news"] = lastCheckedNews.Time.Format("Jan 02 15:04")
-			jsonR.Data[symbol+":last_checked_since"] = fmt.Sprintf("%.0f min ago", time.Since(lastCheckedNews.Time).Minutes())
 		} else {
 			if updatingNewsNow {
 				jsonR.Data[symbol+":last_checked_news"] = "checking now"
 			} else {
 				jsonR.Data[symbol+":last_checked_news"] = "unknown"
 			}
-			jsonR.Data[symbol+":last_checked_since"] = "unknown"
 		}
-		jsonR.Data[symbol+":updating_news_now"] = updatingNewsNow
+	}
+
+	lastCheckedNews, lastCheckedSince, updatingNewsNow := getFinancialNewsLastUpdated(deps)
+	jsonR.Data["last_checked_since"] = lastCheckedSince
+	jsonR.Data["updating_news_now"] = updatingNewsNow
+	if lastCheckedNews.Valid {
+		jsonR.Data["last_checked_news"] = lastCheckedNews.Time.Format("Jan 02 15:04")
+	} else {
+		if updatingNewsNow {
+			jsonR.Data["last_checked_news"] = "checking now"
+		} else {
+			jsonR.Data["last_checked_news"] = "unknown"
+		}
 	}
 
 	// if the market is open, lets get a live quote

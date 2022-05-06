@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"net/http"
 )
 
@@ -27,6 +28,7 @@ func desktopHandler(deps *Dependencies) http.HandlerFunc {
 		if err != nil {
 			sublog.Error().Err(err).Msg("failed to get recent_plus")
 		}
+		lastCheckedNews, lastCheckedSince, updatingNewsNow := getFinancialNewsLastUpdated(deps)
 
 		webdata["Movers"] = movers
 		webdata["Articles"] = articles
@@ -35,6 +37,9 @@ func desktopHandler(deps *Dependencies) http.HandlerFunc {
 		webdata["Announcement"] = []string{
 			"2022-04-22 Moving things around alot, especially on the desktop. Trying to find what I like, but email me if you have ideas!",
 		}
+		webdata["LastCheckedNews"] = sql.NullTime{Valid: true, Time: lastCheckedNews.Time} //.In(localTz)}
+		webdata["LastCheckedSince"] = lastCheckedSince
+		webdata["UpdatingNewsNow"] = updatingNewsNow
 
 		renderTemplate(w, r, deps, "desktop")
 	})

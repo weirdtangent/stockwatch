@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	cloud.google.com/go/compute v1.6.1 // indirect
-	github.com/aws/aws-sdk-go v1.44.5
+	github.com/aws/aws-sdk-go v1.44.8
 	github.com/dgryski/go-skip32 v0.0.0-20151116144831-0e0460d2a555
 	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/gomarkdown/markdown v0.0.0-20220419181919-412bcf14cd2e
@@ -17,7 +17,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/markbates/goth v1.71.1
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
-	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c // indirect
+	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/common v0.34.0 // indirect
 	github.com/rs/zerolog v1.26.1
@@ -27,7 +27,7 @@ require (
 	github.com/weirdtangent/mytime v0.1.1
 	github.com/weirdtangent/yhfinance v1.1.3
 	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
-	golang.org/x/sys v0.0.0-20220502124256-b6088ccd6cba // indirect
+	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 // indirect
 	golang.org/x/text v0.3.7
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect

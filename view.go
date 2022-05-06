@@ -28,17 +28,13 @@ func viewTickerDailyHandler(deps *Dependencies) http.HandlerFunc {
 			}
 		}
 
+		// this loads TONS of stuff into webdata
 		ticker, err := loadTickerDetails(deps, symbol, timespan)
 		if err != nil {
 			sublog.Error().Err(err).Msg("failed to load ticker details for viewing")
 			renderTemplate(w, r, deps, "desktop")
 			return
 		}
-
-		lastCheckedNews, updatingNewsNow := getNewsLastUpdated(deps, ticker)
-		webdata["LastCheckedNews"] = lastCheckedNews
-		webdata["UpdatingNewsNow"] = updatingNewsNow
-		webdata["TickerFavIconCDATA"] = ticker.getFavIconCDATA(deps)
 
 		// Add this ticker to recents list
 		watcherRecents, err := addToWatcherRecents(deps, watcher, ticker)

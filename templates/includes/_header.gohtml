@@ -33,7 +33,7 @@
   <body id="page-top" class="{{.config.template_name}}">
     <div class="container"><!-- viewport -->
       <div class="row g-0"><!-- first row -->
-        <div class="col-4 col-sm-3 col-md-2 bg-dark full-height left-column"><!-- left column -->
+        <div class="col-12 col-sm-4 col-md-3 col-lg-2 bg-dark left-column"><!-- left column -->
           <div class="logo">
             <a href="/">
               <img class="img-fluid mx-auto d-block logo" alt="Stockwatch logo: outline of man in hat with monical, in bright yellow" src="/static/images/logo/stockwatch-t200.png">
@@ -42,17 +42,17 @@
           {{ template "_sidemenu" . }}
         </div><!-- left column -->
 
-        <div class="col-8 col-sm-3 col-md-10 top-box"><!-- content -->
+        <div class="col-12 col-sm-8 col-md-9 col-lg-10 top-box"><!-- content -->
           <div class="container-fluid{{if eq .config.template_name "view-daily"}} main-content{{end}}">
             <div class="row g-0 bg-primary pb-3">
-              <div class="col-4">
+              <div class="col-8 col-lg-4">
                 <form class="form-control bg-primary no-border" method="POST" action="/search/ticker">
                   <input class="form-control-sm" name="searchString" type="search" autofocus size=20 placeholder="Symbol/Company name" aria-label="Symbol Search"{{if .searchString}} value="{{.searchString}}"{{end}}>
                   <button class="badge bg-warning text-dark" type="submit" name="submit" value="jump">Jump</button>
                   <button class="badge bg-warning text-dark" type="submit" name="submit" value="search">Search</button>
                 </form>
               </div>
-              <div class="col-6 align-self-center">
+              <div class="d-none d-lg-block col-lg-6 align-self-center">
                 {{- if not .hideRecents}}
                   {{- if .WatcherRecents}}
                     <div class="flex-grow-1">
@@ -70,7 +70,7 @@
                   {{- end}}
                 {{- end}}
               </div>
-              <div id="is_market_open_color" class="col-2 flush-right {{if .config.is_market_open}}text-success{{else}}text-danger{{end}}">
+              <div id="is_market_open_color" class="col-4 col-lg-2 flush-right {{if .config.is_market_open}}text-success{{else}}text-danger{{end}}">
                 <div class="me-2 text-light">US MARKETS</div>
                 <div class="me-2"><i class="fad fa-power-off"></i> <span id="is_market_open">{{if .config.is_market_open}}TRADING{{else}}CLOSED{{end}}</span></div>
               </div>

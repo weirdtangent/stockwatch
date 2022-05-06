@@ -14,11 +14,6 @@ type LastDone struct {
 	UpdateDatetime   time.Time    `db:"update_datetime"`
 }
 
-const (
-	minTickerNewsDelay       = 60 * 4  //  4 hours
-	minTickerFinancialsDelay = 60 * 24 // 24 hours
-)
-
 // object methods -------------------------------------------------------------
 func (ld *LastDone) getByActivity(deps *Dependencies) error {
 	db := deps.db

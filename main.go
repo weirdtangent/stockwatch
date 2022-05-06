@@ -16,6 +16,9 @@ const (
 
 	zoneDir = "/usr/share/zoneinfo/"
 
+	minTickerNewsDelay       = 60 * 1  //  1 hours
+	minTickerFinancialsDelay = 60 * 24 // 24 hours
+
 	volumeUnits    = 1_000_000 // factor to reduce volume counts by when graphing
 	maxRecentCount = 6         // limit watcher_recents
 	debugging      = true      // output DEBUG level logs
