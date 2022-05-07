@@ -9,7 +9,8 @@ import (
 )
 
 type Transaction struct {
-	TransactionId       uint64    `db:"transaction_id"`
+	TransactionId       uint64 `db:"transaction_id"`
+	EId                 string
 	HoldingId           uint64    `db:"holding_id"`
 	WatcherId           uint64    `db:"watcher_id"`
 	TransactionType     string    `db:"transaction_type"`

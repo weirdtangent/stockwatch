@@ -8,7 +8,8 @@ import (
 // table schema from aurora ---------------------------------------------------
 
 type Country struct {
-	CountryId      uint64    `db:"country_id"`
+	CountryId      uint64 `db:"country_id"`
+	EId            string
 	CountryCode    string    `db:"country_code"`
 	CountryName    string    `db:"country_name"`
 	CreateDatetime time.Time `db:"create_datetime"`
@@ -16,7 +17,8 @@ type Country struct {
 }
 
 type Source struct {
-	SourceId       uint64    `db:"source_id"`
+	SourceId       uint64 `db:"source_id"`
+	EId            string
 	SourceCompany  string    `db:"source_company"`
 	SourceName     string    `db:"source_name"`
 	SourceWebsite  string    `db:"source_website"`
@@ -26,7 +28,8 @@ type Source struct {
 }
 
 type Watch struct {
-	WatchId        uint64       `db:"watch_id"`
+	WatchId        uint64 `db:"watch_id"`
+	EId            string
 	TickerId       uint64       `db:"ticker_id"`
 	SourceId       uint64       `db:"source_id"`
 	SourceDate     string       `db:"source_date"`

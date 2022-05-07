@@ -11,13 +11,15 @@ import (
 )
 
 type Recent struct {
-	TickerId         uint64       `db:"ticker_id"`
-	MSPerformanceId  string       `db:"ms_performance_id"`
-	LastSeenDatetime sql.NullTime `db:"lastseen_datetime"`
+	TickerId         uint64 `db:"ticker_id"`
+	EId              string
+	MSPerformanceId  string    `db:"ms_performance_id"`
+	LastSeenDatetime time.Time `db:"lastseen_datetime"`
 }
 
 type RecentPlus struct {
 	TickerId           uint64
+	EId                string
 	TickerSymbol       string
 	TickerFavIconCDATA string
 	Exchange           string
@@ -42,7 +44,6 @@ func getWatcherRecents(deps *Dependencies, watcher Watcher) []WatcherRecent {
 
 	watcherRecents := make([]WatcherRecent, 0, 30)
 	if watcher.WatcherId == 0 {
-		sublog.Info().Msg("watcher not logged in, so no recents are stored")
 		return watcherRecents
 	}
 
@@ -53,27 +54,27 @@ func getWatcherRecents(deps *Dependencies, watcher Watcher) []WatcherRecent {
 	  WHERE watcher_id=?
 	  ORDER BY watcher_recent.update_datetime DESC`, watcher.WatcherId)
 	if err != nil {
-		sublog.Error().Err(err).Msg("failed on SELECT")
+		sublog.Error().Err(err).Msg("error with query")
 		return []WatcherRecent{}
 	}
-	defer rows.Close()
 
+	defer rows.Close()
 	var watcherRecent WatcherRecent
 	for rows.Next() {
 		err = rows.StructScan(&watcherRecent)
 		if err != nil {
-			sublog.Fatal().Err(err).Msg("error reading result rows")
+			sublog.Error().Err(err).Msg("error reading row")
 			continue
 		}
 		watcherRecents = append(watcherRecents, watcherRecent)
 	}
 	if err := rows.Err(); err != nil {
-		sublog.Error().Err(err).Msg("error reading result rows")
+		sublog.Error().Err(err).Msg("error reading rows")
 	}
 	return watcherRecents
 }
 
-func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]RecentPlus, error) {
+func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) []RecentPlus {
 	sublog := deps.logger
 
 	var recentPlus []RecentPlus
@@ -88,7 +89,7 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 		ticker := Ticker{TickerId: watcherRecent.TickerId}
 		err := ticker.getById(deps)
 		if err != nil {
-			sublog.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load recent {symbol}")
+			sublog.Warn().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to load recent {symbol}")
 			continue
 		}
 		tickers = append(tickers, ticker)
@@ -98,7 +99,7 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 		if ticker.FavIconS3Key == "" {
 			err := ticker.queueSaveFavIcon(deps)
 			if err != nil {
-				sublog.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to queue save favicon for recent {symbol}")
+				sublog.Warn().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to queue save favicon for recent {symbol}")
 			}
 		}
 
@@ -119,7 +120,7 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 		quotes, err = loadMultiTickerQuotes(deps, symbols)
 		if err != nil {
 			sublog.Error().Err(err).Str("symbols", strings.Join(symbols, ",")).Msg("failed to load quote for recent {symbol}")
-			return &recentPlus, err
+			return recentPlus
 		}
 	} else {
 		// if it is a workday after 4 and we don't have the EOD (or not an EOD from
@@ -129,6 +130,7 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 				err := loadTickerEODsFromYH(deps, ticker)
 				if err != nil {
 					sublog.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get ticker eods for {symbol}")
+					return recentPlus
 				}
 			}
 		}
@@ -146,21 +148,17 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 		lastTickerDaily, _ := getLastTickerDaily(deps, ticker.TickerId)
 		lastDailyMove, _ := getLastTickerDailyMove(deps, ticker.TickerId)
 
-		lastCheckedNews, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, "ticker_news", ticker.TickerSymbol)
-		// localTz, err := time.LoadLocation(webdata["TZLocation"].(string))
-		// if err != nil {
-		// localTz, _ := time.LoadLocation("UTC")
-		// }
+		_, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, "ticker_news", ticker.TickerSymbol)
 
 		// load any recent news
-		tickerArticles, err := getArticlesByTicker(deps, ticker, 5, 7)
-		if err != nil {
-			sublog.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get articles for {symbol}")
-		} else {
-			for n := range tickerArticles {
-				if tickerArticles[n].ArticleURL == "" {
-					tickerArticles[n].ArticleURL = "/view/" + ticker.TickerSymbol + "?article=" + tickerArticles[n].ArticleEncId
-				}
+		tickerArticles := getArticlesByTicker(deps, ticker, 5, 7)
+		for n := range tickerArticles {
+			if tickerArticles[n].ArticleURL == "" {
+				tickerArticles[n].ArticleURL = fmt.Sprintf("/view/%s/%s",
+					ticker.TickerSymbol,
+					tickerArticles[n].EId)
+			} else {
+				tickerArticles[n].ExternalURL = true
 			}
 		}
 
@@ -177,7 +175,6 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 			DiffAmt:            PriceDiffAmt(lastTickerDaily[1].ClosePrice, lastTickerDaily[0].ClosePrice),
 			DiffPerc:           PriceDiffPercAmt(lastTickerDaily[1].ClosePrice, lastTickerDaily[0].ClosePrice),
 			LastDailyMove:      lastDailyMove,
-			LastCheckedNews:    sql.NullTime{Valid: true, Time: lastCheckedNews.Time}, // .In(localTz)},
 			LastCheckedSince:   lastCheckedSince,
 			UpdatingNewsNow:    updatingNewsNow,
 			Locked:             locked[n],
@@ -185,38 +182,35 @@ func getRecentsPlusInfo(deps *Dependencies, watcherRecents []WatcherRecent) (*[]
 		})
 	}
 
-	return &recentPlus, nil
+	return recentPlus
 }
 
 func addToWatcherRecents(deps *Dependencies, watcher Watcher, ticker Ticker) ([]WatcherRecent, error) {
 	db := deps.db
-	sublog := deps.logger.With().Str("watcherEid", encryptId(deps, "watcher", watcher.WatcherId)).Logger()
 
 	if watcher.WatcherId == 0 {
 		return []WatcherRecent{}, fmt.Errorf("not adding recents for watcherId 0")
 	}
 	watcherRecent, err := getWatcherRecent(deps, watcher, ticker)
 	if err != nil {
-		watcherRecent = WatcherRecent{0, watcher.WatcherId, ticker.TickerId, ticker.TickerSymbol, false, time.Now(), time.Now()}
+		watcherRecent = WatcherRecent{0, "", watcher.WatcherId, ticker.TickerId, ticker.TickerSymbol, false, time.Now(), time.Now()}
 		err = watcherRecent.create(deps)
 		if err != nil {
-			sublog.Error().Err(err).Msg("failed to create watcher_recent")
+			return getWatcherRecents(deps, watcher), err
 		}
 
 		// if at max already, need to delete an unlocked one before allowing another
 		var count int32
 		err = db.QueryRowx("SELECT count(*) FROM watcher_recent WHERE watcher_id=?", watcher.WatcherId).Scan(&count)
 		if err != nil {
-			sublog.Warn().Err(err).Msg("failed on SELECT")
 			return getWatcherRecents(deps, watcher), err
 		} else {
 			if count >= maxRecentCount {
 				_, err := db.Exec("DELETE FROM watcher_recent WHERE watcher_id=? AND locked=false ORDER BY update_datetime LIMIT ?", watcher.WatcherId, count-maxRecentCount)
 				if err != nil && errors.Is(err, sql.ErrNoRows) {
-					return getWatcherRecents(deps, watcher), err
+					return getWatcherRecents(deps, watcher), nil
 				}
 				if err != nil {
-					sublog.Warn().Err(err).Msg("failed on DELETE")
 					return getWatcherRecents(deps, watcher), err
 				}
 			}
@@ -224,16 +218,12 @@ func addToWatcherRecents(deps *Dependencies, watcher Watcher, ticker Ticker) ([]
 	} else {
 		err = watcherRecent.update(deps, watcher, ticker)
 		if err != nil {
-			sublog.Error().Err(err).Msg("failed to update watcher_recent")
+			return getWatcherRecents(deps, watcher), err
 		}
 	}
 
 	// add/update to recent table
-	recent := &Recent{
-		ticker.TickerId,
-		ticker.MSPerformanceId,
-		sql.NullTime{Valid: true, Time: time.Now()},
-	}
+	recent := Recent{ticker.TickerId, "", ticker.MSPerformanceId, time.Now()}
 	recent.createOrUpdate(deps)
 
 	return getWatcherRecents(deps, watcher), err
@@ -247,21 +237,15 @@ func getWatcherRecent(deps *Dependencies, watcher Watcher, ticker Ticker) (Watch
 	return recent, err
 }
 
-func removeFromWatcherRecents(deps *Dependencies, watcher Watcher, ticker Ticker) bool {
+func removeFromWatcherRecents(deps *Dependencies, watcher Watcher, ticker Ticker) error {
 	db := deps.db
-	sublog := deps.logger
 
 	_, err := db.Exec("DELETE FROM watcher_recent WHERE watcher_id=? AND ticker_id=? AND locked=false", watcher.WatcherId, ticker.TickerId)
-	if err != nil {
-		sublog.Warn().Err(err).Msg("failed on DELETE")
-		return false
-	}
-	return true
+	return err
 }
 
 func (r *Recent) createOrUpdate(deps *Dependencies) error {
 	db := deps.db
-	sublog := deps.logger
 
 	if r.TickerId == 0 {
 		return nil
@@ -269,9 +253,5 @@ func (r *Recent) createOrUpdate(deps *Dependencies) error {
 
 	var insert_or_update = "INSERT INTO recent (ticker_id, ms_performance_id) VALUES(?, ?) ON DUPLICATE KEY UPDATE ms_performance_id=?, lastseen_datetime=now()"
 	_, err := db.Exec(insert_or_update, r.TickerId, r.MSPerformanceId, r.MSPerformanceId)
-	if err != nil {
-		sublog.Warn().Err(err).Msg("failed on INSERT OR UPDATE")
-		return err
-	}
-	return nil
+	return err
 }

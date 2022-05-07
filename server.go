@@ -225,6 +225,7 @@ func startServer(deps *Dependencies) {
 	router.HandleFunc("/profile/{status}", app.requestHandler(profileHandler(deps))).Methods("GET")
 	router.HandleFunc("/desktop", app.requestHandler(desktopHandler(deps))).Methods("GET")
 	router.HandleFunc("/view/{symbol}", app.requestHandler(viewTickerDailyHandler(deps))).Methods("GET")
+	router.HandleFunc("/view/{symbol}/{articleEId}", app.requestHandler(viewTickerArticleHandler(deps))).Methods("GET")
 	router.HandleFunc("/{action:bought|sold}/{symbol}/{acronym}", app.requestHandler(transactionHandler(deps))).Methods("POST")
 	router.HandleFunc("/search/{type}", app.requestHandler(searchHandler(deps))).Methods("POST")
 	router.HandleFunc("/about", app.requestHandler(homeHandler(deps, "about"))).Methods("GET")

@@ -11,7 +11,8 @@ import (
 )
 
 type MarketIndex struct {
-	MarketIndexId     uint64    `db:"marketindex_id"`
+	MarketIndexId     uint64 `db:"marketindex_id"`
+	EId               string
 	MarketIndexSymbol string    `db:"marketindex_symbol"`
 	MarketIndexMic    string    `db:"marketindex_mic"`
 	MarketIndexName   string    `db:"marketindex_name"`
@@ -24,7 +25,8 @@ type MarketIndex struct {
 }
 
 type MarketIndexDaily struct {
-	MarketIndexDailyId uint64    `db:"marketindex_daily_id"`
+	MarketIndexDailyId uint64 `db:"marketindex_daily_id"`
+	EId                string
 	MarketIndexId      uint64    `db:"marketindex_id"`
 	PriceDate          string    `db:"price_date"`
 	OpenPrice          float64   `db:"open_price"`
@@ -43,7 +45,8 @@ type MarketIndexDailies struct {
 type MarketIndexByPriceDate MarketIndexDailies
 
 type MarketIndexIntraday struct {
-	MarketIndexIntradayId uint64    `db:"intraday_id"`
+	MarketIndexIntradayId uint64 `db:"intraday_id"`
+	EId                   string
 	TickerId              uint64    `db:"ticker_id"`
 	PriceDate             string    `db:"price_date"`
 	LastPrice             float64   `db:"last_price"`
@@ -114,7 +117,7 @@ func (mi MarketIndex) LoadMarketIndexIntraday(deps *Dependencies, intradate stri
 	}
 	preDaily, err := getMarketIndexDaily(db, mi.MarketIndexId, priorBusinessDay)
 	if err == nil {
-		marketindex_intradays = append(marketindex_intradays, MarketIndexIntraday{0, mi.MarketIndexId, priorBusinessDay, preDaily.ClosePrice, 0, time.Now(), time.Now()})
+		marketindex_intradays = append(marketindex_intradays, MarketIndexIntraday{0, "", mi.MarketIndexId, priorBusinessDay, preDaily.ClosePrice, 0, time.Now(), time.Now()})
 	} else {
 		sublog.Info().Msg("PriorBusinessDay close price was NOT included")
 	}
@@ -141,7 +144,7 @@ func (mi MarketIndex) LoadMarketIndexIntraday(deps *Dependencies, intradate stri
 	}
 	postDaily, err := getMarketIndexDaily(db, mi.MarketIndexId, nextBusinessDay)
 	if err == nil {
-		marketindex_intradays = append(marketindex_intradays, MarketIndexIntraday{0, mi.MarketIndexId, nextBusinessDay, postDaily.OpenPrice, 0, time.Now(), time.Now()})
+		marketindex_intradays = append(marketindex_intradays, MarketIndexIntraday{0, "", mi.MarketIndexId, nextBusinessDay, postDaily.OpenPrice, 0, time.Now(), time.Now()})
 	} else {
 		sublog.Info().Msg("NextBusinessDay open price was NOT included")
 	}

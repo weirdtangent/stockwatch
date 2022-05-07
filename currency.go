@@ -3,7 +3,8 @@ package main
 import "time"
 
 type Currency struct {
-	CurrencyId           uint64    `db:"currency_id"`
+	CurrencyId           uint64 `db:"currency_id"`
+	EId                  string
 	CurrencyCode         string    `db:"currency_code"`
 	CurrencyName         string    `db:"currency_name"`
 	CurrencySymbol       string    `db:"currency_symbol"`

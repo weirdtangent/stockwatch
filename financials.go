@@ -6,7 +6,8 @@ import (
 )
 
 type Financials struct {
-	FinancialsId   uint64       `db:"financials_id"`
+	FinancialsId   uint64 `db:"financials_id"`
+	EId            string
 	TickerId       uint64       `db:"ticker_id"`
 	FormName       string       `db:"form_name"`
 	FormTermName   string       `db:"form_term_name"`

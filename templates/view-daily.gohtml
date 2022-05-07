@@ -16,15 +16,15 @@
             <div class="col-sm-12 col-xxl-8 d-flex flex-column bg-transparent">
               <div class="d-none d-xxl-block ms-1 mb-2">
                 <div class="bg-warning text-dark ps-3 py-1">Chart/Table</div>
-                <div class="bg-white text-light minx-box">
-                  <script async id="chartCall" src="/static/js/chart.js"
+                <div class="bg-white text-light">
+                  <script id="chartCall" src="/static/js/chart.js"
                     data-chart="symbolLine"
                     data-symbol="{{.ticker.TickerSymbol}}"
                     data-nonce="{{.nonce}}"
                     data-timespan="180">
                   </script>
                   {{ template "_chart_js" }}
-                  <div id="tickerChart" class="doubleChart bg-white" style="width: 700px; height: 480px;"></div>
+                  <div id="tickerChart" class="doubleChart bg-white" style="width: 700px; height: 420px;"></div>
                 </div>
               </div>
 
@@ -40,7 +40,7 @@
                 </div>
                 <div class="bg-dark small text-light min-box px-2 py-1">
                   {{- range .articles}}
-                  <div class="text-white modal-link news-title text-truncate" data-bs-toggle="modal" data-keyboard="true" data-bs-target="#source-{{.ArticleEncId}}-modal">
+                  <div class="text-white modal-link news-title text-truncate" data-keyboard="true" data-bs-toggle="modal" data-bs-target="#source-{{.EId}}-modal">
                     <span class="small text-info">{{if .PublishedDatetime.Valid}}{{.PublishedDatetime.Time.Format "Jan 02"}}{{end}}</span>
                     {{.Title}} <i class="far fa-window fa-xs"></i>
                     <span class="small text-info">{{if .AuthorByline.Valid}} by {{.AuthorByline.String}}{{else if .SourceName.Valid}} from {{.SourceName.String}}{{end}}</span>

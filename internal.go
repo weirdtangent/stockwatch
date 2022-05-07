@@ -23,12 +23,9 @@ func pingHandler() http.HandlerFunc {
 func JSONReportHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		awssess := deps.awssess
-
 		s3svc := s3.New(awssess)
 
-		EasternTZ, _ := time.LoadLocation("America/New_York")
-		currentDateTime := time.Now().In(EasternTZ)
-		currentMonth := currentDateTime.Format("2006-01")
+		currentMonth := time.Now().Format("2006-01")
 
 		b, _ := ioutil.ReadAll(r.Body)
 		cspReport := string(b)
@@ -39,13 +36,13 @@ func JSONReportHandler(deps *Dependencies) http.HandlerFunc {
 
 		inputPutObj := &s3.PutObjectInput{
 			Body:   aws.ReadSeekCloser(strings.NewReader(cspReport)),
-			Bucket: aws.String("stockwatch-graystorm"),
+			Bucket: aws.String(awsPrivateBucketName),
 			Key:    aws.String(logKey),
 		}
 
 		_, err := s3svc.PutObject(inputPutObj)
 		if err != nil {
-			log.Warn().Err(err).Str("bucket", "stockwatch-graystorm").Str("key", logKey).Msg("failed to upload to S3 bucket")
+			log.Warn().Err(err).Str("bucket", awsPrivateBucketName).Str("key", logKey).Msg("failed to upload to S3 bucket")
 		}
 	})
 }

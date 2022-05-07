@@ -27,7 +27,8 @@ import (
 )
 
 type Ticker struct {
-	TickerId        uint64       `db:"ticker_id"`
+	TickerId        uint64 `db:"ticker_id"`
+	EId             string
 	TickerSymbol    string       `db:"ticker_symbol"`
 	ExchangeId      uint64       `db:"exchange_id"`
 	TickerName      string       `db:"ticker_name"`
@@ -56,7 +57,8 @@ type TickersEODTask struct {
 }
 
 type TickerAttribute struct {
-	TickerAttributeId uint64    `db:"attribute_id"`
+	TickerAttributeId uint64 `db:"attribute_id"`
+	EId               string
 	TickerId          uint64    `db:"ticker_id"`
 	AttributeName     string    `db:"attribute_name"`
 	AttributeComment  string    `db:"attribute_comment"`
@@ -66,7 +68,8 @@ type TickerAttribute struct {
 }
 
 type TickerDaily struct {
-	TickerDailyId  uint64    `db:"ticker_daily_id"`
+	TickerDailyId  uint64 `db:"ticker_daily_id"`
+	EId            string
 	TickerId       uint64    `db:"ticker_id"`
 	PriceDate      string    `db:"price_date"`
 	PriceTime      string    `db:"price_time"`
@@ -85,7 +88,8 @@ type TickerDailies struct {
 }
 
 type TickerDescription struct {
-	TickerDescriptionId uint64    `db:"description_id"`
+	TickerDescriptionId uint64 `db:"description_id"`
+	EId                 string
 	TickerId            uint64    `db:"ticker_id"`
 	BusinessSummary     string    `db:"business_summary"`
 	CreateDatetime      time.Time `db:"create_datetime"`
@@ -93,7 +97,8 @@ type TickerDescription struct {
 }
 
 type TickerIntraday struct {
-	TickerIntradayId uint64    `db:"intraday_id"`
+	TickerIntradayId uint64 `db:"intraday_id"`
+	EId              string
 	TickerId         uint64    `db:"ticker_id"`
 	PriceDate        string    `db:"price_date"`
 	LastPrice        float64   `db:"last_price"`
@@ -107,7 +112,8 @@ type TickerIntradays struct {
 }
 
 type TickerUpDown struct {
-	TickerUpDownId  uint64       `db:"updown_id"`
+	TickerUpDownId  uint64 `db:"updown_id"`
+	EId             string
 	TickerId        uint64       `db:"ticker_id"`
 	UpDownAction    string       `db:"updown_action"`
 	UpDownFromGrade string       `db:"updown_fromgrade"`
@@ -120,7 +126,8 @@ type TickerUpDown struct {
 }
 
 type TickerSplit struct {
-	TickerSplitId  uint64    `db:"ticker_split_id"`
+	TickerSplitId  uint64 `db:"ticker_split_id"`
+	EId            string
 	TickerId       uint64    `db:"ticker_id"`
 	SplitDate      time.Time `db:"split_date"`
 	SplitRatio     string    `db:"split_ratio"`
@@ -205,7 +212,7 @@ func (t *Ticker) createOrUpdate(deps *Dependencies) error {
 func (t *Ticker) createOrUpdateAttribute(deps *Dependencies, attributeName, attributeComment, attributeValue string) error {
 	db := deps.db
 
-	attribute := TickerAttribute{0, t.TickerId, attributeName, attributeComment, attributeValue, time.Now(), time.Now()}
+	attribute := TickerAttribute{0, "", t.TickerId, attributeName, attributeComment, attributeValue, time.Now(), time.Now()}
 	err := attribute.getByUniqueKey(deps)
 	if err == nil {
 		var update = "UPDATE ticker_attribute SET attribute_value=? WHERE ticker_id=? AND attribute_name=? AND attribute_comment=?"
@@ -454,6 +461,7 @@ func (t Ticker) queueUpdateInfo(deps *Dependencies) error {
 
 	type TaskTickerNewsBody struct {
 		TickerId     uint64 `json:"ticker_id"`
+		EId          string
 		TickerSymbol string `json:"ticker_symbol"`
 		ExchangeId   uint64 `json:"exchange_id"`
 	}
@@ -489,6 +497,7 @@ func (t Ticker) queueUpdateNews(deps *Dependencies) error {
 
 	type TaskTickerNewsBody struct {
 		TickerId     uint64 `json:"ticker_id"`
+		EId          string
 		TickerSymbol string `json:"ticker_symbol"`
 		ExchangeId   uint64 `json:"exchange_id"`
 	}
@@ -524,6 +533,7 @@ func (t Ticker) queueUpdateFinancials(deps *Dependencies) error {
 
 	type TaskTickerNewsBody struct {
 		TickerId     uint64 `json:"ticker_id"`
+		EId          string
 		TickerSymbol string `json:"ticker_symbol"`
 		ExchangeId   uint64 `json:"exchange_id"`
 	}
@@ -866,6 +876,7 @@ func (t Ticker) queueSaveFavIcon(deps *Dependencies) error {
 
 	type TaskTickerNewsBody struct {
 		TickerId     uint64 `json:"ticker_id"`
+		EId          string
 		TickerSymbol string `json:"ticker_symbol"`
 		ExchangeId   uint64 `json:"exchange_id"`
 	}

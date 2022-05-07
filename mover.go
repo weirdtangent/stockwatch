@@ -9,15 +9,16 @@ import (
 )
 
 type Mover struct {
-	MoverId        uint64  `db:"mover_id"`
-	SourceId       uint64  `db:"source_id"`
-	TickerId       uint64  `db:"ticker_id"`
-	MoverDate      string  `db:"mover_date"`
-	MoverType      string  `db:"mover_type"`
-	LastPrice      float64 `db:"last_price"`
-	PriceChange    float64 `db:"price_change"`
-	PriceChangePct float64 `db:"price_change_pct"`
-	Volume         float64 `db:"volume"`
+	MoverId        uint64 `db:"mover_id"`
+	EId            string
+	SourceId       uint64    `db:"source_id"`
+	TickerId       uint64    `db:"ticker_id"`
+	MoverDate      time.Time `db:"mover_date"`
+	MoverType      string    `db:"mover_type"`
+	LastPrice      float64   `db:"last_price"`
+	PriceChange    float64   `db:"price_change"`
+	PriceChangePct float64   `db:"price_change_pct"`
+	Volume         float64   `db:"volume"`
 	VolumeStr      string
 	CreateDatetime time.Time `db:"create_datetime"`
 	UpdateDatetime time.Time `db:"update_datetime"`
@@ -32,7 +33,7 @@ type Movers struct {
 	Gainers []WebMover
 	Losers  []WebMover
 	Actives []WebMover
-	ForDate string
+	ForDate time.Time
 }
 
 type ByGainers Movers
@@ -74,64 +75,75 @@ func (m Movers) SortActives() *[]WebMover {
 	return &m.Actives
 }
 
-func getMovers(deps *Dependencies) (Movers, error) {
+func getMovers(deps *Dependencies) Movers {
 	db := deps.db
 	sublog := deps.logger
-
-	latestDateStr, err := getLatestMoversDate(deps)
-	if err != nil {
-		return Movers{}, err
-	}
 
 	movers := Movers{}
 	gainers := make([]WebMover, 0)
 	losers := make([]WebMover, 0)
 	actives := make([]WebMover, 0)
 
-	rows, err := db.Queryx(`SELECT * FROM mover WHERE mover_date=?`, latestDateStr)
+	latestMoverDate, err := getLatestMoversDate(deps)
 	if err != nil {
-		sublog.Error().Err(err).Str("mover_date", latestDateStr).Msg("failed to load movers")
-		return movers, err
+		sublog.Error().Err(err).Msg("failed to get latest movers date")
+		return movers
 	}
-	defer rows.Close()
+	sublog.Info().Err(err).Str("mover_date", latestMoverDate.Format("2006-01-02")).Msg("latest movers date")
 
+	rows, err := db.Queryx(`SELECT * FROM mover WHERE mover_date=?`, latestMoverDate.Format("2006-01-02"))
+	if err != nil {
+		sublog.Error().Err(err).Str("mover_date", latestMoverDate.Format("2006-01-02")).Msg("failed to load movers")
+		return movers
+	}
+
+	defer rows.Close()
 	mover := Mover{}
 	for rows.Next() {
 		err = rows.StructScan(&mover)
+		if err != nil {
+			log.Warn().Err(err).Msg("error reading row")
+			continue
+		}
 		if mover.Volume > 1_000_000 {
 			mover.VolumeStr = fmt.Sprintf("%.2fM", mover.Volume/1_000_000)
 		} else if mover.Volume > 1_000 {
 			mover.VolumeStr = fmt.Sprintf("%.2fK", mover.Volume/1_000)
 		}
+		ticker := Ticker{TickerId: mover.TickerId}
+		err := ticker.getById(deps)
 		if err != nil {
-			log.Warn().Err(err).Msg("Error reading result rows")
-		} else {
-			ticker := Ticker{TickerId: mover.TickerId}
-			err := ticker.getById(deps)
-			if err == nil {
-				switch mover.MoverType {
-				case "gainer":
-					gainers = append(gainers, WebMover{mover, ticker})
-				case "loser":
-					losers = append(losers, WebMover{mover, ticker})
-				case "active":
-					actives = append(actives, WebMover{mover, ticker})
-				}
+			log.Warn().Err(err).Msg("error reading row")
+			continue
+		}
+		switch mover.MoverType {
+		case "gainer":
+			if len(gainers) < 10 {
+				gainers = append(gainers, WebMover{mover, ticker})
+			}
+		case "loser":
+			if len(losers) < 10 {
+				losers = append(losers, WebMover{mover, ticker})
+			}
+		case "active":
+			if len(actives) < 10 {
+				actives = append(actives, WebMover{mover, ticker})
 			}
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return Movers{}, err
+		log.Warn().Err(err).Msg("error reading rows")
+		return movers
 	}
 
-	movers = Movers{gainers, losers, actives, latestDateStr}
-	return movers, nil
+	movers = Movers{gainers, losers, actives, latestMoverDate}
+	return movers
 }
 
-func getLatestMoversDate(deps *Dependencies) (string, error) {
+func getLatestMoversDate(deps *Dependencies) (time.Time, error) {
 	db := deps.db
-	var dateStr string
 
-	err := db.QueryRowx(`SELECT mover_date FROM mover ORDER BY mover_date DESC LIMIT 1`).Scan(&dateStr)
-	return dateStr, err
+	var maxMoverDate time.Time
+	err := db.QueryRowx(`SELECT MAX(mover_date) FROM mover`).Scan(&maxMoverDate)
+	return maxMoverDate, err
 }

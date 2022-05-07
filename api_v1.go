@@ -25,9 +25,11 @@ func apiV1Handler(deps *Dependencies) http.HandlerFunc {
 		sublog := deps.logger
 
 		w.Header().Add("Content-Type", "application/json")
+
+		// get already inplace nonce from the current page and use it so our answer is allowed
 		reqHeader := r.Header
 		nonce := reqHeader.Get("X-Nonce")
-		deps.nonce = nonce
+		deps.nonce = nonce // we don't use webdata in api, so no need to fix that one
 
 		params := mux.Vars(r)
 		endpoint := params["endpoint"]
@@ -98,32 +100,14 @@ func apiQuotes(deps *Dependencies, symbolStr string, jsonR *jsonResponseData) {
 		validSymbols = append(validSymbols, symbol)
 		validTickers = append(validTickers, ticker)
 
-		lastCheckedNews, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, "ticker_news", ticker.TickerSymbol)
+		_, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, "ticker_news", ticker.TickerSymbol)
 		jsonR.Data[symbol+":last_checked_since"] = lastCheckedSince
 		jsonR.Data[symbol+":updating_news_now"] = updatingNewsNow
-		if lastCheckedNews.Valid {
-			jsonR.Data[symbol+":last_checked_news"] = lastCheckedNews.Time.Format("Jan 02 15:04")
-		} else {
-			if updatingNewsNow {
-				jsonR.Data[symbol+":last_checked_news"] = "checking now"
-			} else {
-				jsonR.Data[symbol+":last_checked_news"] = "unknown"
-			}
-		}
 	}
 
-	lastCheckedNews, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, "financial_news", "stockwatch")
+	_, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, "financial_news", "stockwatch")
 	jsonR.Data["last_checked_since"] = lastCheckedSince
 	jsonR.Data["updating_news_now"] = updatingNewsNow
-	if lastCheckedNews.Valid {
-		jsonR.Data["last_checked_news"] = lastCheckedNews.Time.Format("Jan 02 15:04")
-	} else {
-		if updatingNewsNow {
-			jsonR.Data["last_checked_news"] = "checking now"
-		} else {
-			jsonR.Data["last_checked_news"] = "unknown"
-		}
-	}
 
 	// if the market is open, lets get a live quote
 	if isMarketOpen() {

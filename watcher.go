@@ -9,7 +9,8 @@ import (
 )
 
 type Watcher struct {
-	WatcherId       uint64    `db:"watcher_id"`
+	WatcherId       uint64 `db:"watcher_id"`
+	EId             string
 	WatcherSub      string    `db:"watcher_sub"`
 	WatcherName     string    `db:"watcher_name"`
 	WatcherNickname string    `db:"watcher_nickname"`
@@ -23,7 +24,8 @@ type Watcher struct {
 }
 
 type WatcherEmail struct {
-	WatcherEmailId uint64    `db:"watcher_email_id"`
+	WatcherEmailId uint64 `db:"watcher_email_id"`
+	EId            string
 	WatcherId      uint64    `db:"watcher_id"`
 	EmailAddress   string    `db:"email_address"`
 	IsPrimary      bool      `db:"email_is_primary"`
@@ -32,7 +34,8 @@ type WatcherEmail struct {
 }
 
 type WatcherRecent struct {
-	WatcherRecentId uint64    `db:"watcher_recent_id"`
+	WatcherRecentId uint64 `db:"watcher_recent_id"`
+	EId             string
 	WatcherId       uint64    `db:"watcher_id"`
 	TickerId        uint64    `db:"ticker_id"`
 	TickerSymbol    string    `db:"ticker_symbol"`

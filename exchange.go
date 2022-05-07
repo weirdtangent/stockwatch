@@ -3,7 +3,8 @@ package main
 import "time"
 
 type Exchange struct {
-	ExchangeId      uint64    `db:"exchange_id"`
+	ExchangeId      uint64 `db:"exchange_id"`
+	EId             string
 	ExchangeMic     string    `db:"exchange_mic"`
 	OperatingMic    string    `db:"operating_mic"`
 	ExchangeName    string    `db:"exchange_name"`
@@ -17,11 +18,15 @@ type Exchange struct {
 }
 
 // object methods -------------------------------------------------------------
+func (e Exchange) encryptId(deps *Dependencies) string {
+	return encryptId(deps, "exchange", e.ExchangeId)
+}
 
 func (e *Exchange) getById(deps *Dependencies) error {
 	db := deps.db
 
 	err := db.QueryRowx("SELECT * FROM exchange WHERE exchange_id=?", e.ExchangeId).StructScan(e)
+	e.EId = e.encryptId(deps)
 	return err
 }
 
@@ -29,6 +34,7 @@ func (e *Exchange) getByCode(deps *Dependencies) error {
 	db := deps.db
 
 	err := db.QueryRowx("SELECT * FROM exchange WHERE exchange_code=?", e.ExchangeCode).StructScan(e)
+	e.EId = e.encryptId(deps)
 	return err
 }
 

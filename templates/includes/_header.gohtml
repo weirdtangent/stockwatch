@@ -54,10 +54,10 @@
               </div>
               <div class="d-none d-lg-block col-lg-6 align-self-center">
                 {{- if not .hideRecents}}
-                  {{- if .WatcherRecents}}
+                  {{- if .Recents}}
                     <div class="flex-grow-1">
                       <ul class="nav">
-                        {{range .WatcherRecents -}}
+                        {{range .Recents -}}
                         <li class="nav-item pt-1 me-2 recent">
                           <span id="{{.TickerSymbol}}_lock_badge" class="badge text-dark {{if .Locked}}bg-success{{else}}bg-warning{{end}}">
                             <a class="text-decoration-none text-dark me-0" href="/view/{{.TickerSymbol}}"><i class="ps-1 fas fa-dollar-sign"></i>{{.TickerSymbol}}</a>

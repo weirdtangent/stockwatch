@@ -12,7 +12,8 @@ import (
 )
 
 type Article struct {
-	ArticleId          uint64       `db:"article_id"`
+	ArticleId          uint64 `db:"article_id"`
+	EId                string
 	SourceId           uint64       `db:"source_id"`
 	ExternalId         string       `db:"external_id"`
 	PublishedDatetime  sql.NullTime `db:"published_datetime"`
@@ -26,7 +27,8 @@ type Article struct {
 }
 
 type ArticleTicker struct {
-	ArticleTickerId uint64    `db:"article_ticker_id"`
+	ArticleTickerId uint64 `db:"article_ticker_id"`
+	EId             string
 	ArticleId       uint64    `db:"article_id"`
 	TickerSymbol    string    `db:"ticker_symbol"`
 	TickerId        uint64    `db:"ticker_id"`
@@ -35,7 +37,8 @@ type ArticleTicker struct {
 }
 
 type ArticleKeyword struct {
-	ArticleKeywordId uint64    `db:"article_keyword_id"`
+	ArticleKeywordId uint64 `db:"article_keyword_id"`
+	EId              string
 	ArticleId        uint64    `db:"article_id"`
 	Keyword          string    `db:"keyword"`
 	CreateDatetime   time.Time `db:"create_datetime"`
@@ -43,7 +46,8 @@ type ArticleKeyword struct {
 }
 
 type ArticleAuthor struct {
-	ArticleAuthorId uint64    `db:"article_author_id"`
+	ArticleAuthorId uint64 `db:"article_author_id"`
+	EId             string
 	ArticleId       uint64    `db:"article_id"`
 	Byline          string    `db:"byline"`
 	JobTitle        string    `db:"job_title"`
@@ -55,7 +59,8 @@ type ArticleAuthor struct {
 }
 
 type ArticleTag struct {
-	ArticleTagId   uint64    `db:"article_tag_id"`
+	ArticleTagId   uint64 `db:"article_tag_id"`
+	EId            string
 	ArticleId      uint64    `db:"article_id"`
 	Tag            string    `db:"tag"`
 	CreateDatetime time.Time `db:"create_datetime"`
@@ -63,15 +68,16 @@ type ArticleTag struct {
 }
 
 type WebArticle struct {
-	ArticleEncId       string
-	ArticleId          uint64         `db:"article_id"`
-	SourceId           uint64         `db:"source_id"`
-	ExternalId         string         `db:"external_id"`
-	PublishedDatetime  sql.NullTime   `db:"published_datetime"`
-	PubUpdatedDatetime sql.NullTime   `db:"pubupdated_datetime"`
-	Title              string         `db:"title"`
-	Body               string         `db:"body"`
-	ArticleURL         string         `db:"article_url"`
+	ArticleId          uint64 `db:"article_id"`
+	EId                string
+	SourceId           uint64       `db:"source_id"`
+	ExternalId         string       `db:"external_id"`
+	PublishedDatetime  sql.NullTime `db:"published_datetime"`
+	PubUpdatedDatetime sql.NullTime `db:"pubupdated_datetime"`
+	Title              string       `db:"title"`
+	Body               string       `db:"body"`
+	ArticleURL         string       `db:"article_url"`
+	ExternalURL        bool
 	ImageURL           string         `db:"image_url"`
 	CreateDatetime     time.Time      `db:"create_datetime"`
 	UpdateDatetime     time.Time      `db:"update_datetime"`
@@ -85,7 +91,15 @@ type WebArticle struct {
 	BodyTemplate       template.HTML
 }
 
-func getArticlesByTicker(deps *Dependencies, ticker Ticker, max, days int64) ([]WebArticle, error) {
+func (a Article) encryptId(deps *Dependencies) string {
+	return encryptId(deps, "article", a.ArticleId)
+}
+
+func (wa WebArticle) encryptId(deps *Dependencies) string {
+	return encryptId(deps, "article", wa.ArticleId)
+}
+
+func getArticlesByTicker(deps *Dependencies, ticker Ticker, max, days int64) []WebArticle {
 	db := deps.db
 	sublog := deps.logger.With().Str("symbol", ticker.TickerSymbol).Logger()
 
@@ -120,30 +134,28 @@ func getArticlesByTicker(deps *Dependencies, ticker Ticker, max, days int64) ([]
 			  ORDER BY published_datetime DESC
     		  LIMIT ?`
 	rows, err := db.Queryx(query, fromDate, ticker.TickerId, max)
-
 	if err != nil {
-		log.Warn().Err(err).Msg("failed to check for articles")
-		return []WebArticle{}, err
+		log.Error().Err(err).Msg("failed to check for articles")
+		return []WebArticle{}
 	}
+
 	defer rows.Close()
-
 	bodySHA256 := make(map[string]bool)
-
 	var article WebArticle
 	articles := make([]WebArticle, 0)
 	for rows.Next() {
 		err = rows.StructScan(&article)
 		if err != nil {
-			log.Warn().Err(err).Msg("error reading result rows")
+			log.Warn().Err(err).Msg("error reading row")
 			continue
 		}
+		article.EId = article.encryptId(deps)
 		sha := fmt.Sprintf("%x", sha256.Sum256([]byte(article.Title)))
 		// skip this one if we've seen the same title already
 		if _, ok := bodySHA256[sha]; ok {
 			continue
 		}
 		bodySHA256[sha] = true
-		article.ArticleEncId = encryptId(deps, "article", article.ArticleId)
 		article.ArticleId = 0
 
 		quote_rx := regexp.MustCompile(`'`)
@@ -156,19 +168,19 @@ func getArticlesByTicker(deps *Dependencies, ticker Ticker, max, days int64) ([]
 		articles = append(articles, article)
 	}
 	if err := rows.Err(); err != nil {
-		return []WebArticle{}, err
+		log.Warn().Err(err).Msg("error reading rows")
+		return []WebArticle{}
 	}
 
-	return articles, nil
+	return articles
 }
 
-func getRecentArticles(deps *Dependencies) ([]WebArticle, error) {
+func getRecentArticles(deps *Dependencies) []WebArticle {
 	db := deps.db
 	sublog := deps.logger
 
 	// go back as far as 30 days but limited to 30 articles
 	fromDate := time.Now().Add(-1 * 30 * 24 * time.Hour).Format(sqlDatetimeSearchType)
-	sublog.Info().Str("from_date", fromDate).Msg("checking for recent news since {from_date}")
 
 	query := `SELECT article.article_id, article.source_id, article.external_id, article.published_datetime, article.pubupdated_datetime,
 		        article.title, article.body, article.article_url, article.image_url,
@@ -185,8 +197,8 @@ func getRecentArticles(deps *Dependencies) ([]WebArticle, error) {
 	rows, err := db.Queryx(query, fromDate)
 
 	if err != nil {
-		log.Warn().Err(err).Msg("failed to check for articles")
-		return []WebArticle{}, err
+		sublog.Warn().Err(err).Msg("failed to check for articles")
+		return []WebArticle{}
 	}
 	defer rows.Close()
 
@@ -197,16 +209,16 @@ func getRecentArticles(deps *Dependencies) ([]WebArticle, error) {
 	for rows.Next() {
 		err = rows.StructScan(&article)
 		if err != nil {
-			log.Warn().Err(err).Msg("Error reading result rows")
+			sublog.Warn().Err(err).Msg("error reading row")
 			continue
 		}
+		article.EId = article.encryptId(deps)
 		sha := fmt.Sprintf("%x", sha256.Sum256([]byte(article.Title)))
 		// skip this one if we've seen the same title already
 		if _, ok := bodySHA256[sha]; ok {
 			continue
 		}
 		bodySHA256[sha] = true
-		article.ArticleEncId = encryptId(deps, "article", article.ArticleId)
 		article.ArticleId = 0
 
 		quote_rx := regexp.MustCompile(`'`)
@@ -219,8 +231,9 @@ func getRecentArticles(deps *Dependencies) ([]WebArticle, error) {
 		articles = append(articles, article)
 	}
 	if err := rows.Err(); err != nil {
-		return []WebArticle{}, err
+		sublog.Warn().Err(err).Msg("error reading rows")
+		return []WebArticle{}
 	}
 
-	return articles, nil
+	return articles
 }

@@ -42,9 +42,9 @@
                           </div>
                           <div class="col-12">
                             {{- range .Articles }}
-                              <div class="text-white modal-link news-title text-truncate" data-bs-toggle="modal" data-bs-target="#source{{.SourceId}}-id{{.ExternalId}}-modal" title="{{.Title}}">
+                              <div class="text-white modal-link news-title text-truncate" data-bs-toggle="modal" data-bs-target="#source{{.EId}}-modal" title="{{.Title}}">
                                 <span class="small text-info">{{if .PublishedDatetime.Valid}}{{.PublishedDatetime.Time.Format "01/02"}}{{end}}</span>
-                                <a class="text-decoration-none text-light" href="{{.ArticleURL}}">{{.Title}}</a> <i class="far fa-window fa-xs"></i>
+                                <a class="text-decoration-none text-light" href="{{.ArticleURL}}"{{if .ExternalURL}} target="_new"{{end}}>{{if .ExternalURL}}<i class="fas fa-external-link-alt fa-xs"></i> {{end}}{{.Title}}</a> <i class="far fa-window fa-xs"></i>
                                 <span class="small text-info">{{if .AuthorByline.Valid}} by {{.AuthorByline.String}}{{else if .SourceName.Valid}} from {{.SourceName.String}}{{end}}</span>
                               </div>
                             {{- end}}

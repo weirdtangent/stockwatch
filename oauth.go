@@ -7,7 +7,8 @@ import (
 )
 
 type OAuth struct {
-	OAuthId        uint64    `db:"oauth_id"`
+	OAuthId        uint64 `db:"oauth_id"`
+	EId            string
 	OAuthIssuer    string    `db:"oauth_issuer"`
 	OAuthSub       string    `db:"oauth_sub"`
 	OAuthIssued    time.Time `db:"oauth_issued"`

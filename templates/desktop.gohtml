@@ -30,7 +30,7 @@
               {{- template "_recent_plus" . }}
               <div class="row g-2 mt-1">
                 <div id="movers" class="mt-1 col-12 col-lg-6 col-xxl-4 bg-transparent">
-                  <div class="bg-warning text-dark px-2 py-1">Movers and Shakers, {{.Movers.ForDate}}</div>
+                  <div class="bg-warning text-dark px-2 py-1">Movers and Shakers, {{.Movers.ForDate.Format "Jan 02"}}</div>
                   <div id="carouselMovers" class="carousel slide carousel-fade bg-dark px-2 py-1" data-bs-ride="carousel" data-bs-interval="8000">
                     <div class="carousel-indicators">
                       <button type="button" data-bs-target="#carouselMovers" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Gainers"></button>
@@ -40,7 +40,7 @@
                     <div class="carousel-inner">
                       <div class="carousel-item active">
                         <div class="bg-success rounded m-1">
-                          <h5 class="text-dark pt-2 ps-2">Gainers (by % gain)</h5>
+                          <h5 class="text-dark pt-2 ps-2" data-bs-toggle="tooltip" title="by % gain">Top 10 Gainers</h5>
                           <ul class="list-group small px-2 pb-5 nowrap">
                             {{range .Movers.SortGainers}} {{- template "_mover" . }} {{end}}
                           </ul>
@@ -48,7 +48,7 @@
                       </div>
                       <div class="carousel-item">
                         <div class="bg-danger rounded m-1">
-                          <h5 class="text-dark pt-2 ps-2">Losers (by % loss)</h5>
+                          <h5 class="text-dark pt-2 ps-2" data-bs-toggle="tooltip" title="by % loss">Top 10 Losers</h5>
                           <ul class="list-group small px-2 pb-5 nowrap">
                             {{range .Movers.SortLosers}} {{- template "_mover" . }} {{end}}
                           </ul>
@@ -56,7 +56,7 @@
                       </div>
                       <div class="carousel-item">
                         <div class="bg-primary rounded m-1">
-                          <h5 class="text-dark pt-2 ps-2">Actives (by volume)</h5>
+                          <h5 class="text-dark pt-2 ps-2" data-bs-toggle="tooltip" title="by volume">Top 10 Actives</h5>
                           <ul class="list-group small px-2 pb-5 nowrap">
                             {{range .Movers.Actives}} {{- template "_mover" . }} {{end}}
                           </ul>
@@ -86,7 +86,7 @@
                         {{- if .PublishedDatetime.Valid }}
                         {{ .PublishedDatetime.Time.Format "Jan 2 15:04"}}
                         {{- end}}
-                        <a href="{{.ArticleURL}}" style="text-decoration: none; color: white;" target="_blank"> {{.Title}}</a> <i class="ps-2 fas fa-external-link-alt fa-xs"></i>
+                        <a href="{{.ArticleURL}}" style="text-decoration: none; color: white;" target="_blank"><i class="fas fa-external-link-alt fa-xs"></i> {{.Title}}</a>
                         {{- if and .AuthorByline.Valid .AuthorByline.String }} <span class="small text-info">by {{.AuthorByline.String}}</span>
                         {{- else if and .SourceName.Valid .SourceName.String }} <span class="small text-info">from {{.SourceName.String}}</span>
                         {{- end}}

@@ -3,7 +3,8 @@ package main
 import "time"
 
 type Rating struct {
-	RatingId       uint64    `db:"rating_id"`
+	RatingId       uint64 `db:"rating_id"`
+	EId            string
 	RatingType     string    `db:"rating_type"`
 	TypeId         uint64    `db:"type_id"`
 	RaterId        uint64    `db:"rater_id"`

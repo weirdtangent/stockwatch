@@ -1,7 +1,13 @@
 package main
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	crand "crypto/rand"
+	"encoding/base64"
+	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -17,9 +23,6 @@ func checkAuthState(w http.ResponseWriter, r *http.Request, deps *Dependencies) 
 	sublog := deps.logger
 	session := deps.session
 
-	webdata["nonce"] = deps.nonce
-	webdata["user-timezone"] = "UTC"
-
 	if session.Values["encWatcherId"] != nil {
 		encWatcherId := session.Values["encWatcherId"].(string)
 		if encWatcherId != "" {
@@ -27,20 +30,18 @@ func checkAuthState(w http.ResponseWriter, r *http.Request, deps *Dependencies) 
 			watcher, err := getWatcherById(deps, watcherId)
 			if err != nil {
 				sublog.Error().Err(err).Str("encWatcherId", encWatcherId).Msg("failed to load watcher via encWatcherId {encWatcherId}")
-				deleteWIDCookie(w, r, deps)
+				signoutWatcher(deps)
 				return Watcher{}
 			}
 			if watcher.WatcherStatus != "active" {
 				sublog.Error().Err(err).Str("encWatcherId", encWatcherId).Str("status", watcher.WatcherStatus).Msg("watcher is not active: {status}")
-				deleteWIDCookie(w, r, deps)
+				signoutWatcher(deps)
 				return Watcher{}
 			}
 
+			// setup webdata with watcher-specific values
 			webdata["encWatcherId"] = encWatcherId
 			webdata["Watcher"] = WebWatcher{watcher.WatcherName, watcher.WatcherStatus, watcher.WatcherLevel, watcher.WatcherTimezone, watcher.WatcherPicURL}
-
-			watcherRecents := getWatcherRecents(deps, watcher)
-			webdata["WatcherRecents"] = watcherRecents
 
 			if watcher.WatcherTimezone != "" {
 				_, err = time.LoadLocation(watcher.WatcherTimezone)
@@ -91,13 +92,12 @@ func authCallbackHandler(deps *Dependencies) http.HandlerFunc {
 }
 
 func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, gothUser goth.User) {
-	sublog := deps.logger.With().Str("handler", "signinUser").Logger()
+	sublog := deps.logger
 	session := deps.session
 
 	// get (or create) watcher account based on oauth properties
 	// specifically, based on the oauth_sub value, because email addresses can change
 	// and we want a watchers session and "account" to follow them even if they change
-	sublog.Info().Str("gothUserId", gothUser.UserID).Str("gothName", gothUser.Name).Msg("signinUser called")
 	watcher := Watcher{
 		WatcherId:       0,
 		WatcherSub:      gothUser.UserID,
@@ -113,12 +113,12 @@ func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, goth
 	}
 	watcher, err := createOrUpdateWatcherFromOAuth(deps, watcher, gothUser.Email)
 	if err != nil {
-		sublog.Error().Err(err).Msg("failed to get/create watcher from one-tap")
+		sublog.Error().Err(err).Msg("failed to get/create watcher from oauth response")
 		http.NotFound(w, r)
 		return
 	}
 	if watcher.WatcherId == 0 {
-		sublog.Fatal().Msg("WatcherId should not be 0 here")
+		sublog.Fatal().Msg("watcher should not be undefined here")
 	}
 
 	// why does twitter send back a weird gothUser.ExpiresAt?
@@ -142,21 +142,6 @@ func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, goth
 		return
 	}
 
-	// set WID (WatcherId) session cookie, meaning the user is authenticated and logged-in
-	if encoded, err := deps.secureCookie.Encode("WID", fmt.Sprintf("%d", watcher.WatcherId)); err == nil {
-		widCookie := &http.Cookie{
-			Name:     "WID",
-			Value:    encoded,
-			Path:     "/",
-			Secure:   true,
-			HttpOnly: true,
-			SameSite: http.SameSiteStrictMode,
-		}
-		http.SetCookie(w, widCookie)
-	} else {
-		sublog.Error().Err(err).Msg("failed to encode cookie")
-	}
-
 	session.Values["encWatcherId"] = encryptId(deps, "watcher", watcher.WatcherId)
 	session.Values["provider"] = gothUser.Provider
 
@@ -164,36 +149,25 @@ func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, goth
 	if watcher.CreateDatetime == watcher.UpdateDatetime {
 		http.Redirect(w, r, "/profile/welcome", http.StatusFound)
 	} else {
-		http.Redirect(w, r, "/desktop", http.StatusFound)
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
 
-// logout from google one-tap here
+// logout
 func signoutHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session := deps.session
-
-		deleteWIDCookie(w, r, deps)
-		session.Values["encWatcherId"] = ""
+		signoutWatcher(deps)
 		gothic.Logout(w, r)
 		http.Redirect(w, r, "/", http.StatusFound)
 	})
 }
 
-func deleteWIDCookie(w http.ResponseWriter, r *http.Request, deps *Dependencies) {
-	sc := deps.secureCookie
+func signoutWatcher(deps *Dependencies) {
+	session := deps.session
+	db := deps.db
 
-	if encoded, err := sc.Encode("WID", "invalid"); err == nil {
-		cookie := &http.Cookie{
-			Name:     "WID",
-			Value:    encoded,
-			Path:     "/",
-			Secure:   true,
-			HttpOnly: true,
-			MaxAge:   -1,
-		}
-		http.SetCookie(w, cookie)
-	}
+	session.Values["encWatcherId"] = ""
+	db.Exec("UPDATE watcher SET session_id='' WHERE session_id=?", session.ID)
 }
 
 const (
@@ -217,50 +191,54 @@ func RandStringMask(n int) string {
 	return string(b)
 }
 
-// func encryptURL(deps *Dependencies, text []byte) ([]byte, error) {
-// 	secret := secrets["next_url_key"]
-// 	key := []byte(secret)
-// 	block, err := aes.NewCipher(key)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	b := base64.StdEncoding.EncodeToString(text)
-// 	ciphertext := make([]byte, aes.BlockSize+len(b))
-// 	iv := ciphertext[:aes.BlockSize]
-// 	if _, err := io.ReadFull(crand.Reader, iv); err != nil {
-// 		return nil, err
-// 	}
-// 	cfb := cipher.NewCFBEncrypter(block, iv)
-// 	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
-// 	cipherstring := ([]byte(base64.URLEncoding.EncodeToString(ciphertext)))
-// 	return cipherstring, nil
-// }
+func encryptURL(deps *Dependencies, text []byte) ([]byte, error) {
+	secrets := deps.secrets
 
-// func decryptURL(deps *Dependencies, cipherstring []byte) ([]byte, error) {
-// 	secret := secrets["next_url_key"]
-// 	key := []byte(secret)
-// 	textstr, err := base64.URLEncoding.DecodeString(string(cipherstring))
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	text := ([]byte(textstr))
-// 	block, err := aes.NewCipher(key)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	if len(text) < aes.BlockSize {
-// 		return nil, errors.New("ciphertext too short")
-// 	}
-// 	iv := text[:aes.BlockSize]
-// 	text = text[aes.BlockSize:]
-// 	cfb := cipher.NewCFBDecrypter(block, iv)
-// 	cfb.XORKeyStream(text, text)
-// 	data, err := base64.StdEncoding.DecodeString(string(text))
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return data, nil
-// }
+	secret := secrets["next_url_key"]
+	key := []byte(secret)
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	b := base64.StdEncoding.EncodeToString(text)
+	ciphertext := make([]byte, aes.BlockSize+len(b))
+	iv := ciphertext[:aes.BlockSize]
+	if _, err := io.ReadFull(crand.Reader, iv); err != nil {
+		return nil, err
+	}
+	cfb := cipher.NewCFBEncrypter(block, iv)
+	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
+	cipherstring := ([]byte(base64.URLEncoding.EncodeToString(ciphertext)))
+	return cipherstring, nil
+}
+
+func decryptURL(deps *Dependencies, cipherstring []byte) ([]byte, error) {
+	secrets := deps.secrets
+
+	secret := secrets["next_url_key"]
+	key := []byte(secret)
+	textstr, err := base64.URLEncoding.DecodeString(string(cipherstring))
+	if err != nil {
+		return nil, err
+	}
+	text := ([]byte(textstr))
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	if len(text) < aes.BlockSize {
+		return nil, errors.New("ciphertext too short")
+	}
+	iv := text[:aes.BlockSize]
+	text = text[aes.BlockSize:]
+	cfb := cipher.NewCFBDecrypter(block, iv)
+	cfb.XORKeyStream(text, text)
+	data, err := base64.StdEncoding.DecodeString(string(text))
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
 
 // split uint64 into high/low uint32s and skip32 them and return as 8 hex chars
 func encryptId(deps *Dependencies, objectType string, id uint64) string {

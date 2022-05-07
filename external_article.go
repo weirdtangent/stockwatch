@@ -3,7 +3,8 @@ package main
 import "time"
 
 type ExternalArticle struct {
-	ExternalArticleId uint64    `db:"external_article_id"`
+	ExternalArticleId uint64 `db:"external_article_id"`
+	EId               string
 	SubmitterId       uint64    `db:"submitter_id"`
 	LinkTitle         string    `db:"link_title"`
 	LinkDesc          string    `db:"link_desc"`

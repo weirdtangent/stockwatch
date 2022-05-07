@@ -70,7 +70,14 @@ func (rh requestHandler) requestHandler(h http.HandlerFunc) http.HandlerFunc {
 		rh.deps.webdata = make(map[string]interface{})
 		rh.deps.config = make(map[string]interface{})
 		rh.deps.config["is_market_open"] = isMarketOpen()
-		rh.deps.nonce = RandStringMask(32)
+
+		// setup nonce for this request
+		nonce := RandStringMask(32)
+		rh.deps.nonce = nonce
+		rh.deps.webdata["nonce"] = nonce
+
+		// more webdata defaults
+		rh.deps.webdata["timezone"] = "UTC"
 
 		// Content Security Policy
 		csp := map[string][]string{
@@ -133,9 +140,8 @@ func (rh requestHandler) requestHandler(h http.HandlerFunc) http.HandlerFunc {
 		// messages
 		rh.deps.messages = []Message{}
 
+		// go handle the request
 		rh.handler.ServeHTTP(w, r)
-
-		// we've been around the block, log the request/time-to-respond
 
 		// don't logs these, no reason to
 		if !skipLoggingPaths.MatchString(r.URL.String()) {
