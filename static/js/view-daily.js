@@ -1,6 +1,8 @@
-var showing = 'tickerChart1';
+var showing = 'symbolLine';
 
 $(document).ready(function() {
+    loadChart("symbolLine", symbol, timespan)
+
     setTimeout(function() {
         quoteRefresh();
     }, quote_refresh * 1000);
@@ -29,28 +31,24 @@ $(document).ready(function() {
         }
     })
 
-    $('input[name=pickChart]').each(function (e) {
-        elem = $('#' + this.id + 'elem');
-        if (elem.length == 0) {
-            this.remove()
-        }
-    });
-
-
     $('input[name=pickChart]').on('change', function() {
-        clicked = $('input[name=pickChart]:checked').attr('id');
-        $('#' + showing + 'elem').fadeOut('fast', function() {
-            $('#' + clicked + 'elem').fadeIn('fast');
+        chart = $('input[name=pickChart]:checked').attr('id');
+        timespan = $('input[name=pickTimespan]:checked').data('timespan')
+        $('#tickerChart').fadeOut('fast', function() {
+            loadChart(chart, symbol, timespan);
+            $('#tickerChart').fadeIn('fast');
         });
         showing = clicked;
     });
 
 
     $('input[name=pickTimespan]').on('change', function() {
-        console.log('radio button clicked')
-        href = $('input[name=pickTimespan]:checked').data('href')
-        console.log(href)
-        window.document.location = href;
+        chart = $('input[name=pickChart]:checked').attr('id');
+        timespan = $('input[name=pickTimespan]:checked').data('timespan')
+        $('#tickerChart').fadeOut('fast', function() {
+            loadChart(chart, symbol, timespan);
+            $('#tickerChart').fadeIn('fast');
+        });
     });
 
     Date.prototype.toDateInputValue = (function() {
@@ -60,4 +58,5 @@ $(document).ready(function() {
     });
 
     $('#PurchaseDate').val(new Date().toDateInputValue());
+
 });

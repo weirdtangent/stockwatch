@@ -28,7 +28,7 @@ func desktopHandler(deps *Dependencies) http.HandlerFunc {
 		if err != nil {
 			sublog.Error().Err(err).Msg("failed to get recent_plus")
 		}
-		lastCheckedNews, lastCheckedSince, updatingNewsNow := getFinancialNewsLastUpdated(deps)
+		lastCheckedNews, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, "financial_news", "stockwatch")
 
 		webdata["Movers"] = movers
 		webdata["Articles"] = articles

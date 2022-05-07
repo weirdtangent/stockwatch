@@ -78,7 +78,7 @@ func getProfile(deps *Dependencies, watcher Watcher) (*Profile, error) {
 
 	rows, err := db.Queryx("SELECT * FROM watcher_email WHERE watcher_id=? ORDER BY email_is_primary DESC, email_address", watcher.WatcherId)
 	if err != nil {
-		sublog.Fatal().Err(err).Str("table_name", "watcher_email").Msg("failed on SELECT")
+		sublog.Fatal().Err(err).Msg("failed on SELECT")
 	}
 	defer rows.Close()
 
@@ -87,12 +87,12 @@ func getProfile(deps *Dependencies, watcher Watcher) (*Profile, error) {
 	for rows.Next() {
 		err = rows.StructScan(&watcherEmail)
 		if err != nil {
-			sublog.Fatal().Err(err).Str("table_name", "watcher_email").Msg("Error reading result rows")
+			sublog.Fatal().Err(err).Msg("Error reading result rows")
 		}
 		emails = append(emails, ProfileEmail{watcherEmail.EmailAddress, watcherEmail.IsPrimary})
 	}
 	if err := rows.Err(); err != nil {
-		sublog.Fatal().Err(err).Str("table_name", "watcher_email").Msg("Error reading result rows")
+		sublog.Fatal().Err(err).Msg("Error reading result rows")
 	}
 
 	profile.Emails = emails

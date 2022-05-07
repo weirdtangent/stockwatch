@@ -24,7 +24,7 @@ func (o *OAuth) create(deps *Dependencies) error {
 		"INSERT INTO oauth SET oauth_issuer=?, oauth_sub=?, oauth_issued=?, oauth_expires=?",
 		o.OAuthIssuer, o.OAuthSub, o.OAuthIssued, o.OAuthExpires)
 	if err != nil {
-		sublog.Error().Err(err).Str("table_name", "oauth").Msg("failed on insert")
+		sublog.Error().Err(err).Msg("failed on insert")
 		sublog.Debug().Interface("OAuth", o).Caller().Msg("failed on insert")
 		return err
 	}
@@ -47,7 +47,7 @@ func (o *OAuth) createOrUpdate(deps *Dependencies) error {
 		o.OAuthId,
 	)
 	if err != nil {
-		sublog.Error().Err(err).Str("table_name", "oauth").Msg("failed on update")
+		sublog.Error().Err(err).Msg("failed on update")
 		sublog.Debug().Interface("OAuth", o).Caller().Msg("failed on update")
 	}
 

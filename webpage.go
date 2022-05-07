@@ -64,16 +64,16 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 	tickerSplits, _ := ticker.getSplits(deps)
 	lastTickerDaily, _ := getLastTickerDaily(deps, ticker.TickerId)
 	lastTickerDailyMove, _ := getLastTickerDailyMove(deps, ticker.TickerId)
-	lastCheckedNews, lastCheckedSince, updatingNewsNow := getTickerNewsLastUpdated(deps, ticker)
+	lastCheckedNews, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, "ticker_news", ticker.TickerSymbol)
 
 	// load up to last 100 days of EOD data
-	ticker_dailies, _ := ticker.getTickerEODs(deps, timespan)
+	// ticker_dailies, _ := ticker.getTickerEODs(deps, timespan)
 
 	// load any active watches about this ticker
-	webwatches, _ := loadWebWatches(deps, ticker.TickerId)
+	// webwatches, _ := loadWebWatches(deps, ticker.TickerId)
 
 	// load any recent news
-	articles, _ := getArticlesByTicker(deps, ticker.TickerId, 20, 180)
+	articles, _ := getArticlesByTicker(deps, ticker, 20, 180)
 	if len(articles) > 0 {
 		webdata["articles"] = articles
 		for _, article := range articles {
@@ -116,33 +116,6 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 		}
 	}
 
-	start := time.Now()
-	// Build charts
-	var lineChartHTML = chartHandlerTickerDailyLine(deps, ticker, &exchange, ticker_dailies, webwatches)
-	var klineChartHTML = chartHandlerTickerDailyKLine(deps, ticker, &exchange, ticker_dailies, webwatches)
-
-	// get financials
-	qtrBarStrs, qtrBarValues, _ := ticker.GetFinancials(deps, "Quarterly", "bar", 0)
-	annBarStrs, annBarValues, _ := ticker.GetFinancials(deps, "Annual", "bar", 0)
-	var qtrBarChartHTML = chartHandlerFinancialsBar(deps, ticker, &exchange, qtrBarStrs, qtrBarValues)
-	var annBarChartHTML = chartHandlerFinancialsBar(deps, ticker, &exchange, annBarStrs, annBarValues)
-
-	qtrLineStrs, qtrLineValues, _ := ticker.GetFinancials(deps, "Quarterly", "line", 0)
-	annLineStrs, annLineValues, _ := ticker.GetFinancials(deps, "Annual", "line", 0)
-	var qtrLineChartHTML = chartHandlerFinancialsLine(deps, ticker, &exchange, qtrLineStrs, qtrLineValues, 0)
-	var annLineChartHTML = chartHandlerFinancialsLine(deps, ticker, &exchange, annLineStrs, annLineValues, 0)
-
-	qtrPercStrs, qtrPercValues, _ := ticker.GetFinancials(deps, "Quarterly", "line", 1)
-	annPercStrs, annPercValues, _ := ticker.GetFinancials(deps, "Annual", "line", 1)
-	var qtrPercChartHTML = chartHandlerFinancialsLine(deps, ticker, &exchange, qtrPercStrs, qtrPercValues, 1)
-	var annPercChartHTML = chartHandlerFinancialsLine(deps, ticker, &exchange, annPercStrs, annPercValues, 1)
-	sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Str("action", "build charts").Msg("timer")
-
-	// localTz, err := time.LoadLocation(webdata["TZLocation"].(string))
-	// if err != nil {
-	// localTz, _ := time.LoadLocation("UTC")
-	// }
-
 	webdata["TickerSymbol"] = symbol
 	webdata["ticker"] = ticker
 	webdata["ticker_description"] = tickerDescription
@@ -156,21 +129,12 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 	webdata["ticker_attributes"] = tickerAttributes
 	webdata["ticker_splits"] = tickerSplits
 	webdata["last_ticker_daily_move"] = lastTickerDailyMove
-	webdata["ticker_dailies"] = TickerDailies{ticker_dailies}
+	// webdata["ticker_dailies"] = TickerDailies{ticker_dailies}
 	webdata["LastCheckedNews"] = lastCheckedNews
 	webdata["LastCheckedSince"] = lastCheckedSince
 	webdata["UpdatingNewsNow"] = updatingNewsNow
-	webdata["watches"] = webwatches
+	// webdata["watches"] = webwatches
 	webdata["TickerFavIconCDATA"] = ticker.getFavIconCDATA(deps)
-
-	webdata["lineChart"] = lineChartHTML
-	webdata["klineChart"] = klineChartHTML
-	webdata["qtrBarChart"] = qtrBarChartHTML
-	webdata["annBarChart"] = annBarChartHTML
-	webdata["qtrLineChart"] = qtrLineChartHTML
-	webdata["annLineChart"] = annLineChartHTML
-	webdata["qtrPercChart"] = qtrPercChartHTML
-	webdata["annPercChart"] = annPercChartHTML
 
 	return ticker, nil
 }

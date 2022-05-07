@@ -17,16 +17,14 @@
               <div class="d-none d-xxl-block ms-1 mb-2">
                 <div class="bg-warning text-dark ps-3 py-1">Chart/Table</div>
                 <div class="bg-white text-light minx-box">
+                  <script async id="chartCall" src="/static/js/chart.js"
+                    data-chart="symbolLine"
+                    data-symbol="{{.ticker.TickerSymbol}}"
+                    data-nonce="{{.nonce}}"
+                    data-timespan="180">
+                  </script>
                   {{ template "_chart_js" }}
-                  <div id="tickerChart1elem" class="doubleChart">{{.lineChart}}</div>
-                  <div id="tickerChart2elem" class="doubleChart extraChart">{{.klineChart}}</div>
-                  <div id="financialsChart1elem" class="extraChart">{{.qtrBarChart}}</div>
-                  <div id="financialsChart2elem" class="extraChart">{{.annBarChart}}</div>
-                  <div id="financialsChart3elem" class="extraChart">{{.qtrLineChart}}</div>
-                  <div id="financialsChart4elem" class="extraChart">{{.annLineChart}}</div>
-                  <div id="financialsChart5elem" class="extraChart">{{.qtrPercChart}}</div>
-                  <div id="financialsChart6elem" class="extraChart">{{.annPercChart}}</div>
-                  {{- template "_eod-table" . }}
+                  <div id="tickerChart" class="doubleChart bg-white" style="width: 700px; height: 480px;"></div>
                 </div>
               </div>
 

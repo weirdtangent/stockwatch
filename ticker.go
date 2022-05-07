@@ -165,12 +165,12 @@ func (t *Ticker) create(deps *Dependencies) error {
 	}
 	res, err := db.Exec(insert, t.TickerSymbol, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry)
 	if err != nil {
-		sublog.Fatal().Err(err).Str("table_name", "ticker").Str("ticker", t.TickerSymbol).Msg("failed on INSERT")
+		sublog.Fatal().Err(err).Str("ticker", t.TickerSymbol).Msg("failed on INSERT")
 		return err
 	}
 	tickerId, err := res.LastInsertId()
 	if err != nil {
-		sublog.Fatal().Err(err).Str("table_name", "ticker").Str("symbol", t.TickerSymbol).Msg("failed on LAST_INSERTID")
+		sublog.Fatal().Err(err).Str("symbol", t.TickerSymbol).Msg("failed on LAST_INSERTID")
 		return err
 	}
 	t.TickerId = uint64(tickerId)
@@ -197,7 +197,7 @@ func (t *Ticker) createOrUpdate(deps *Dependencies) error {
 	var update = "UPDATE ticker SET exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=?, favicon_s3key=?, fetch_datetime=now() WHERE ticker_id=?"
 	_, err := db.Exec(update, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry, t.FavIconS3Key, t.TickerId)
 	if err != nil {
-		sublog.Error().Err(err).Str("table_name", "ticker").Str("symbol", t.TickerSymbol).Msg("failed on update")
+		sublog.Error().Err(err).Str("symbol", t.TickerSymbol).Msg("failed on update")
 	}
 	return t.getById(deps)
 }
@@ -338,7 +338,7 @@ func (t Ticker) getTickerEODs(deps *Dependencies, days int) ([]TickerDaily, erro
 	for rows.Next() {
 		err = rows.StructScan(&ticker_daily)
 		if err != nil {
-			log.Warn().Err(err).Str("table_name", "ticker_daily").Msg("error reading result rows")
+			log.Warn().Err(err).Msg("error reading result rows")
 		} else {
 			ticker_daily.PriceDatetime, _ = time.Parse(sqlDatetimeParseType, ticker_daily.PriceDate[:11]+ticker_daily.PriceTime+"Z")
 			dailies = append(dailies, ticker_daily)
@@ -368,7 +368,7 @@ func (t Ticker) getUpDowns(deps *Dependencies, daysAgo int) ([]TickerUpDown, err
 	for rows.Next() {
 		err = rows.StructScan(&tickerUpDown)
 		if err != nil {
-			log.Warn().Err(err).Str("table_name", "ticker_updown").Msg("error reading result rows")
+			log.Warn().Err(err).Msg("error reading result rows")
 		} else {
 			upDowns = append(upDowns, tickerUpDown)
 		}
@@ -396,7 +396,7 @@ func (t Ticker) getAttributes(deps *Dependencies) ([]TickerAttribute, error) {
 	for rows.Next() {
 		err = rows.StructScan(&tickerAttribute)
 		if err != nil {
-			log.Warn().Err(err).Str("table_name", "ticker_attribute").Msg("error reading result rows")
+			log.Warn().Err(err).Msg("error reading result rows")
 		} else {
 			underscore_rx := regexp.MustCompile(`_`)
 			tickerAttribute.AttributeName = string(underscore_rx.ReplaceAll([]byte(tickerAttribute.AttributeName), []byte(" ")))
@@ -427,7 +427,7 @@ func (t Ticker) getSplits(deps *Dependencies) ([]TickerSplit, error) {
 	for rows.Next() {
 		err = rows.StructScan(&tickerSplit)
 		if err != nil {
-			log.Warn().Err(err).Str("table_name", "ticker_attribute").Msg("error reading result rows")
+			log.Warn().Err(err).Msg("error reading result rows")
 		} else {
 			tickerSplits = append(tickerSplits, tickerSplit)
 		}
@@ -600,7 +600,7 @@ func (td *TickerDaily) create(deps *Dependencies) error {
 	var insert = "INSERT INTO ticker_daily SET ticker_id=?, price_date=?, price_time=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=?"
 	_, err := db.Exec(insert, td.TickerId, td.PriceDate, td.PriceTime, td.OpenPrice, td.HighPrice, td.LowPrice, td.ClosePrice, td.Volume)
 	if err != nil {
-		sublog.Fatal().Err(err).Str("table_name", "ticker_daily").Msg("failed on INSERT")
+		sublog.Fatal().Err(err).Msg("failed on INSERT")
 	}
 	return err
 }
@@ -621,7 +621,7 @@ func (td *TickerDaily) createOrUpdate(deps *Dependencies) error {
 	var update = "UPDATE ticker_daily SET price_time=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=? WHERE ticker_id=? AND price_date=?"
 	_, err := db.Exec(update, td.PriceTime, td.OpenPrice, td.HighPrice, td.LowPrice, td.ClosePrice, td.Volume, td.TickerId, td.PriceDate)
 	if err != nil {
-		log.Warn().Err(err).Str("table_name", "ticker_daily").Msg("failed on UPDATE")
+		log.Warn().Err(err).Msg("failed on UPDATE")
 	}
 	return err
 }
@@ -698,7 +698,7 @@ func (td *TickerDescription) createOrUpdate(deps *Dependencies) error {
 		update := "UPDATE ticker_description SET business_summary=? WHERE description_id=?"
 		_, err = db.Exec(update, newBusinessSummary, td.TickerDescriptionId)
 		if err != nil {
-			sublog.Fatal().Err(err).Str("table_name", "ticker_description").Msg("failed on update")
+			sublog.Fatal().Err(err).Msg("failed on update")
 		}
 		return err
 	}
@@ -706,7 +706,7 @@ func (td *TickerDescription) createOrUpdate(deps *Dependencies) error {
 	var insert = "INSERT INTO ticker_description SET ticker_id=?, business_summary=?"
 	_, err = db.Exec(insert, td.TickerId, td.BusinessSummary)
 	if err != nil {
-		sublog.Fatal().Err(err).Str("table_name", "ticker_description").Msg("failed on insert")
+		sublog.Fatal().Err(err).Msg("failed on insert")
 	}
 	return err
 }
@@ -767,7 +767,7 @@ func (tud *TickerUpDown) createIfNew(deps *Dependencies) error {
 	var insert = "INSERT INTO ticker_updown SET ticker_id=?, updown_action=?, updown_fromgrade=?, updown_tograde=?, updown_date=?, updown_firm=?"
 	_, err = db.Exec(insert, tud.TickerId, tud.UpDownAction, tud.UpDownFromGrade, tud.UpDownToGrade, tud.UpDownDate, tud.UpDownFirm)
 	if err != nil {
-		sublog.Fatal().Err(err).Str("table_name", "ticker_updown").Msg("failed on INSERT")
+		sublog.Fatal().Err(err).Msg("failed on INSERT")
 	}
 	return err
 }
@@ -796,7 +796,7 @@ func (ts *TickerSplit) createIfNew(deps *Dependencies) error {
 	var insert = "INSERT INTO ticker_split SET ticker_id=?, split_date=?, split_ratio=?"
 	_, err = db.Exec(insert, ts.TickerId, ts.SplitDate, ts.SplitRatio)
 	if err != nil {
-		sublog.Fatal().Err(err).Str("table_name", "ticker_split").Msg("failed on INSERT")
+		sublog.Fatal().Err(err).Msg("failed on INSERT")
 	}
 	return err
 }

@@ -104,7 +104,7 @@ func getMovers(deps *Dependencies) (Movers, error) {
 			mover.VolumeStr = fmt.Sprintf("%.2fK", mover.Volume/1_000)
 		}
 		if err != nil {
-			log.Warn().Err(err).Str("table_name", "mover").Msg("Error reading result rows")
+			log.Warn().Err(err).Msg("Error reading result rows")
 		} else {
 			ticker := Ticker{TickerId: mover.TickerId}
 			err := ticker.getById(deps)

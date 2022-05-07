@@ -2,6 +2,8 @@ package main
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
 	"time"
 )
 
@@ -23,3 +25,41 @@ func (ld *LastDone) getByActivity(deps *Dependencies) error {
 }
 
 // misc -----------------------------------------------------------------------
+func getLastDoneInfo(deps *Dependencies, task string, key string) (sql.NullTime, string, bool) {
+	sublog := deps.logger.With().Str("task", task).Logger()
+
+	lastSuccessDatetime := sql.NullTime{Valid: false, Time: time.Time{}}
+	lastSuccessSince := "unknown"
+	runningTaskNow := false
+
+	lastdone := LastDone{Activity: task, UniqueKey: key}
+	err := lastdone.getByActivity(deps)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		// err = queueUpdateNews(deps)
+		// updatingNewsNow = (err == nil)
+		return lastSuccessDatetime, lastSuccessSince, runningTaskNow
+	} else if err != nil {
+		sublog.Error().Err(err).Msg("failed to get LastDone activity for {task}")
+		return sql.NullTime{}, "", false
+	}
+
+	if lastdone.LastDoneDatetime.Valid {
+		lastSuccessDatetime = lastdone.LastDoneDatetime // .In(TZLocation)
+		lastSuccessSince = fmt.Sprintf("%.0f min ago", time.Since(lastSuccessDatetime.Time).Minutes())
+	}
+	if lastdone.LastStatus == "success" {
+		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
+			// sublog.Info().Msg("it has been long enough, queue {task}")
+			// err = queueUpdateNews(deps)
+			// updatingNewsNow = (err == nil)
+			return lastSuccessDatetime, lastSuccessSince, runningTaskNow
+		} else {
+			return lastSuccessDatetime, lastSuccessSince, false
+		}
+	}
+	sublog.Info().Msg("last try failed, queue {task}")
+	// err = queueUpdateNews(deps)
+	// updatingNewsNow = (err == nil)
+
+	return lastSuccessDatetime, lastSuccessSince, runningTaskNow
+}

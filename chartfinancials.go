@@ -15,8 +15,6 @@ func chartHandlerFinancialsBar(deps *Dependencies, ticker Ticker, exchange *Exch
 	mainX := "700px"
 	mainY := "400px"
 
-	// acctg := accounting.Accounting{Symbol: "$", Precision: 0}
-
 	var barData = map[string][]opts.BarData{}
 	var legendStrs = []string{}
 	for x := range periodStrs {
@@ -39,8 +37,7 @@ func chartHandlerFinancialsBar(deps *Dependencies, ticker Ticker, exchange *Exch
 		}),
 		charts.WithTitleOpts(opts.Title{
 			Title: fmt.Sprintf("%s/%s - %s", ticker.TickerSymbol, strings.ToLower(exchange.ExchangeAcronym), ticker.TickerName),
-			// Subtitle: "Quarterly Financials",
-			Target: nonce, // crazy hack to get nonce into scripts
+			Target: nonce,
 		}),
 		charts.WithTooltipOpts(opts.Tooltip{
 			Show:    true,
@@ -108,8 +105,7 @@ func chartHandlerFinancialsLine(deps *Dependencies, ticker Ticker, exchange *Exc
 		}),
 		charts.WithTitleOpts(opts.Title{
 			Title: fmt.Sprintf("%s/%s - %s", ticker.TickerSymbol, strings.ToLower(exchange.ExchangeAcronym), ticker.TickerName),
-			// Subtitle: "Quarterly Financials",
-			Target: nonce, // crazy hack to get nonce into scripts
+			Target: nonce,
 		}),
 		charts.WithTooltipOpts(opts.Tooltip{
 			Show:    true,

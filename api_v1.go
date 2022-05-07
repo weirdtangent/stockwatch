@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -23,6 +25,9 @@ func apiV1Handler(deps *Dependencies) http.HandlerFunc {
 		sublog := deps.logger
 
 		w.Header().Add("Content-Type", "application/json")
+		reqHeader := r.Header
+		nonce := reqHeader.Get("X-Nonce")
+		deps.nonce = nonce
 
 		params := mux.Vars(r)
 		endpoint := params["endpoint"]
@@ -51,6 +56,17 @@ func apiV1Handler(deps *Dependencies) http.HandlerFunc {
 				unlockStr := r.FormValue("unlock")
 				apiRecents(deps, watcher, "unlock", unlockStr, &jsonResponse)
 			}
+
+		case "chart":
+			chart := r.FormValue("chart")
+			symbol := r.FormValue("symbol")
+			timespan, err := strconv.Atoi(r.FormValue("timespan"))
+			if err != nil {
+				jsonResponse.Success = false
+				jsonResponse.Message = "Failure: invalid timespan"
+				break
+			}
+			apiChart(deps, nonce, chart, symbol, timespan, &jsonResponse)
 
 		default:
 			sublog.Error().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", endpoint).Err(fmt.Errorf("failure: call to unknown api endpoint")).Msg("api call failed")
@@ -82,7 +98,7 @@ func apiQuotes(deps *Dependencies, symbolStr string, jsonR *jsonResponseData) {
 		validSymbols = append(validSymbols, symbol)
 		validTickers = append(validTickers, ticker)
 
-		lastCheckedNews, lastCheckedSince, updatingNewsNow := getTickerNewsLastUpdated(deps, ticker)
+		lastCheckedNews, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, "ticker_news", ticker.TickerSymbol)
 		jsonR.Data[symbol+":last_checked_since"] = lastCheckedSince
 		jsonR.Data[symbol+":updating_news_now"] = updatingNewsNow
 		if lastCheckedNews.Valid {
@@ -96,7 +112,7 @@ func apiQuotes(deps *Dependencies, symbolStr string, jsonR *jsonResponseData) {
 		}
 	}
 
-	lastCheckedNews, lastCheckedSince, updatingNewsNow := getFinancialNewsLastUpdated(deps)
+	lastCheckedNews, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, "financial_news", "stockwatch")
 	jsonR.Data["last_checked_since"] = lastCheckedSince
 	jsonR.Data["updating_news_now"] = updatingNewsNow
 	if lastCheckedNews.Valid {
@@ -222,4 +238,86 @@ func apiRecents(deps *Dependencies, watcher Watcher, action, symbolStr string, j
 	}
 	jsonR.Success = true
 	jsonR.Message = "ok"
+}
+
+func apiChart(deps *Dependencies, nonce string, chart string, symbol string, timespan int, jsonR *jsonResponseData) {
+	sublog := deps.logger.With().Str("chart", chart).Str("symbol", symbol).Int("timespan", timespan).Logger()
+
+	start := time.Now()
+
+	ticker := Ticker{TickerSymbol: symbol}
+	err := ticker.getBySymbol(deps)
+	if err != nil {
+		sublog.Error().Msg("failed to find symbol {symbol}")
+		jsonR.Success = false
+		jsonR.Message = "Failure: unknown symbol"
+		return
+	}
+	exchange := Exchange{ExchangeId: uint64(ticker.ExchangeId)}
+	err = exchange.getById(deps)
+	if err != nil {
+		sublog.Error().Msg("failed to find exchange for {symbol}")
+		jsonR.Success = false
+		jsonR.Message = "Failure: unknown symbol"
+		return
+	}
+
+	switch chart {
+	case "symbolLine":
+		ticker_dailies, _ := ticker.getTickerEODs(deps, timespan)
+		webwatches, _ := loadWebWatches(deps, ticker.TickerId)
+		chartHTML := chartHandlerTickerDailyLine(deps, ticker, &exchange, ticker_dailies, webwatches)
+		jsonR.Data["chartHTML"] = chartHTML
+		jsonR.Success = true
+		jsonR.Message = "ok"
+	case "symbolKline":
+		ticker_dailies, _ := ticker.getTickerEODs(deps, timespan)
+		webwatches, _ := loadWebWatches(deps, ticker.TickerId)
+		chartHTML := chartHandlerTickerDailyKLine(deps, ticker, &exchange, ticker_dailies, webwatches)
+		jsonR.Data["chartHTML"] = chartHTML
+		jsonR.Success = true
+		jsonR.Message = "ok"
+	case "financialQuarterlyBar":
+		qtrBarStrs, qtrBarValues, _ := ticker.GetFinancials(deps, "Quarterly", "bar", 0)
+		chartHTML := chartHandlerFinancialsBar(deps, ticker, &exchange, qtrBarStrs, qtrBarValues)
+		jsonR.Data["chartHTML"] = chartHTML
+		jsonR.Success = true
+		jsonR.Message = "ok"
+	case "financialAnnualBar":
+		annBarStrs, annBarValues, _ := ticker.GetFinancials(deps, "Annual", "bar", 0)
+		chartHTML := chartHandlerFinancialsBar(deps, ticker, &exchange, annBarStrs, annBarValues)
+		jsonR.Data["chartHTML"] = chartHTML
+		jsonR.Success = true
+		jsonR.Message = "ok"
+	case "financialQuarterlyLine":
+		qtrLineStrs, qtrLineValues, _ := ticker.GetFinancials(deps, "Quarterly", "line", 0)
+		chartHTML := chartHandlerFinancialsLine(deps, ticker, &exchange, qtrLineStrs, qtrLineValues, 0)
+		jsonR.Data["chartHTML"] = chartHTML
+		jsonR.Success = true
+		jsonR.Message = "ok"
+	case "financialAnnualLine":
+		annLineStrs, annLineValues, _ := ticker.GetFinancials(deps, "Annual", "line", 0)
+		chartHTML := chartHandlerFinancialsLine(deps, ticker, &exchange, annLineStrs, annLineValues, 0)
+		jsonR.Data["chartHTML"] = chartHTML
+		jsonR.Success = true
+		jsonR.Message = "ok"
+	case "financialQuarterlyPerc":
+		qtrPercStrs, qtrPercValues, _ := ticker.GetFinancials(deps, "Quarterly", "line", 1)
+		chartHTML := chartHandlerFinancialsLine(deps, ticker, &exchange, qtrPercStrs, qtrPercValues, 1)
+		jsonR.Data["chartHTML"] = chartHTML
+		jsonR.Success = true
+		jsonR.Message = "ok"
+	case "financialAnnualcwPercLine":
+		annPercStrs, annPercValues, _ := ticker.GetFinancials(deps, "Annual", "line", 1)
+		chartHTML := chartHandlerFinancialsLine(deps, ticker, &exchange, annPercStrs, annPercValues, 1)
+		jsonR.Data["chartHTML"] = chartHTML
+		jsonR.Success = true
+		jsonR.Message = "ok"
+	default:
+		sublog.Error().Msg("unknown chart type {chart_type}")
+		jsonR.Success = false
+		jsonR.Message = "Failure: unknown symbol"
+	}
+
+	sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Msg("timer: build chart")
 }

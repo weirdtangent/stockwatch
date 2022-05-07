@@ -2,11 +2,8 @@ package main
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
-
-	"github.com/weirdtangent/mymath"
 )
 
 func viewTickerDailyHandler(deps *Dependencies) http.HandlerFunc {
@@ -19,17 +16,8 @@ func viewTickerDailyHandler(deps *Dependencies) http.HandlerFunc {
 		symbol := params["symbol"]
 		article := r.FormValue("article")
 
-		timespan := 180
-		if tsParam := r.FormValue("ts"); tsParam != "" {
-			if tsValue, err := strconv.ParseInt(tsParam, 10, 32); err == nil {
-				timespan = int(mymath.MinMax(tsValue, 15, 1825))
-			} else if err != nil {
-				sublog.Error().Err(err).Str("ts", tsParam).Msg("invalid timespan (ts) param")
-			}
-		}
-
 		// this loads TONS of stuff into webdata
-		ticker, err := loadTickerDetails(deps, symbol, timespan)
+		ticker, err := loadTickerDetails(deps, symbol, 180)
 		if err != nil {
 			sublog.Error().Err(err).Msg("failed to load ticker details for viewing")
 			renderTemplate(w, r, deps, "desktop")

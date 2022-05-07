@@ -4,10 +4,10 @@ go 1.13
 
 require (
 	cloud.google.com/go/compute v1.6.1 // indirect
-	github.com/aws/aws-sdk-go v1.44.8
+	github.com/aws/aws-sdk-go v1.44.9
 	github.com/dgryski/go-skip32 v0.0.0-20151116144831-0e0460d2a555
 	github.com/go-echarts/go-echarts/v2 v2.2.4
-	github.com/gomarkdown/markdown v0.0.0-20220419181919-412bcf14cd2e
+	github.com/gomarkdown/markdown v0.0.0-20220506183847-567d164e0ce1
 	github.com/gomodule/redigo v1.8.8
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/securecookie v1.1.1
@@ -25,7 +25,7 @@ require (
 	github.com/weirdtangent/myaws v1.0.6
 	github.com/weirdtangent/mymath v0.1.0
 	github.com/weirdtangent/mytime v0.1.1
-	github.com/weirdtangent/yhfinance v1.1.3
+	github.com/weirdtangent/yhfinance v1.1.9
 	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
 	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 // indirect
 	golang.org/x/text v0.3.7

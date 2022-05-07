@@ -60,7 +60,7 @@ func chartHandlerTickerDailyKLine(deps *Dependencies, ticker Ticker, exchange *E
 		charts.WithTitleOpts(opts.Title{
 			Title:    fmt.Sprintf("%s/%s - %s", ticker.TickerSymbol, strings.ToLower(exchange.ExchangeAcronym), ticker.TickerName),
 			Subtitle: "Share Price",
-			Target:   nonce, // crazy hack to get nonce into scripts
+			Target:   nonce,
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			Show: false,
@@ -91,7 +91,7 @@ func chartHandlerTickerDailyKLine(deps *Dependencies, ticker Ticker, exchange *E
 		}),
 		charts.WithTitleOpts(opts.Title{
 			Subtitle: "Volume in mil",
-			Target:   nonce, // crazy hack to get nonce into scripts
+			Target:   nonce,
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			AxisLabel: &opts.AxisLabel{

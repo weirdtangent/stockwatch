@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/sha256"
 	"database/sql"
-	"errors"
 	"fmt"
 	"html/template"
 	"regexp"
@@ -86,9 +85,9 @@ type WebArticle struct {
 	BodyTemplate       template.HTML
 }
 
-func getArticlesByTicker(deps *Dependencies, ticker_id uint64, max, days int64) ([]WebArticle, error) {
+func getArticlesByTicker(deps *Dependencies, ticker Ticker, max, days int64) ([]WebArticle, error) {
 	db := deps.db
-	sublog := deps.logger
+	sublog := deps.logger.With().Str("symbol", ticker.TickerSymbol).Logger()
 
 	if max == 0 || max > 20 {
 		max = 20
@@ -100,7 +99,7 @@ func getArticlesByTicker(deps *Dependencies, ticker_id uint64, max, days int64) 
 	// go back as far as 180 days but limited to 20 articles
 	goback := time.Duration(-1 * 24 * time.Duration(days) * time.Hour)
 	fromDate := time.Now().Add(goback).Format(sqlDatetimeSearchType)
-	sublog.Info().Uint64("ticker_id", ticker_id).Str("from_date", fromDate).Msg("checking for ticker news for {ticker_id} since {from_date}")
+	sublog.Info().Str("from_date", fromDate).Msg("checking for {symbol} news since {from_date}")
 	query := `SELECT article.article_id, article.source_id, article.external_id, article.published_datetime, article.pubupdated_datetime,
 	            article.title, article.body, article.article_url, article.image_url,
                 ANY_VALUE(article_author.byline) AS author_byline,
@@ -120,7 +119,7 @@ func getArticlesByTicker(deps *Dependencies, ticker_id uint64, max, days int64) 
   			  GROUP BY article_id
 			  ORDER BY published_datetime DESC
     		  LIMIT ?`
-	rows, err := db.Queryx(query, fromDate, ticker_id, max)
+	rows, err := db.Queryx(query, fromDate, ticker.TickerId, max)
 
 	if err != nil {
 		log.Warn().Err(err).Msg("failed to check for articles")
@@ -135,7 +134,7 @@ func getArticlesByTicker(deps *Dependencies, ticker_id uint64, max, days int64) 
 	for rows.Next() {
 		err = rows.StructScan(&article)
 		if err != nil {
-			log.Warn().Err(err).Str("table_name", "article,article_author").Msg("error reading result rows")
+			log.Warn().Err(err).Msg("error reading result rows")
 			continue
 		}
 		sha := fmt.Sprintf("%x", sha256.Sum256([]byte(article.Title)))
@@ -198,7 +197,7 @@ func getRecentArticles(deps *Dependencies) ([]WebArticle, error) {
 	for rows.Next() {
 		err = rows.StructScan(&article)
 		if err != nil {
-			log.Warn().Err(err).Str("table_name", "article,article_author").Msg("Error reading result rows")
+			log.Warn().Err(err).Msg("Error reading result rows")
 			continue
 		}
 		sha := fmt.Sprintf("%x", sha256.Sum256([]byte(article.Title)))
@@ -224,82 +223,4 @@ func getRecentArticles(deps *Dependencies) ([]WebArticle, error) {
 	}
 
 	return articles, nil
-}
-
-func getTickerNewsLastUpdated(deps *Dependencies, ticker Ticker) (sql.NullTime, string, bool) {
-	sublog := deps.logger
-
-	lastCheckedNews := sql.NullTime{Valid: false, Time: time.Time{}}
-	lastCheckedSince := "unknown"
-	updatingNewsNow := false
-
-	lastdone := LastDone{Activity: "ticker_news", UniqueKey: ticker.TickerSymbol}
-	err := lastdone.getByActivity(deps)
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		err = ticker.queueUpdateNews(deps)
-		updatingNewsNow = (err == nil)
-		return sql.NullTime{}, "", updatingNewsNow
-	} else if err != nil {
-		sublog.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to get LastDone activity for {symbol}")
-		return sql.NullTime{}, "", false
-	}
-
-	if lastdone.LastDoneDatetime.Valid {
-		lastCheckedNews = lastdone.LastDoneDatetime // .In(TZLocation)
-		lastCheckedSince = fmt.Sprintf("%.0f min ago", time.Since(lastCheckedNews.Time).Minutes())
-	}
-	if lastdone.LastStatus == "success" {
-		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
-			sublog.Info().Str("symbol", ticker.TickerSymbol).Msg("it has been long enough, queue news check for {symbol}")
-			err = ticker.queueUpdateNews(deps)
-			updatingNewsNow = (err == nil)
-			return lastCheckedNews, lastCheckedSince, updatingNewsNow
-		} else {
-			return lastCheckedNews, lastCheckedSince, false
-		}
-	}
-	sublog.Info().Str("symbol", ticker.TickerSymbol).Msg("last try failed, queue news check for {symbol}")
-	err = ticker.queueUpdateNews(deps)
-	updatingNewsNow = (err == nil)
-
-	return lastCheckedNews, lastCheckedSince, updatingNewsNow
-}
-
-func getFinancialNewsLastUpdated(deps *Dependencies) (sql.NullTime, string, bool) {
-	sublog := deps.logger
-
-	lastCheckedNews := sql.NullTime{Valid: false, Time: time.Time{}}
-	lastCheckedSince := "unknown"
-	updatingNewsNow := false
-
-	lastdone := LastDone{Activity: "financial_news", UniqueKey: "stockwatch"}
-	err := lastdone.getByActivity(deps)
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		// err = queueUpdateNews(deps)
-		// updatingNewsNow = (err == nil)
-		return lastCheckedNews, lastCheckedSince, updatingNewsNow
-	} else if err != nil {
-		sublog.Error().Err(err).Str("task", "financial_news").Msg("failed to get LastDone activity for {task}")
-		return sql.NullTime{}, "", false
-	}
-
-	if lastdone.LastDoneDatetime.Valid {
-		lastCheckedNews = lastdone.LastDoneDatetime // .In(TZLocation)
-		lastCheckedSince = fmt.Sprintf("%.0f min ago", time.Since(lastCheckedNews.Time).Minutes())
-	}
-	if lastdone.LastStatus == "success" {
-		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
-			// sublog.Info().Str("task", "financial_news").Msg("it has been long enough, queue {task}")
-			// err = queueUpdateNews(deps)
-			// updatingNewsNow = (err == nil)
-			return lastCheckedNews, lastCheckedSince, updatingNewsNow
-		} else {
-			return lastCheckedNews, lastCheckedSince, false
-		}
-	}
-	sublog.Info().Str("task", "financial_news").Msg("last try failed, queue {task}")
-	// err = queueUpdateNews(deps)
-	// updatingNewsNow = (err == nil)
-
-	return lastCheckedNews, lastCheckedSince, updatingNewsNow
 }

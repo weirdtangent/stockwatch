@@ -131,17 +131,6 @@ func (w Watcher) IsRoot() bool {
 }
 
 // misc -----------------------------------------------------------------------
-func getWatcherBySession(deps *Dependencies, session string) (Watcher, error) {
-	db := deps.db
-
-	w := Watcher{}
-	err := db.QueryRowx("SELECT * FROM watcher WHERE session_id=?", session).StructScan(&w)
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return Watcher{}, nil
-	}
-	return w, err
-}
-
 func isNicknameAvailable(deps *Dependencies, watcherId uint64, nickname string) bool {
 	db := deps.db
 
@@ -164,7 +153,7 @@ func getWatcherIdBySession(deps *Dependencies, session string) (uint64, error) {
 			sublog.Info().Msg("no rows returned for getWatcherIdBySession")
 			return 0, nil
 		} else {
-			sublog.Warn().Err(err).Str("table_name", "watcher").Msg("failed to check for existing record")
+			sublog.Warn().Err(err).Msg("failed to check for existing record")
 			return 0, err
 		}
 	}
@@ -183,7 +172,7 @@ func getWatcherIdByEmail(deps *Dependencies, email string) (uint64, error) {
 			sublog.Info().Msg("no rows returned for getWatcherIdByEmail")
 			return 0, nil
 		} else {
-			sublog.Warn().Err(err).Str("table_name", "watcher").Msg("failed to check for existing record")
+			sublog.Warn().Err(err).Msg("failed to check for existing record")
 			return 0, err
 		}
 	}
@@ -198,7 +187,7 @@ func (wr *WatcherRecent) create(deps *Dependencies) error {
 	insert := "INSERT INTO watcher_recent SET watcher_id=?, ticker_id=?, locked=?"
 	_, err := db.Exec(insert, wr.WatcherId, wr.TickerId, wr.Locked)
 	if err != nil {
-		sublog.Error().Err(err).Str("table_name", "watcher_recent").Msg("failed on INSERT")
+		sublog.Error().Err(err).Msg("failed on INSERT")
 		return err
 	}
 
@@ -212,7 +201,7 @@ func (wr *WatcherRecent) createOrUpdate(deps *Dependencies) error {
 	insert_or_update := "INSERT INTO watcher_recent SET watcher_id=?, ticker_id=?, locked=? ON DUPLICATE KEY UPDATE locked=? update_datetime=now()"
 	_, err := db.Exec(insert_or_update, wr.WatcherId, wr.TickerId, wr.Locked, wr.Locked)
 	if err != nil {
-		sublog.Error().Err(err).Str("table_name", "watcher_recent").Msg("failed on INSERT OR UPDATE")
+		sublog.Error().Err(err).Msg("failed on INSERT OR UPDATE")
 		return err
 	}
 
@@ -226,7 +215,7 @@ func (wr *WatcherRecent) update(deps *Dependencies, watcher Watcher, ticker Tick
 	insert_or_update := "UPDATE watcher_recent SET locked=?, update_datetime=now() WHERE watcher_id=? and ticker_id=?"
 	_, err := db.Exec(insert_or_update, wr.Locked, wr.WatcherId, wr.TickerId)
 	if err != nil {
-		sublog.Error().Err(err).Str("table_name", "watcher_recent").Msg("failed on UPDATE")
+		sublog.Error().Err(err).Msg("failed on UPDATE")
 		return err
 	}
 
@@ -239,7 +228,7 @@ func lockWatcherRecent(deps *Dependencies, watcher Watcher, ticker Ticker) bool 
 	var update = "UPDATE watcher_recent SET locked=true WHERE watcher_id=? AND ticker_id=?"
 	_, err := db.Exec(update, watcher.WatcherId, ticker.TickerId)
 	if err != nil {
-		log.Warn().Err(err).Str("table_name", "watcher_recent").Msg("failed on UPDATE")
+		log.Warn().Err(err).Msg("failed on UPDATE")
 		return false
 	}
 	return true
@@ -251,7 +240,7 @@ func unlockWatcherRecent(deps *Dependencies, watcher Watcher, ticker Ticker) boo
 	var update = "UPDATE watcher_recent SET locked=false WHERE watcher_id=? AND ticker_id=?"
 	_, err := db.Exec(update, watcher.WatcherId, ticker.TickerId)
 	if err != nil {
-		log.Warn().Err(err).Str("table_name", "watcher_recent").Msg("failed on UPDATE")
+		log.Warn().Err(err).Msg("failed on UPDATE")
 		return false
 	}
 	return true

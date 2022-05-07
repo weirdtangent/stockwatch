@@ -70,6 +70,8 @@ github.com/aws/aws-sdk-go v1.44.5 h1:T4mckpWUfplPG4GA3FDWDCM1QaCzisjGzzeCVBhHKwQ
 github.com/aws/aws-sdk-go v1.44.5/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
 github.com/aws/aws-sdk-go v1.44.8 h1:Fc8lFiP97MjB/BFaeZ7ixAjkqrNoic/qvlRqqJb5cxY=
 github.com/aws/aws-sdk-go v1.44.8/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
+github.com/aws/aws-sdk-go v1.44.9 h1:s3lsEFbc8i7ghQmcEpcdyvoO/WMwyCVa9pUq3Lq//Ok=
+github.com/aws/aws-sdk-go v1.44.9/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
@@ -166,6 +168,8 @@ github.com/golang/protobuf v1.5.2/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiu
 github.com/golang/snappy v0.0.3/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
 github.com/gomarkdown/markdown v0.0.0-20220419181919-412bcf14cd2e h1:eF2U4VaZBPyxJZQxz8b0ulG3Dw2yQ2kGRJ9Io/cGQeE=
 github.com/gomarkdown/markdown v0.0.0-20220419181919-412bcf14cd2e/go.mod h1:JDGcbDT52eL4fju3sZ4TeHGsQwhG9nbDV21aMyhwPoA=
+github.com/gomarkdown/markdown v0.0.0-20220506183847-567d164e0ce1 h1:Dhq2imKuy4JEwKa/hh8FXy2XiDmbqCaKYqsYXm+hTF0=
+github.com/gomarkdown/markdown v0.0.0-20220506183847-567d164e0ce1/go.mod h1:JDGcbDT52eL4fju3sZ4TeHGsQwhG9nbDV21aMyhwPoA=
 github.com/gomodule/redigo v1.8.8 h1:f6cXq6RRfiyrOJEV7p3JhLDlmawGBVBBP1MggY8Mo4E=
 github.com/gomodule/redigo v1.8.8/go.mod h1:7ArFNvsTjH8GMMzB4uy1snslv2BwmginuMs06a1uzZE=
 github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c/go.mod h1:lNA+9X1NB3Zf8V7Ke586lFgjr2dZNuvo3lPJSGZ5JPQ=
@@ -349,6 +353,8 @@ github.com/weirdtangent/mytime v0.1.1 h1:QOHeGWqDx+3795L2iTlIO0maAi35Jg9rkp50Cqt
 github.com/weirdtangent/mytime v0.1.1/go.mod h1:UqDaTF+gcU1lEZ3GQZaS0sGjmYuYiGwcVVoaNXd9V0w=
 github.com/weirdtangent/yhfinance v1.1.3 h1:V9/+658kvpuz1Vcxe4jMFSROiSB7MlDrZc44oPvU3uU=
 github.com/weirdtangent/yhfinance v1.1.3/go.mod h1:92u1VH7B1hTJ3NBWi0DvmPhnyNllUyDzjAEaGXyrlDc=
+github.com/weirdtangent/yhfinance v1.1.9 h1:2UUwAuAURtYvBDiG24D7I+H+hOSYVlzDjTF3dGEqMVw=
+github.com/weirdtangent/yhfinance v1.1.9/go.mod h1:92u1VH7B1hTJ3NBWi0DvmPhnyNllUyDzjAEaGXyrlDc=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

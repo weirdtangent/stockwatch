@@ -15,8 +15,8 @@ import (
 // fetch ticker info (and possibly new exchange) from yhfinance
 func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 	redisPool := deps.redisPool
-	sublog := deps.logger
 	secrets := deps.secrets
+	sublog := deps.logger.With().Str("symbol", symbol).Logger()
 
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
@@ -30,12 +30,8 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 	if err == nil && !skipRedisChecks {
 		sublog.Info().Str("redis_key", redisKey).Msg("redis cache hit")
 	} else {
-		var err error
-		summaryParams := map[string]string{"symbol": symbol}
-		sublog.Info().Str("symbol", symbol).Msg("get {symbol} info from yhfinance api")
-		response, err = yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "summary", summaryParams)
+		response, err := yhfinance.GetYHFinanceStockSummary(&sublog, apiKey, apiHost, symbol)
 		if err != nil {
-			log.Warn().Err(err).Str("ticker", symbol).Msg("failed to retrieve ticker")
 			return Ticker{}, err
 		}
 		_, err = redisConn.Do("SET", redisKey, response, "EX", 60*60*24)
@@ -44,7 +40,7 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 		}
 	}
 
-	var summaryResponse yhfinance.YFSummaryResponse
+	var summaryResponse yhfinance.YHStockSummaryResponse
 	json.NewDecoder(strings.NewReader(response)).Decode(&summaryResponse)
 
 	// can't create exchange - all we get is ExchangeCode and I can't find a
@@ -114,7 +110,7 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 }
 
 // load ticker up-to-date quote
-func fetchTickerQuoteFromYH(deps *Dependencies, symbol string) (yhfinance.YFQuote, error) {
+func fetchTickerQuoteFromYH(deps *Dependencies, symbol string) (yhfinance.YHQuote, error) {
 	redisPool := deps.redisPool
 	secrets := deps.secrets
 	sublog := deps.logger
@@ -127,7 +123,7 @@ func fetchTickerQuoteFromYH(deps *Dependencies, symbol string) (yhfinance.YFQuot
 	apiKey := secrets["yhfinance_rapidapi_key"]
 	apiHost := secrets["yhfinance_rapidapi_host"]
 
-	var quote yhfinance.YFQuote
+	var quote yhfinance.YHQuote
 
 	// pull recent response from redis (20 sec expire), or go get from YF
 	redisKey := "yhfinance/quote/" + symbol
@@ -137,7 +133,7 @@ func fetchTickerQuoteFromYH(deps *Dependencies, symbol string) (yhfinance.YFQuot
 	} else {
 		var err error
 		quoteParams := map[string]string{"symbols": symbol}
-		response, err = yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "quote", quoteParams)
+		response, err = yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "marketQuote", quoteParams)
 		if err != nil {
 			log.Warn().Err(err).Msg("failed to retrieve quote")
 			return quote, err
@@ -150,7 +146,7 @@ func fetchTickerQuoteFromYH(deps *Dependencies, symbol string) (yhfinance.YFQuot
 		}
 	}
 
-	var quoteResponse yhfinance.YFGetQuotesResponse
+	var quoteResponse yhfinance.YHGetQuotesResponse
 	json.NewDecoder(strings.NewReader(response)).Decode(&quoteResponse)
 
 	if len(quoteResponse.QuoteResponse.Quotes) == 0 {
@@ -163,7 +159,7 @@ func fetchTickerQuoteFromYH(deps *Dependencies, symbol string) (yhfinance.YFQuot
 	return quote, nil
 }
 
-func loadMultiTickerQuotes(deps *Dependencies, symbols []string) (map[string]yhfinance.YFQuote, error) {
+func loadMultiTickerQuotes(deps *Dependencies, symbols []string) (map[string]yhfinance.YHQuote, error) {
 	redisPool := deps.redisPool
 	secrets := deps.secrets
 	sublog := deps.logger
@@ -174,17 +170,17 @@ func loadMultiTickerQuotes(deps *Dependencies, symbols []string) (map[string]yhf
 	apiKey := secrets["yhfinance_rapidapi_key"]
 	apiHost := secrets["yhfinance_rapidapi_host"]
 
-	quotes := map[string]yhfinance.YFQuote{}
+	quotes := map[string]yhfinance.YHQuote{}
 
 	var err error
 	quoteParams := map[string]string{"symbols": strings.Join(symbols, ",")}
 	sublog.Info().Str("symbols", strings.Join(symbols, ",")).Msg("getting multi-symbol quote from yhfinance")
-	fullResponse, err := yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "quote", quoteParams)
+	fullResponse, err := yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "marketQuote", quoteParams)
 	if err != nil {
 		log.Warn().Err(err).Str("symbols", strings.Join(symbols, ",")).Msg("failed to retrieve quote")
 		return quotes, err
 	}
-	var quoteResponse yhfinance.YFGetQuotesResponse
+	var quoteResponse yhfinance.YHGetQuotesResponse
 	json.NewDecoder(strings.NewReader(fullResponse)).Decode(&quoteResponse)
 
 	for n, response := range quoteResponse.QuoteResponse.Quotes {
@@ -219,13 +215,13 @@ func loadTickerEODsFromYH(deps *Dependencies, ticker Ticker) error {
 	if apiKey == "" || apiHost == "" {
 		sublog.Fatal().Msg("apiKey or apiHost secret is missing")
 	}
-	response, err := yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "historical", historicalParams)
+	response, err := yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "stockHistorical", historicalParams)
 	if err != nil {
 		sublog.Warn().Err(err).Str("ticker", ticker.TickerSymbol).Msg("failed to retrieve historical prices")
 		return err
 	}
 
-	var historicalResponse yhfinance.YFHistoricalDataResponse
+	var historicalResponse yhfinance.YHHistoricalDataResponse
 	json.NewDecoder(strings.NewReader(response)).Decode(&historicalResponse)
 
 	var lastErr error
@@ -302,7 +298,7 @@ func listSearch(deps *Dependencies, searchString string, resultTypes string) ([]
 	}
 
 	searchCount := 0
-	var searchResponse yhfinance.YFAutoCompleteResponse
+	var searchResponse yhfinance.YHAutoCompleteResponse
 	json.NewDecoder(strings.NewReader(response)).Decode(&searchResponse)
 
 	if resultTypes == "ticker" && len(searchResponse.Quotes) == 0 {
