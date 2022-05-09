@@ -30,10 +30,13 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 	if err == nil && !skipRedisChecks {
 		sublog.Info().Str("redis_key", redisKey).Msg("redis cache hit")
 	} else {
-		response, err := yhfinance.GetYHFinanceStockSummary(&sublog, apiKey, apiHost, symbol)
+		start := time.Now()
+		response, err = yhfinance.GetYHFinanceStockSummary(&sublog, apiKey, apiHost, symbol)
+		sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Msg("timer: yhfinance stockSummary")
 		if err != nil {
 			return Ticker{}, err
 		}
+
 		_, err = redisConn.Do("SET", redisKey, response, "EX", 60*60*24)
 		if err != nil {
 			sublog.Error().Err(err).Str("ticker", symbol).Str("redis_key", redisKey).Msg("failed to save to redis")
@@ -41,7 +44,10 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 	}
 
 	var summaryResponse yhfinance.YHStockSummaryResponse
-	json.NewDecoder(strings.NewReader(response)).Decode(&summaryResponse)
+	err = json.NewDecoder(strings.NewReader(response)).Decode(&summaryResponse)
+	if err != nil {
+		sublog.Fatal().Err(err).Msg("failed to decode json")
+	}
 
 	// can't create exchange - all we get is ExchangeCode and I can't find a
 	// table to translate those to Exchange MIC or Acronym... so I have to
@@ -70,6 +76,10 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 		summaryResponse.SummaryProfile.Phone,
 		summaryResponse.SummaryProfile.Sector,
 		summaryResponse.SummaryProfile.Industry,
+		summaryResponse.Price.RegularMarketPrice.Raw,
+		summaryResponse.Price.RegularMarketPreviousClose.Raw,
+		summaryResponse.Price.RegularMarketVolume.Raw,
+		time.Unix(int64(summaryResponse.Price.RegularMarketTime), 0),
 		"",
 		sql.NullTime{},
 		"",
@@ -80,6 +90,9 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 	if err != nil {
 		sublog.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to create or update ticker")
 		return Ticker{}, err
+	}
+	if ticker.TickerSymbol == "" || ticker.TickerId == 0 {
+		sublog.Fatal().Interface("ticker", ticker).Str("quotetype_symbol", summaryResponse.QuoteType.Symbol).Msg("ticker object is not saved")
 	}
 
 	tickerDescription := TickerDescription{0, "", ticker.TickerId, summaryResponse.SummaryProfile.LongBusinessSummary, time.Now(), time.Now()}
@@ -132,9 +145,11 @@ func fetchTickerQuoteFromYH(deps *Dependencies, symbol string) (yhfinance.YHQuot
 	if err == nil && response != "" && !skipRedisChecks {
 		sublog.Info().Str("redis_key", redisKey).Msg("redis cache hit")
 	} else {
+		start := time.Now()
 		var err error
 		quoteParams := map[string]string{"symbols": symbol}
 		response, err = yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "marketQuote", quoteParams)
+		sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Msg("timer: yhfinance marketQuote")
 		if err != nil {
 			log.Warn().Err(err).Msg("failed to retrieve quote")
 			return quote, err
@@ -173,14 +188,17 @@ func loadMultiTickerQuotes(deps *Dependencies, symbols []string) (map[string]yhf
 
 	quotes := map[string]yhfinance.YHQuote{}
 
+	start := time.Now()
 	var err error
 	quoteParams := map[string]string{"symbols": strings.Join(symbols, ",")}
 	sublog.Info().Str("symbols", strings.Join(symbols, ",")).Msg("getting multi-symbol quote from yhfinance")
 	fullResponse, err := yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "marketQuote", quoteParams)
+	sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Msg("timer: yhfinance multi marketQuote")
 	if err != nil {
 		log.Warn().Err(err).Str("symbols", strings.Join(symbols, ",")).Msg("failed to retrieve quote")
 		return quotes, err
 	}
+
 	var quoteResponse yhfinance.YHGetQuotesResponse
 	json.NewDecoder(strings.NewReader(fullResponse)).Decode(&quoteResponse)
 
@@ -216,7 +234,10 @@ func loadTickerEODsFromYH(deps *Dependencies, ticker Ticker) error {
 	if apiKey == "" || apiHost == "" {
 		sublog.Fatal().Msg("apiKey or apiHost secret is missing")
 	}
+
+	start := time.Now()
 	response, err := yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "stockHistorical", historicalParams)
+	sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Msg("timer: yhfinance stockHistorical")
 	if err != nil {
 		sublog.Warn().Err(err).Str("ticker", ticker.TickerSymbol).Msg("failed to retrieve historical prices")
 		return err
@@ -235,7 +256,7 @@ func loadTickerEODsFromYH(deps *Dependencies, ticker Ticker) error {
 			priceTime = currentTimeStr
 		}
 		priceDatetime, _ := time.Parse(sqlDatetimeParseType, priceDate+" "+priceTime)
-		tickerDaily := TickerDaily{0, "", ticker.TickerId, priceDate, priceTime, priceDatetime, price.Open, price.High, price.Low, price.Close, price.Volume, time.Now(), time.Now()}
+		tickerDaily := TickerDaily{0, "", ticker.TickerId, priceDatetime, price.Open, price.High, price.Low, price.Close, price.Volume, time.Now(), time.Now()}
 		err = tickerDaily.createOrUpdate(deps)
 		if err != nil {
 			lastErr = err
@@ -278,6 +299,9 @@ func jumpSearch(deps *Dependencies, searchString string) (SearchResultTicker, er
 			highestScore = result.Ticker.SearchScore
 		}
 	}
+	if searchResult.TickerSymbol == "" {
+		return searchResult, fmt.Errorf("sorry, the search returned zero results")
+	}
 
 	return searchResult, nil
 }
@@ -290,15 +314,17 @@ func listSearch(deps *Dependencies, searchString string, resultTypes string) ([]
 	apiKey := secrets["yhfinance_rapidapi_key"]
 	apiHost := secrets["yhfinance_rapidapi_host"]
 
+	start := time.Now()
 	searchResults := make([]SearchResult, 100)
-
 	searchParams := map[string]string{"q": searchString, "region": "US"}
 	response, err := yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "autocomplete", searchParams)
+	sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Msg("timer: yhfinance autocomplete")
 	if err != nil {
 		return searchResults, err
 	}
 
-	searchCount := 0
+	newsCount := 0
+	tickerCount := 0
 	var searchResponse yhfinance.YHAutoCompleteResponse
 	json.NewDecoder(strings.NewReader(response)).Decode(&searchResponse)
 
@@ -314,7 +340,7 @@ func listSearch(deps *Dependencies, searchString string, resultTypes string) ([]
 
 	if resultTypes == "news" || resultTypes == "both" {
 		for _, newsResult := range searchResponse.News {
-			searchCount++
+			newsCount++
 			searchResults = append(searchResults, SearchResult{
 				ResultType: "news",
 				News: SearchResultNews{
@@ -337,11 +363,11 @@ func listSearch(deps *Dependencies, searchString string, resultTypes string) ([]
 			exchange := Exchange{ExchangeCode: quoteResult.ExchangeCode}
 			err := exchange.getByCode(deps)
 			if err != nil {
-				sublog.Error().Err(err).Str("exchange_code", quoteResult.ExchangeCode).Msg("failed to get exchange by code")
+				sublog.Error().Err(err).Str("symbol", quoteResult.Symbol).Str("exchange_code", quoteResult.ExchangeCode).Msg("skipping {symbol} with unknown {exchange_code}")
 				continue
 			}
 			if exchange.ExchangeId > 0 {
-				searchCount++
+				tickerCount++
 				searchResults = append(searchResults, SearchResult{
 					ResultType: "ticker",
 					News:       SearchResultNews{},
@@ -358,7 +384,7 @@ func listSearch(deps *Dependencies, searchString string, resultTypes string) ([]
 		}
 	}
 
-	sublog.Info().Str("search_string", searchString).Int("results_count", searchCount).Msg("Search returned results")
+	sublog.Info().Str("search_string", searchString).Int("news_count", newsCount).Int("ticker_count", tickerCount).Msg("Search results")
 
 	return searchResults, nil
 }

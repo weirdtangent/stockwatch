@@ -68,7 +68,7 @@ func (mi MarketIndex) LoadDailies(db *sqlx.DB, days int) ([]MarketIndexDaily, er
 	rows, err := db.Queryx(
 		`SELECT * FROM (
        SELECT * FROM marketindex_daily WHERE marketindex_id=? AND volume > 0
-         ORDER BY price_date DESC LIMIT ?) DT1
+         ORDER BY price_datetime DESC LIMIT ?) DT1
      ORDER BY price_date`,
 		mi.MarketIndexId, days)
 	if err != nil {
@@ -102,7 +102,7 @@ func (mi MarketIndex) LoadMarketIndexIntraday(deps *Dependencies, intradate stri
 
 	rows, err := db.Queryx(
 		`SELECT * FROM marketindex_intraday
-                 WHERE marketindex_id=? AND price_date LIKE ? AND volume > 0
+                 WHERE marketindex_id=? AND price_dateitime LIKE ? AND volume > 0
                  ORDER BY price_date`,
 		mi.MarketIndexId, intradate+"%")
 	if err != nil {

@@ -77,16 +77,23 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 		start := time.Now()
 		ticker, err = fetchTickerInfoFromYH(deps, symbol)
 		if err != nil {
-			sublog.Error().Err(err).Str("ticker", symbol).Msg("Fatal: could not load ticker info from source. Redirect back to desktop?")
+			sublog.Error().Err(err).Str("ticker", symbol).Msg("ould not load ticker from yhfinance summary")
 			return Ticker{}, err
 		}
-		sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Str("action", "YHfinance get-summary").Msg("timer")
+		sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Msg("timer: yhfinance summary")
+		err := ticker.createOrUpdate(deps)
+		if err != nil {
+			sublog.Error().Err(err).Str("ticker", symbol).Msg("could not update ticker with yhfinance summary")
+		}
 	} else if !ticker.FetchDatetime.Valid || ticker.FetchDatetime.Time.Add(24*time.Hour).Before(time.Now()) {
 		// queue update of ticker from YH
 		err := ticker.queueUpdateInfo(deps)
 		if err != nil {
 			sublog.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to queue 'update info' for {symbol}")
 		}
+	}
+	if ticker.TickerSymbol == "" || ticker.TickerId == 0 {
+		sublog.Fatal().Interface("ticker", ticker).Msg("ticker object is not saved")
 	}
 
 	tickerDescription, _ := getTickerDescriptionByTickerId(deps, ticker.TickerId)
@@ -101,30 +108,23 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 
 	// if the market is open, lets get a live quote
 	if isMarketOpen() {
-		start := time.Now()
-		sublog.Debug().Msg("market is open, lets get live quote from YH")
 		quote, err := fetchTickerQuoteFromYH(deps, ticker.TickerSymbol)
 		if err == nil {
 			webdata["quote"] = quote
+			ticker.updatePriceAndVolume(deps, quote.QuotePrice, quote.QuoteVolume)
 		}
 		webdata["open"] = true
-		sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Str("action", "YHfinance get live quote").Msg("timer")
 	}
 
 	// if it is a workday after 4 and we don't have the EOD (or not an EOD from
 	// AFTER 4pm) or we don't have the prior workday EOD, get them
 	if ticker.needEODs(deps) {
-		start := time.Now()
-		sublog.Debug().Msg("going to get EODs from YH")
-		loadTickerEODsFromYH(deps, ticker)
-		sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Str("action", "build charts").Msg("timer")
+		ticker.queueUpdateEODs(deps)
 	}
 
 	tickerUpDowns, _ := ticker.getUpDowns(deps, 90)
 	tickerAttributes, _ := ticker.getAttributes(deps)
 	tickerSplits, _ := ticker.getSplits(deps)
-	lastTickerDaily, _ := getLastTickerDaily(deps, ticker.TickerId)
-	lastTickerDailyMove, _ := getLastTickerDailyMove(deps, ticker.TickerId)
 	_, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, "ticker_news", ticker.TickerSymbol)
 
 	// load any recent news
@@ -170,14 +170,20 @@ func loadTickerDetails(deps *Dependencies, symbol string, timespan int) (Ticker,
 	webdata["ticker_description"] = tickerDescription
 	webdata["exchange"] = exchange
 	webdata["timespan"] = timespan
-	webdata["lastClose"] = lastTickerDaily[0]
-	webdata["priorClose"] = lastTickerDaily[1]
-	webdata["DiffAmt"] = PriceDiffAmt(lastTickerDaily[1].ClosePrice, lastTickerDaily[0].ClosePrice)
-	webdata["DiffPerc"] = PriceDiffPercAmt(lastTickerDaily[1].ClosePrice, lastTickerDaily[0].ClosePrice)
+
+	// if len(lastTickerDaily) > 0 {
+	// 	webdata["lastClose"] = lastTickerDaily[0]
+	// 	if len(lastTickerDaily) > 1 {
+	// 		webdata["priorClose"] = lastTickerDaily[1]
+	// 	}
+	// }
+
+	webdata["DiffAmt"] = PriceDiffAmt(ticker.MarketPrevClose, ticker.MarketPrice)
+	webdata["DiffPerc"] = PriceDiffPercAmt(ticker.MarketPrevClose, ticker.MarketPrice)
+
 	webdata["ticker_updowns"] = tickerUpDowns
 	webdata["ticker_attributes"] = tickerAttributes
 	webdata["ticker_splits"] = tickerSplits
-	webdata["last_ticker_daily_move"] = lastTickerDailyMove
 	webdata["LastCheckedSince"] = lastCheckedSince
 	webdata["UpdatingNewsNow"] = updatingNewsNow
 	webdata["TickerFavIconCDATA"] = ticker.getFavIconCDATA(deps)

@@ -6,7 +6,6 @@ import (
 	"math"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
@@ -15,7 +14,6 @@ import (
 
 func chartHandlerTickerDailyLine(deps *Dependencies, ticker Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
 	nonce := deps.nonce
-	sublog := deps.logger
 
 	mainX := "700px"
 	mainY := "280px"
@@ -34,15 +32,7 @@ func chartHandlerTickerDailyLine(deps *Dependencies, ticker Ticker, exchange *Ex
 	lineData := make([]opts.LineData, 0, days)
 	volumeData := make([]opts.BarData, 0, days)
 	for x := range dailies {
-		// go or parseTime=true or something mysteriously turns the "string" PriceDate
-		// which is yyyy-mm-dd into a full RFC3339 date, so we only want to parse the
-		// first 10 characters
-		tickerDate, err := time.Parse(sqlDateParseType, dailies[x].PriceDate[:10])
-		if err != nil {
-			sublog.Fatal().Err(err).Str("symbol", ticker.TickerSymbol).Str("bad_data", dailies[x].PriceDate).Msg("failed to parse price_date for {symbol}")
-		}
-
-		x_axis = append(x_axis, tickerDate.Format("Jan 02"))
+		x_axis = append(x_axis, dailies[x].PriceDatetime.Format("Jan 02"))
 		lineData = append(lineData, opts.LineData{Value: dailies[x].ClosePrice})
 		volumeData = append(volumeData, opts.BarData{Value: dailies[x].Volume / volumeUnits})
 	}

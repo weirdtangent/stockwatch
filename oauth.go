@@ -26,7 +26,6 @@ func (o *OAuth) create(deps *Dependencies) error {
 		o.OAuthIssuer, o.OAuthSub, o.OAuthIssued, o.OAuthExpires)
 	if err != nil {
 		sublog.Error().Err(err).Msg("failed on insert")
-		sublog.Debug().Interface("OAuth", o).Caller().Msg("failed on insert")
 		return err
 	}
 
@@ -49,7 +48,6 @@ func (o *OAuth) createOrUpdate(deps *Dependencies) error {
 	)
 	if err != nil {
 		sublog.Error().Err(err).Msg("failed on update")
-		sublog.Debug().Interface("OAuth", o).Caller().Msg("failed on update")
 	}
 
 	return o.getBySub(deps)

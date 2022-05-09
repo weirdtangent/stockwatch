@@ -25,7 +25,7 @@ require (
 	github.com/weirdtangent/myaws v1.0.6
 	github.com/weirdtangent/mymath v0.1.0
 	github.com/weirdtangent/mytime v0.1.1
-	github.com/weirdtangent/yhfinance v1.1.9
+	github.com/weirdtangent/yhfinance v1.1.18
 	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
 	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 // indirect
 	golang.org/x/text v0.3.7

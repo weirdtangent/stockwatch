@@ -7,7 +7,7 @@ const (
 	awsPrivateBucketName = "stockwatch-private"
 
 	skipRedisChecks     = true  // always skip the redis cache info
-	skipLocalTickerInfo = false // always fetch ticker info from yhfinance
+	skipLocalTickerInfo = true // always fetch ticker info from yhfinance
 
 	sqlDateParseType      = "2006-01-02"
 	sqlDatetimeParseType  = "2006-01-02T15:04:05Z"

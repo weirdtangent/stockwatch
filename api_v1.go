@@ -154,17 +154,30 @@ func apiQuotes(deps *Dependencies, symbolStr string, jsonR *jsonResponseData) {
 			lastTickerDaily, err := getLastTickerDaily(deps, validTickers[x].TickerId)
 			if err != nil {
 				sublog.Error().Err(err).Str("symbol", symbol).Msg("failed to get last 2 dailys for {symbol}")
+				jsonR.Success = false
+				jsonR.Message = "Failure: could not load quote"
+				return
+			}
+			if len(lastTickerDaily) < 2 {
+				sublog.Error().Str("symbol", symbol).Msg("failed to get last 2 dailys for {symbol}")
+				jsonR.Success = false
+				jsonR.Message = "Failure: could not load quote"
+				return
+
 			}
 			dailyMove, err := getLastTickerDailyMove(deps, validTickers[x].TickerId)
 			if err != nil {
 				sublog.Error().Err(err).Str("symbol", symbol).Msg("failed to get last 2 dailys for {symbol}")
+				jsonR.Success = false
+				jsonR.Message = "Failure: could not load quote"
+				return
 			}
 
 			jsonR.Data[symbol+":quote_shareprice"] = fmt.Sprintf("$%.2f", lastTickerDaily[0].ClosePrice)
 			jsonR.Data[symbol+":quote_dailymove"] = dailyMove
 			jsonR.Data[symbol+":quote_change"] = fmt.Sprintf("$%.2f", lastTickerDaily[0].ClosePrice-lastTickerDaily[1].ClosePrice)
 			jsonR.Data[symbol+":quote_change_pct"] = fmt.Sprintf("%.2f%%", (lastTickerDaily[0].ClosePrice-lastTickerDaily[1].ClosePrice)/lastTickerDaily[1].ClosePrice*100)
-			jsonR.Data[symbol+":quote_volume"] = fmt.Sprintf("%.0f", lastTickerDaily[0].Volume)
+			jsonR.Data[symbol+":quote_volume"] = lastTickerDaily[0].Volume
 			jsonR.Data[symbol+":quote_asof"] = lastTickerDaily[0].PriceDatetime.Format("Jan 2")
 			jsonR.Data[symbol+":quote_dailyrange"] = fmt.Sprintf("$%.2f - $%.2f", lastTickerDaily[0].LowPrice, lastTickerDaily[1].HighPrice)
 		}
