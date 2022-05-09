@@ -1,31 +1,13 @@
 package main
 
 import (
-	"io/ioutil"
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
 )
 
-func FormatUnixTime(unixTime int64, formatStr string) string {
-	if unixTime == 0 {
-		return ""
-	}
-	if formatStr == "" {
-		formatStr = "Jan 2 15:04 MST 2006"
-	}
-
-	EasternTZ, _ := time.LoadLocation("America/New_York")
-	realDate := time.Unix(unixTime, 0).In(EasternTZ)
-	return realDate.Format(formatStr)
-}
-
-func UnixToDatetimeStr(unixTime int64) string {
-	dateTime := time.Unix(unixTime, 0)
-	return dateTime.Format(sqlDatetimeSearchType)
-}
-
-func GradeColor(gradeStr string) string {
+func GradeColorCSS(gradeStr string) string {
 	lcGradeStr := strings.ToLower(gradeStr)
 	switch lcGradeStr {
 	case "strong buy":
@@ -43,7 +25,7 @@ func GradeColor(gradeStr string) string {
 	}
 }
 
-func SinceColor(sinceStr string) string {
+func SinceColorCSS(sinceStr string) string {
 	lcSinceStr := strings.ToLower(sinceStr)
 	up_rx := regexp.MustCompile(`^(and|but) up `)
 	down_rx := regexp.MustCompile(`^(and|but) down `)
@@ -73,15 +55,7 @@ func isMarketOpen() bool {
 	return false
 }
 
-func PriceDiffAmt(a, b float64) float64 {
-	return b - a
-}
-
-func PriceDiffPercAmt(a, b float64) float64 {
-	return (b - a) / a * 100
-}
-
-func PriceMoveColorCSS(amt float64) string {
+func PriceMoveColorCSS(amt float32) string {
 	if amt > 0 {
 		return "text-success"
 	}
@@ -91,7 +65,7 @@ func PriceMoveColorCSS(amt float64) string {
 	return ""
 }
 
-func PriceBigMoveColorCSS(amt float64) string {
+func PriceBigMoveColorCSS(amt float32) string {
 	if amt > 5 {
 		return "text-success"
 	}
@@ -101,7 +75,7 @@ func PriceBigMoveColorCSS(amt float64) string {
 	return ""
 }
 
-func PriceMoveIndicatorCSS(amt float64) string {
+func PriceMoveIndicatorCSS(amt float32) string {
 	if amt > 0 {
 		return "text-success fas fa-arrow-up"
 	}
@@ -111,7 +85,7 @@ func PriceMoveIndicatorCSS(amt float64) string {
 	return "fa-solid fa-equals"
 }
 
-func PriceBigMoveIndicatorCSS(amt float64) string {
+func PriceBigMoveIndicatorCSS(amt float32) string {
 	if amt > 5 {
 		return "text-warning fas fa-chart-line-up "
 	}
@@ -121,73 +95,10 @@ func PriceBigMoveIndicatorCSS(amt float64) string {
 	return ""
 }
 
-type Timezone struct {
-	Location string
-	Default  bool
-	TZAbbr   string
-	Offset   string
-	Text     string
-}
-
-func getTimezones(deps *Dependencies) []Timezone {
-	var tzlist []Timezone
-
-	tzlist = append(tzlist, procTimezoneDir(deps, zoneDir, "")...)
-	return tzlist
-}
-
-func procTimezoneDir(deps *Dependencies, zoneDir, path string) []Timezone {
-	var timezones []Timezone
-
-	watcherTZ := "UTC"
-	// if webdata["TZLocation"] != nil {
-	// 	watcherTZ = webdata["TZLocation"].(string)
-	// }
-
-	files, err := ioutil.ReadDir(zoneDir + path)
-	if err != nil {
-		return []Timezone{}
-	}
-	for _, f := range files {
-		if f.Name() != strings.ToUpper(f.Name()[:1])+f.Name()[1:] {
-			continue
-		}
-		if f.IsDir() {
-			timezones = append(timezones, procTimezoneDir(deps, zoneDir, path+"/"+f.Name())...)
-		} else {
-			tzfile := (path + "/" + f.Name())[1:]
-			tz, err := time.LoadLocation(tzfile)
-			if err == nil {
-				now := time.Now().In(tz).Format("MST -0700")
-				tzabbr := now[:4]
-				offset := now[4:]
-				if tzabbr[:3] == offset[:3] {
-					tzabbr = ""
-				}
-				timezones = append(timezones, Timezone{
-					Location: tz.String(),
-					Default:  tz.String() == watcherTZ,
-					TZAbbr:   tzabbr,
-					Offset:   offset,
-					Text:     tz.String() + " [" + now + "]",
-				})
-			}
-		}
-	}
-	return timezones
-}
-
-func TimeNow(loc string) string {
-	if loc == "" {
-		loc = "UTC"
-	}
-	tzloc, err := time.LoadLocation(loc)
-	if err != nil {
-		tzloc, _ = time.LoadLocation("UTC")
-	}
-	return time.Now().In(tzloc).Format(fullDatetime)
-}
-
 func Concat(strs ...string) string {
 	return strings.Trim(strings.Join(strs, ""), " ")
+}
+
+func MinutesSince(t time.Time) string {
+	return fmt.Sprintf("%.0f min ago", time.Since(t).Minutes())
 }

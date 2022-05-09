@@ -1,17 +1,18 @@
 {{- define "_ticker_top" -}}
+{{- $symbol := .TickerQuote.Ticker.TickerSymbol }}
               <header class="bg-dark pt-2 ps-2">
                 <div class="row">
                   <div class="col-12 col-xl-4 align-top">
                     <span class="h5 text-info">Symbol:</span>
-                    <a class="h4 text-white link-white text-decoration-none" href="/view/{{.ticker.TickerSymbol}}">{{.ticker.TickerSymbol}}</a>
-                    <span class="h5 text-light pe-3 text-lowercase">/{{.exchange.ExchangeAcronym}}</span>
+                    <a class="h4 text-white link-white text-decoration-none" href="/view/{{.TickerQuote.Ticker.TickerSymbol}}">{{.TickerQuote.Ticker.TickerSymbol}}</a>
+                    <span class="h5 text-light pe-3 text-lowercase">/{{.TickerQuote.Exchange.ExchangeAcronym}} [{{.TickerQuote.Ticker.TickerType}}]</span>
                   </div>
                   <div class="col-9 col-xl-7 align-top">
                     <span class="h5 text-info">Name:</span>
-                    <span class="h4 text-white">{{.ticker.TickerName}}</span>
+                    <span class="h4 text-white">{{.TickerQuote.Ticker.TickerName}}</span>
                   </div>
                   <div class="col-3 col-xl-1 align-top text-end pe-3">
-                    {{if .TickerFavIconCDATA}}<img class="favicon_big" src="data:image/ico;base64,{{.TickerFavIconCDATA}}">{{end -}}
+                    {{if .TickerQuote.FavIcon}}<img class="favicon_big" src="data:image/ico;base64,{{.TickerQuote.FavIcon}}">{{end -}}
                   </div>
                 </div><!-- row -->
                 <div class="row d-block d-xxl-flex">

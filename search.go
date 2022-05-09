@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/rs/zerolog/log"
 )
 
 type SearchResultNews struct {
@@ -31,19 +30,20 @@ type SearchResult struct {
 	Ticker     SearchResultTicker
 }
 
+// object methods -------------------------------------------------------------
+
+// misc -----------------------------------------------------------------------
+
 func searchHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		webdata := deps.webdata
-		sublog := deps.logger
 
 		checkAuthState(w, r, deps)
-		// if ctx, ok := checkAuthState(w, r, deps); !ok {
-		// 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		// 	return
-		// }
 
 		params := mux.Vars(r)
 		searchType := params["type"]
+
+		sublog := deps.logger.With().Str("search_type", searchType).Logger()
 
 		switch searchType {
 		case "ticker":
@@ -54,7 +54,7 @@ func searchHandler(deps *Dependencies) http.HandlerFunc {
 			}
 			webdata["searchString"] = searchString
 
-			sublog.Info().Str("search_provider", "yhfinance").Str("search_type", searchType).Str("search_string", searchString).Msg("Search performed")
+			sublog.Info().Str("search_provider", "yhfinance").Str("search_string", searchString).Msg("Search performed")
 
 			if searchType == "jump" {
 				searchResultTicker, err := jumpSearch(deps, searchString)
@@ -72,9 +72,9 @@ func searchHandler(deps *Dependencies) http.HandlerFunc {
 			}
 
 		default:
-			log.Warn().Str("search_type", searchType).Msg("Unknown search_type")
+			sublog.Warn().Msg("Unknown search_type")
 		}
 
-		renderTemplate(w, r, deps, "searchresults")
+		renderTemplate(w, r, deps, sublog, "searchresults")
 	})
 }

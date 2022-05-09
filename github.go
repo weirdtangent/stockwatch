@@ -33,7 +33,9 @@ type Commit struct {
 	URL string `json:"html_url"`
 }
 
-var convertURLs = regexp.MustCompile(`(<a href="[^"]+")>`)
+// object methods -------------------------------------------------------------
+
+// misc -----------------------------------------------------------------------
 
 func getGithubCommits(deps *Dependencies) (*string, *[]Commit, error) {
 	secrets := deps.secrets
@@ -69,6 +71,8 @@ func getGithubCommits(deps *Dependencies) (*string, *[]Commit, error) {
 	json.NewDecoder(strings.NewReader(string(body))).Decode(&readmeResponse)
 	readmeMD, _ := base64.StdEncoding.DecodeString(readmeResponse.Content)
 	readme = string(markdown.ToHTML([]byte(readmeMD), nil, nil))
+
+	convertURLs := regexp.MustCompile(`(<a href="[^"]+")>`)
 	readme = convertURLs.ReplaceAllString(readme, `$1 target="_new">`)
 
 	url = "https://api.github.com/repos/weirdtangent/stockwatch/commits"

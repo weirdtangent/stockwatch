@@ -29,9 +29,6 @@ func chartHandlerTickerDailyKLine(deps *Dependencies, ticker Ticker, exchange *E
 	candleData := make([]opts.KlineData, 0, days)
 	volumeData := make([]opts.BarData, 0, days)
 	for x := range dailies {
-		// go or parseTime=true or something mysteriously turns the "string" PriceDate
-		// which is yyyy-mm-dd into a full RFC3339 date, so we only want to parse the
-		// first 10 characters
 		x_axis = append(x_axis, dailies[x].PriceDatetime.Format("Jan 02"))
 		candleData = append(candleData, opts.KlineData{Value: [4]float64{dailies[x].OpenPrice, dailies[x].ClosePrice, dailies[x].LowPrice, dailies[x].HighPrice}})
 		volumeData = append(volumeData, opts.BarData{Value: dailies[x].Volume / volumeUnits})

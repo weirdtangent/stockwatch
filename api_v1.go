@@ -19,6 +19,12 @@ type jsonResponseData struct {
 	Data       map[string]interface{} `json:"data"`
 }
 
+// handles:
+//   /api/version
+//   /api/quotes
+//   /api/recents
+//   /api/chart
+
 func apiV1Handler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		watcher := checkAuthState(w, r, deps)
@@ -83,108 +89,57 @@ func apiV1Handler(deps *Dependencies) http.HandlerFunc {
 func apiQuotes(deps *Dependencies, symbolStr string, jsonR *jsonResponseData) {
 	sublog := deps.logger
 
-	symbols := strings.Split(symbolStr, ",")
+	quotes, err := loadMultiTickerQuotes(deps, strings.Split(symbolStr, ","))
+	if err != nil {
+		sublog.Error().Msg("failed to get live quotes")
+		jsonR.Success = false
+		jsonR.Message = "Failure: could not load quote"
+		return
+	}
 
-	validTickers := []Ticker{}
-	validSymbols := []string{}
-	for _, symbol := range symbols {
-		if symbol == "" {
-			continue
-		}
-		ticker := Ticker{TickerSymbol: symbol}
-		err := ticker.getBySymbol(deps)
+	for _, quote := range quotes {
+		symbol := quote.Symbol
+		ticker, err := getTickerBySymbol(deps, *sublog, symbol)
 		if err != nil {
 			sublog.Error().Str("symbol", symbol).Msg("failed to find ticker")
-			continue
+			jsonR.Success = false
+			jsonR.Message = "Failure: could not load quote"
+			return
 		}
-		validSymbols = append(validSymbols, symbol)
-		validTickers = append(validTickers, ticker)
+		ticker.UpdateTickerWithLiveQuote(deps, *sublog, quote)
+		jsonR.Data[symbol+":price"] = fmt.Sprintf("$%.2f", ticker.MarketPrice)
+		jsonR.Data[symbol+":ask"] = fmt.Sprintf("$%.2f", quote.QuoteAsk)
+		jsonR.Data[symbol+":asksize"] = fmt.Sprintf("%d", quote.QuoteAskSize)
+		jsonR.Data[symbol+":bid"] = fmt.Sprintf("$%.2f", quote.QuoteBid)
+		jsonR.Data[symbol+":bidsize"] = fmt.Sprintf("%d", quote.QuoteBidSize)
+		jsonR.Data[symbol+":change_amt"] = fmt.Sprintf("$%.2f", ticker.MarketPrice-ticker.MarketPrevClose)
+		jsonR.Data[symbol+":change_pct"] = fmt.Sprintf("%.2f%%", (ticker.MarketPrice-ticker.MarketPrevClose)/ticker.MarketPrevClose*100)
+		if ticker.MarketPrice-ticker.MarketPrevClose > 0 {
+			jsonR.Data[symbol+":change_dir"] = "up"
+		} else if ticker.MarketPrice-ticker.MarketPrevClose < 0 {
+			jsonR.Data[symbol+":change_dir"] = "down"
+		} else {
+			jsonR.Data[symbol+":change_dir"] = "unchanged"
+		}
+		jsonR.Data[symbol+":volume"] = fmt.Sprintf("%d", ticker.MarketVolume)
+		if isMarketOpen() {
+			jsonR.Data[symbol+":asof"] = ticker.MarketPriceDatetime.Format("Jan 02 15:04:05")
+		} else {
+			jsonR.Data[symbol+":asof"] = ticker.MarketPriceDatetime.Format("Jan 02 15:04")
+		}
+		jsonR.Data[symbol+":dailyrange"] = fmt.Sprintf("$%.2f - $%.2f", quote.QuoteLow, quote.QuoteHigh)
 
-		_, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, "ticker_news", ticker.TickerSymbol)
-		jsonR.Data[symbol+":last_checked_since"] = lastCheckedSince
-		jsonR.Data[symbol+":updating_news_now"] = updatingNewsNow
+		_, lastChecked, updatingNow := getLastDoneInfo(deps, "ticker_news", ticker.TickerSymbol)
+		jsonR.Data[symbol+":last_checked"] = lastChecked
+		jsonR.Data[symbol+":updating_now"] = updatingNow
 	}
 
 	_, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, "financial_news", "stockwatch")
 	jsonR.Data["last_checked_since"] = lastCheckedSince
 	jsonR.Data["updating_news_now"] = updatingNewsNow
 
-	// if the market is open, lets get a live quote
-	if isMarketOpen() {
-		quotes, err := loadMultiTickerQuotes(deps, symbols)
-		if err != nil {
-			sublog.Error().Msg("failed to get live quotes")
-			jsonR.Success = false
-			jsonR.Message = "Failure: could not load quote"
-			return
-		}
-
-		for _, symbol := range validSymbols {
-			quote, ok := quotes[symbol]
-			if !ok {
-				continue
-			}
-
-			var dailyMove = "unchanged"
-			if quote.QuoteChange > 0 {
-				dailyMove = "up"
-			} else if quote.QuoteChange < 0 {
-				dailyMove = "down"
-			}
-
-			if quote.QuotePrice > 0 {
-				jsonR.Data[symbol+":quote_shareprice"] = fmt.Sprintf("$%.2f", quote.QuotePrice)
-				jsonR.Data[symbol+":quote_ask"] = fmt.Sprintf("$%.2f", quote.QuoteAsk)
-				jsonR.Data[symbol+":quote_asksize"] = fmt.Sprintf("%d", quote.QuoteAskSize)
-				jsonR.Data[symbol+":quote_bid"] = fmt.Sprintf("$%.2f", quote.QuoteBid)
-				jsonR.Data[symbol+":quote_bidsize"] = fmt.Sprintf("%d", quote.QuoteBidSize)
-				jsonR.Data[symbol+":quote_dailymove"] = dailyMove
-				jsonR.Data[symbol+":quote_change"] = fmt.Sprintf("$%.2f", quote.QuoteChange)
-				jsonR.Data[symbol+":quote_change_pct"] = fmt.Sprintf("%.2f%%", quote.QuoteChangePct)
-				jsonR.Data[symbol+":quote_volume"] = fmt.Sprintf("%d", quote.QuoteVolume)
-				jsonR.Data[symbol+":quote_asof"] = FormatUnixTime(quote.QuoteTime, "Jan 2 15:04:05")
-				jsonR.Data[symbol+":quote_dailyrange"] = fmt.Sprintf("$%.2f - $%.2f", quote.QuoteLow, quote.QuoteHigh)
-			}
-		}
-		jsonR.Data["is_market_open"] = true
-		jsonR.Success = true
-		jsonR.Message = "ok"
-	} else {
-		for x, symbol := range validSymbols {
-			lastTickerDaily, err := getLastTickerDaily(deps, validTickers[x].TickerId)
-			if err != nil {
-				sublog.Error().Err(err).Str("symbol", symbol).Msg("failed to get last 2 dailys for {symbol}")
-				jsonR.Success = false
-				jsonR.Message = "Failure: could not load quote"
-				return
-			}
-			if len(lastTickerDaily) < 2 {
-				sublog.Error().Str("symbol", symbol).Msg("failed to get last 2 dailys for {symbol}")
-				jsonR.Success = false
-				jsonR.Message = "Failure: could not load quote"
-				return
-
-			}
-			dailyMove, err := getLastTickerDailyMove(deps, validTickers[x].TickerId)
-			if err != nil {
-				sublog.Error().Err(err).Str("symbol", symbol).Msg("failed to get last 2 dailys for {symbol}")
-				jsonR.Success = false
-				jsonR.Message = "Failure: could not load quote"
-				return
-			}
-
-			jsonR.Data[symbol+":quote_shareprice"] = fmt.Sprintf("$%.2f", lastTickerDaily[0].ClosePrice)
-			jsonR.Data[symbol+":quote_dailymove"] = dailyMove
-			jsonR.Data[symbol+":quote_change"] = fmt.Sprintf("$%.2f", lastTickerDaily[0].ClosePrice-lastTickerDaily[1].ClosePrice)
-			jsonR.Data[symbol+":quote_change_pct"] = fmt.Sprintf("%.2f%%", (lastTickerDaily[0].ClosePrice-lastTickerDaily[1].ClosePrice)/lastTickerDaily[1].ClosePrice*100)
-			jsonR.Data[symbol+":quote_volume"] = lastTickerDaily[0].Volume
-			jsonR.Data[symbol+":quote_asof"] = lastTickerDaily[0].PriceDatetime.Format("Jan 2")
-			jsonR.Data[symbol+":quote_dailyrange"] = fmt.Sprintf("$%.2f - $%.2f", lastTickerDaily[0].LowPrice, lastTickerDaily[1].HighPrice)
-		}
-
-		jsonR.Data["is_market_open"] = false
-		jsonR.Success = true
-	}
+	jsonR.Data["is_market_open"] = isMarketOpen()
+	jsonR.Success = true
 }
 
 func apiRecents(deps *Dependencies, watcher Watcher, action, symbolStr string, jsonR *jsonResponseData) {
@@ -198,8 +153,7 @@ func apiRecents(deps *Dependencies, watcher Watcher, action, symbolStr string, j
 			if symbol == "" {
 				continue
 			}
-			ticker := Ticker{TickerSymbol: symbol}
-			err := ticker.getBySymbol(deps)
+			ticker, err := getTickerBySymbol(deps, *sublog, symbol)
 			if err != nil {
 				sublog.Error().Str("symbol", symbol).Msg("failed to find ticker")
 				continue
@@ -211,8 +165,7 @@ func apiRecents(deps *Dependencies, watcher Watcher, action, symbolStr string, j
 			if symbol == "" {
 				continue
 			}
-			ticker := Ticker{TickerSymbol: symbol}
-			err := ticker.getBySymbol(deps)
+			ticker, err := getTickerBySymbol(deps, *sublog, symbol)
 			if err != nil {
 				sublog.Error().Str("symbol", symbol).Msg("failed to find ticker")
 				continue
@@ -224,8 +177,7 @@ func apiRecents(deps *Dependencies, watcher Watcher, action, symbolStr string, j
 			if symbol == "" {
 				continue
 			}
-			ticker := Ticker{TickerSymbol: symbol}
-			err := ticker.getBySymbol(deps)
+			ticker, err := getTickerBySymbol(deps, *sublog, symbol)
 			if err != nil {
 				sublog.Error().Str("symbol", symbol).Msg("failed to find ticker")
 				continue
@@ -242,16 +194,14 @@ func apiChart(deps *Dependencies, nonce string, chart string, symbol string, tim
 
 	start := time.Now()
 
-	ticker := Ticker{TickerSymbol: symbol}
-	err := ticker.getBySymbol(deps)
+	ticker, err := getTickerBySymbol(deps, sublog, symbol)
 	if err != nil {
 		sublog.Error().Msg("failed to find symbol {symbol}")
 		jsonR.Success = false
 		jsonR.Message = "Failure: unknown symbol"
 		return
 	}
-	exchange := Exchange{ExchangeId: uint64(ticker.ExchangeId)}
-	err = exchange.getById(deps)
+	exchange, err := getExchangeById(deps, sublog, ticker.ExchangeId)
 	if err != nil {
 		sublog.Error().Msg("failed to find exchange for {symbol}")
 		jsonR.Success = false

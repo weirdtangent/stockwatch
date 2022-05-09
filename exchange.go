@@ -1,6 +1,10 @@
 package main
 
-import "time"
+import (
+	"time"
+
+	"github.com/rs/zerolog"
+)
 
 type Exchange struct {
 	ExchangeId      uint64 `db:"exchange_id"`
@@ -18,24 +22,23 @@ type Exchange struct {
 }
 
 // object methods -------------------------------------------------------------
-func (e Exchange) encryptId(deps *Dependencies) string {
-	return encryptId(deps, "exchange", e.ExchangeId)
-}
-
-func (e *Exchange) getById(deps *Dependencies) error {
-	db := deps.db
-
-	err := db.QueryRowx("SELECT * FROM exchange WHERE exchange_id=?", e.ExchangeId).StructScan(e)
-	e.EId = e.encryptId(deps)
-	return err
-}
-
 func (e *Exchange) getByCode(deps *Dependencies) error {
 	db := deps.db
 
 	err := db.QueryRowx("SELECT * FROM exchange WHERE exchange_code=?", e.ExchangeCode).StructScan(e)
-	e.EId = e.encryptId(deps)
+	e.EId = encryptId(deps, "exchange", e.ExchangeId)
 	return err
 }
 
 // misc -----------------------------------------------------------------------
+
+func getExchangeById(deps *Dependencies, sublog zerolog.Logger, exchange_id uint64) (Exchange, error) {
+	db := deps.db
+
+	exchange := Exchange{}
+	err := db.QueryRowx("SELECT * FROM exchange WHERE exchange_id=?", exchange_id).StructScan(&exchange)
+	if err == nil {
+		exchange.EId = encryptId(deps, "exchange", exchange.ExchangeId)
+	}
+	return exchange, err
+}

@@ -53,6 +53,10 @@ type Dependencies struct {
 	nonce        string
 }
 
+// object methods -------------------------------------------------------------
+
+// misc -----------------------------------------------------------------------
+
 func setupLogging(deps *Dependencies) {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	// alter the caller() return to only include the last directory
@@ -163,11 +167,9 @@ func setupTemplates(deps *Dependencies) {
 
 	funcMap := template.FuncMap{
 		"Concat":                   Concat,
-		"FormatUnixTime":           FormatUnixTime,
-		"GradeColor":               GradeColor,
-		"SinceColor":               SinceColor,
-		"PriceDiffAmt":             PriceDiffAmt,
-		"PriceDiffPercAmt":         PriceDiffPercAmt,
+		"GradeColorCSS":            GradeColorCSS,
+		"MinutesSince":             MinutesSince,
+		"SinceColorCSS":            SinceColorCSS,
 		"PriceMoveColorCSS":        PriceMoveColorCSS,
 		"PriceBigMoveColorCSS":     PriceBigMoveColorCSS,
 		"PriceMoveIndicatorCSS":    PriceMoveIndicatorCSS,
@@ -228,11 +230,12 @@ func startServer(deps *Dependencies) {
 	router.HandleFunc("/view/{symbol}/{articleEId}", app.requestHandler(viewTickerArticleHandler(deps))).Methods("GET")
 	router.HandleFunc("/{action:bought|sold}/{symbol}/{acronym}", app.requestHandler(transactionHandler(deps))).Methods("POST")
 	router.HandleFunc("/search/{type}", app.requestHandler(searchHandler(deps))).Methods("POST")
-	router.HandleFunc("/about", app.requestHandler(homeHandler(deps, "about"))).Methods("GET")
-	router.HandleFunc("/terms", app.requestHandler(homeHandler(deps, "terms"))).Methods("GET")
-	router.HandleFunc("/privacy", app.requestHandler(homeHandler(deps, "privacy"))).Methods("GET")
 
-	router.HandleFunc("/", app.requestHandler(homeHandler(deps, "home"))).Methods("GET")
+	router.HandleFunc("/about", app.requestHandler(staticPageHandler(deps, "about"))).Methods("GET")
+	router.HandleFunc("/terms", app.requestHandler(staticPageHandler(deps, "terms"))).Methods("GET")
+	router.HandleFunc("/privacy", app.requestHandler(staticPageHandler(deps, "privacy"))).Methods("GET")
+
+	router.HandleFunc("/", app.requestHandler(staticPageHandler(deps, "home"))).Methods("GET")
 
 	// starup or die
 	server := &http.Server{

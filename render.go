@@ -4,16 +4,35 @@ import (
 	"bytes"
 	"html/template"
 	"net/http"
+
+	"github.com/rs/zerolog"
 )
+
+func staticPageHandler(deps *Dependencies, tmplname string) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sublog := deps.logger
+
+		checkAuthState(w, r, deps)
+		webdata := deps.webdata
+
+		if tmplname == "home" || tmplname == "terms" || tmplname == "privacy" {
+			webdata["hideRecents"] = true
+		}
+		if tmplname == "about" {
+			webdata["about"], webdata["commits"], _ = getGithubCommits(deps)
+		}
+
+		renderTemplate(w, r, deps, *sublog, tmplname)
+	})
+}
 
 // renderTemplate is a wrapper around template.ExecuteTemplate.
 // It writes into a bytes.Buffer before writing to the http.ResponseWriter to catch
 // any errors resulting from populating the template.
-func renderTemplate(w http.ResponseWriter, r *http.Request, deps *Dependencies, tmplname string) error {
+func renderTemplate(w http.ResponseWriter, r *http.Request, deps *Dependencies, sublog zerolog.Logger, tmplname string) error {
 	tmpl := deps.templates
 	config := deps.config
 	webdata := deps.webdata
-	sublog := deps.logger
 
 	config["template_name"] = tmplname
 	webdata["config"] = config

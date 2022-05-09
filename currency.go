@@ -12,3 +12,7 @@ type Currency struct {
 	CreateDatetime       time.Time `db:"create_datetime"`
 	UpdateDatetime       time.Time `db:"update_datetime"`
 }
+
+// object methods -------------------------------------------------------------
+
+// misc -----------------------------------------------------------------------

@@ -1,7 +1,7 @@
 {{- define "view-daily" -}}
   {{- template "_header" . }}
           <script src="/static/js/quote_refresh.js"
-            data-symbols="{{.ticker.TickerSymbol}}"
+            data-symbols="{{.TickerQuote.Ticker.TickerSymbol}}"
             data-is-market-open="{{.config.is_market_open}}"
             data-quote-refresh="20">
           </script>
@@ -19,7 +19,7 @@
                 <div class="bg-white text-light">
                   <script id="chartCall" src="/static/js/chart.js"
                     data-chart="symbolLine"
-                    data-symbol="{{.ticker.TickerSymbol}}"
+                    data-symbol="{{.TickerQuote.Ticker.TickerSymbol}}"
                     data-nonce="{{.nonce}}"
                     data-timespan="180">
                   </script>
@@ -39,7 +39,7 @@
                   </div>
                 </div>
                 <div class="bg-dark small text-light min-box px-2 py-1">
-                  {{- range .articles}}
+                  {{- range .TickerQuote.SymbolNews.Articles}}
                   <div class="text-white modal-link news-title text-truncate" data-keyboard="true" data-bs-toggle="modal" data-bs-target="#source-{{.EId}}-modal">
                     <span class="small text-info">{{if .PublishedDatetime.Valid}}{{.PublishedDatetime.Time.Format "Jan 02"}}{{end}}</span>
                     {{.Title}} <i class="far fa-window fa-xs"></i>
@@ -54,14 +54,16 @@
                   <div class="px-2 flex-fill">Business Summary</div>
                 </div>
                 <div class="flex-grow-1 bg-dark text-light small min-box px-2 py-1">
-                  {{.ticker_description.BusinessSummary}}
+                  {{- with .TickerQuote}}
+                  {{.Description.BusinessSummary}}
                   <br><br>
-                  {{.ticker.CompanyName}}<br>
-                  {{.ticker.Address}}<br>
-                  {{.ticker.City}}, {{.ticker.State}} {{.ticker.Zip}}
-                  <br>{{.ticker.Country}}<br>
+                  {{.Ticker.CompanyName}}<br>
+                  {{.Ticker.Address}}<br>
+                  {{.Ticker.City}}, {{.Ticker.State}} {{.Ticker.Zip}}
+                  <br>{{.Ticker.Country}}<br>
                   <br>
-                  {{.ticker.Phone}} <a href="{{.ticker.Website}}" target="_blank">{{.ticker.Website}}</a>
+                  {{.Ticker.Phone}} <a href="{{.Ticker.Website}}" target="_blank">{{.Ticker.Website}}</a>
+                  {{- end}}
                 </div>
               </div>
             </div><!-- col-12/col-8 left column -->
@@ -70,7 +72,7 @@
               <div class="me-1 mb-2">
                 <div class="bg-warning text-dark ps-2 py-1">Financial Details</div>
                 <div class="list-group list-group-flush bg-dark min-box lh-1 px-2 py-1">
-                  {{- range .ticker_attributes}}
+                  {{- range .TickerDetails.Attributes}}
                   {{- if .AttributeValue}}
                     <div class="list-group-item px-1">
                       <div class="d-flex">
@@ -90,12 +92,12 @@
               <div class="me-1 mb-2">
                 <div class="bg-warning text-dark ps-2 py-1">Up/Downs (last 90 days)</div>
                 <div class="list-group list-group-flush bg-dark min-box lh-1 px-2 py-1">
-                  {{- range .ticker_updowns}}
+                  {{- range .TickerDetails.UpDowns}}
                   <div class="list-group-item text-info px-1">
                     <span class="text-light">{{.UpDownDate.Time.Format "Jan 02"}}</span> :
-                    <span class="{{ GradeColor .UpDownToGrade}}">{{.UpDownToGrade}}</span>
-                    <span class="text-light">by</span> {{.UpDownFirm}}{{if .UpDownFromGrade}}<span class="text-light">, previously</span> <span class="{{ GradeColor .UpDownFromGrade}}">{{.UpDownFromGrade}}</span>{{end}}
-                    <span class="{{ SinceColor .UpDownSince}}">{{.UpDownSince}}</span>
+                    <span class="{{ GradeColorCSS .UpDownToGrade}}">{{.UpDownToGrade}}</span>
+                    <span class="text-light">by</span> {{.UpDownFirm}}{{if .UpDownFromGrade}}<span class="text-light">, previously</span> <span class="{{ GradeColorCSS .UpDownFromGrade}}">{{.UpDownFromGrade}}</span>{{end}}
+                    <span class="{{ SinceColorCSS .UpDownSince}}">{{.UpDownSince}}</span>
                   </div>
                   {{- end}}
                 </div>
@@ -104,7 +106,7 @@
               <div class="me-1 mb-2">
                 <div class="bg-warning text-dark ps-2 -y-1">Historical Splits</div>
                 <div class="flex-grow-1 list-group list-group-flush bg-dark min-box lh-1 px-2 py-1">
-                  {{- range .ticker_splits}}
+                  {{- range .TickerDetails.Splits}}
                   <div class="list-group-item text-info px-1">
                     <span class="text-light">{{.SplitDate.Format "Jan 02, 2006"}}</span> - split <span class="text-light">{{.SplitRatio}}</span>
                   </div>

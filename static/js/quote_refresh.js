@@ -23,30 +23,30 @@ function quoteRefresh() {
             symbols.split(',').forEach(function(item) {
                 if (item == '') { return; }
                 symbol = item;
-                ['quote_shareprice', 'quote_ask', 'quote_asksize', 'quote_bid', 'quote_bidsize', 'quote_asof', 'quote_change', 'quote_change_pct'].forEach(function(item) {
+                ['price', 'ask', 'asksize', 'bid', 'bidsize', 'asof', 'change_amt', 'change_pct'].forEach(function(item) {
                     phaseChangeSymbol(response, symbol, item)
                 });
 
-                if (response.data.symbol+':quote_dailymove' === 'down' && !$('#'+symbol+'_quote_dailymove').hasClass('fa-arrow-down')) {
-                    $('#'+symbol+'_quote_dailymove_text').animate({opacity: 0}, 400, function() {
-                        $('#'+symbol+'quote_dailymove_text').removeClass('text-success').addClass('text-danger').animate({opacity: 1}, 400)
+                if (response.data.symbol+':change_dir' === 'down' && !$('#'+symbol+'_change_indicator').hasClass('fa-arrow-down')) {
+                    $('#'+symbol+'_change_color').animate({opacity: 0}, 400, function() {
+                        $('#'+symbol+'_change_color').removeClass('text-success').addClass('text-danger').animate({opacity: 1}, 400)
                     });
-                    $('#'+symbol+'_quote_dailymove').animate({opacity: 0}, 400, function() {
-                        $('#'+symbol+'quote_dailymove').removeClass('fa-arrow-up text-success').addClass('fa-arrow-down text-danger').animate({opacity: 1}, 400)
+                    $('#'+symbol+'_change_indicator').animate({opacity: 0}, 400, function() {
+                        $('#'+symbol+'_change_indicator').removeClass('fa-arrow-up text-success').addClass('fa-arrow-down text-danger').animate({opacity: 1}, 400)
                     });
-                } else if (response.data.symbol+':quote_dailymove' === 'up' && !$('#'+symbol+'_quote_dailymove').hasClass('fa-up-down')) {
-                    $('#'+symbol+'_quote_dailymove_text').animate({opacity: 0}, 400, function() {
-                        $('#'+symbol+'quote_dailymove_text').removeClass('text-danger').addClass('text-success').animate({opacity: 1}, 400)
+                } else if (response.data.symbol+':change_dir' === 'up' && !$('#'+symbol+'_change_indicator').hasClass('fa-up-down')) {
+                    $('#'+symbol+'_change_color').animate({opacity: 0}, 400, function() {
+                        $('#'+symbol+'_change_color').removeClass('text-danger').addClass('text-success').animate({opacity: 1}, 400)
                     });
-                    $('#'+symbol+'_quote_dailymove').animate({opacity: 0}, 400, function() {
-                        $('#'+symbol+'quote_dailymove').removeClass('fa-arrow-down text-danger').addClass('fa-arrow-up text-success').animate({opacity: 1}, 400)
+                    $('#'+symbol+'_change_indicator').animate({opacity: 0}, 400, function() {
+                        $('#'+symbol+'_change_indicatgor').removeClass('fa-arrow-down text-danger').addClass('fa-arrow-up text-success').animate({opacity: 1}, 400)
                     });
-                } else if (response.data.symbol+':quote_dailymove' === 'unchanged' && !$('#'+symbol+'_quote_dailymove').hasClass('fa-equals')) {
-                    $('#'+symbol+'_quote_dailymove_text').animate({opacity: 0}, 400, function() {
-                        $('#'+symbol+'quote_dailymove_text').removeClass('text-danger').removeClass('text-success').animate({opacity: 1}, 400)
+                } else if (response.data.symbol+':change_dir' === 'unchanged' && !$('#'+symbol+'_change_indicator').hasClass('fa-equals')) {
+                    $('#'+symbol+'_change_color').animate({opacity: 0}, 400, function() {
+                        $('#'+symbol+'_change_color').removeClass('text-danger').removeClass('text-success').animate({opacity: 1}, 400)
                     });
-                    $('#'+symbol+'_quote_dailymove').animate({opacity: 0}, 400, function() {
-                        $('#'+symbol+'quote_dailymove').removeClass('fa-arrow-down text-danger').removeClass('fa-arrow-up text-success').addClass('fa-equals').animate({opacity: 1}, 400)
+                    $('#'+symbol+'_change_indicator').animate({opacity: 0}, 400, function() {
+                        $('#'+symbol+'_change_indicator').removeClass('fa-arrow-down text-danger').removeClass('fa-arrow-up text-success').addClass('fa-equals').animate({opacity: 1}, 400)
                     });
                 }
 

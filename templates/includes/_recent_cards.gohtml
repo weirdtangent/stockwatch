@@ -1,0 +1,57 @@
+{{- define "_recent_cards" -}}
+{{- if .TickerQuotes}}
+                <div class="row g-2 mt-1 row-cols-1 row-cols-md-3 row-cols-xl-6">
+                  {{- $is_market_open := .config.is_market_open}}
+                  {{- range .TickerQuotes}}
+                  {{- $symbol := .Ticker.TickerSymbol}}
+                  <div class="col-12 col-md-6 col-lg-4 col-xl-2 card border-0 bg-transparent" id="{{$symbol}}_card">
+                    <div class="card">
+                      <div class="card-title bg-warning text-dark d-flex px-1 py-1">
+                        <div class="flex-fill">{{if .FavIcon}}<img class="favicon me-1 border border-dark mt-0" alt="Tiny logo from company website" src="data:image/ico;base64,{{.FavIcon}}">{{end}}<a href="/view/{{$symbol}}" class="text-decoration-none text-dark">{{$symbol}}/{{.Exchange.ExchangeAcronym | ToLower}}</a></div>
+                        <div class="g-0 m-0 p-0"><button id="{{$symbol}}_close_button" data-symbol="{{$symbol}}" type="button" class="btn-close border border-dark small mt-0 {{if .Locked}}disabled{{end}}" aria-label="Close"></button></div>
+                      </div><!-- card-title -->
+                      <div class="card-body small pt-0 px-1 recent-plus-body">
+                        <div class="row">
+                          <div class="col-12">
+                            <div class="nowrap">{{.Ticker.TickerName}}</div>
+                              <span class="fs-5" id="{{$symbol}}_price">${{printf "%.2f" .Ticker.MarketPrice}}</span><br/>
+                              <span id="{{$symbol}}_change_color" class="{{ PriceMoveColorCSS .ChangeAmt}}"><i id="{{$symbol}}_change_indicator" class="{{ PriceMoveIndicatorCSS .ChangeAmt}}"></i></span>
+                              <span class="{{PriceBigMoveColorCSS .ChangePct}}">
+                                <span id="{{$symbol}}_change_amt">${{printf "%.2f" .ChangeAmt}}</span>
+                                (<span id="{{$symbol}}_change_pct">{{printf "%.2f" .ChangePct}}%</span>)
+                                <i class="h5 {{PriceBigMoveIndicatorCSS .ChangePct}}"></i>
+                              </span>
+                              <br/>
+                              {{- if $is_market_open}}
+                                <span class="text-info">as of </span><span class="text-light small"><span id="{{$symbol}}_asof">{{.Ticker.MarketPriceDatetime.Format "Jan 02 15:04:05"}}</span></span>
+                              {{- else}}
+                                <span class="text-info">at close on </span><span class="text-light small"><span id="{{$symbol}}_asof">{{.Ticker.MarketPriceDatetime.Format "Jan 02"}}</span></span>
+                              {{- end}}
+                          </div><!-- col-12 -->
+                        </div><!-- row -->
+                        <div class="row mt-3">
+                          <div class="col-12 text-warning">
+                            News last 7 days:
+                          </div>
+                          <div class="col-12">
+                            {{- range .SymbolNews.Articles }}
+                              <div class="text-white modal-link news-title text-truncate" data-bs-toggle="modal" data-bs-target="#source{{.EId}}-modal" title="{{.Title}}">
+                                <span class="small text-info">{{if .PublishedDatetime.Valid}}{{.PublishedDatetime.Time.Format "01/02"}}{{end}}</span>
+                                <a class="text-decoration-none text-light" href="{{.ArticleURL}}"{{if .ExternalURL}} target="_new"{{end}}>{{if .ExternalURL}}<i class="fas fa-external-link-alt fa-xs"></i> {{end}}{{.Title}}</a> <i class="far fa-window fa-xs"></i>
+                                <span class="small text-info">{{if .AuthorByline.Valid}} by {{.AuthorByline.String}}{{else if .SourceName.Valid}} from {{.SourceName.String}}{{end}}</span>
+                              </div>
+                            {{- end}}
+                          </div><!-- col-12 -->
+                        </div><!-- row -->
+                      </div><!-- card-body -->
+                      <div class="card-footer small">
+                        Checked News:<br/>
+                        <span class="text-info"><span id="{{$symbol}}_last_checked_since">{{MinutesSince .SymbolNews.LastChecked}}</span></span>
+                        <i id="{{$symbol}}_updating_news_now" class="ms-2 mb-2 fad fa-sync fa-spin{{if .SymbolNews.UpdatingNow}}{{else}} hide{{end}}"></i>
+                      </div><!-- card-footer -->
+                    </div><!-- card -->
+                  </div><!-- recentPlus card -->
+                  {{- end }}
+                </div><!-- row -->
+              {{- end }}
+{{end}}

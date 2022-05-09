@@ -9,23 +9,28 @@ func desktopHandler(deps *Dependencies) http.HandlerFunc {
 		watcher := checkAuthState(w, r, deps)
 		webdata := deps.webdata
 
-		movers := getMovers(deps)
-		articles := getRecentArticles(deps)
-		recents := getWatcherRecents(deps, watcher)
-		recentPlus := getRecentsPlusInfo(deps, recents)
-		_, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, "financial_news", "stockwatch")
+		sublog := deps.logger.With().Str("watcher", watcher.EId).Logger()
 
+		movers := getMovers(deps)
 		webdata["Movers"] = movers
+
+		articles := getRecentArticles(deps)
 		webdata["Articles"] = articles
-		webdata["Recents"] = recents
-		webdata["RecentPlus"] = recentPlus
-		webdata["LastCheckedSince"] = lastCheckedSince
-		webdata["UpdatingNewsNow"] = updatingNewsNow
+
+		recents := getWatcherRecents(deps, watcher)
+		tickerQuotes, err := getRecentsQuotes(deps, sublog, watcher, recents)
+		if err != nil {
+			sublog.Error().Err(err).Msg("getRecentsQuotes failed, redirecting to /desktop")
+			deps.messages = append(deps.messages, Message{"Sorry, one or more ticker symbols could not be found", "error"})
+			renderTemplate(w, r, deps, sublog, "desktop")
+			return
+		}
+		webdata["TickerQuotes"] = tickerQuotes
 
 		webdata["Announcement"] = []string{
 			"2022-04-22 Moving things around alot, especially on the desktop. Trying to find what I like, but email me if you have ideas!",
 		}
 
-		renderTemplate(w, r, deps, "desktop")
+		renderTemplate(w, r, deps, sublog, "desktop")
 	})
 }

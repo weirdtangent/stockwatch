@@ -1,6 +1,10 @@
 {{- define "_ticker_info" }}
+                  {{- $symbol := .TickerQuote.Ticker.TickerSymbol}}
+                  {{- $is_market_open := .config.is_market_open}}
+                  {{- with .TickerQuote}}
                   <div class="small text-info">
                     Share price:
+<<<<<<< HEAD
                     <span id="{{.TickerSymbol}}_quote_shareprice" class="h4 text-white">${{printf "%.2f" .ticker.MarketPrice}}</span>
                     {{if .quote}}
                       <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="h5 {{PriceMoveIndicatorCSS .quote.QuoteChange}}"></i></span>
@@ -17,13 +21,51 @@
                         <i class="h5 {{PriceBigMoveIndicatorCSS .DiffPerc}}"></i>
                       </span>
                     {{- end }}
+||||||| constructed merge base
+                    {{if .quote}}
+                      <span id="{{.TickerSymbol}}_quote_shareprice" class="h4 text-white">${{printf "%.2f" .quote.QuotePrice}}</span>
+                      <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="h5 {{PriceMoveIndicatorCSS .quote.QuoteChange}}"></i></span>
+                      <span class="h5 {{PriceBigMoveColorCSS .quote.QuoteChangePct}}">
+                        &nbsp;<span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .quote.QuoteChange}}</span>
+                        (<span id="{{.TickerSymbol}}_quote_change_pct">{{printf "%.2f" .quote.QuoteChangePct}}%</span>)
+                        <i class="h5 {{PriceBigMoveIndicatorCSS .quote.QuoteChangePct}}"></i>
+                      </span>
+                    {{- else -}}
+                      <span id="{{.TickerSymbol}}_quote_shareprice" class="h4 text-white">${{printf "%.2f" .lastClose.ClosePrice}}</span>
+                      <span id="{{.TickerSymbol}}_quote_dailymove_text"><i id="{{.TickerSymbol}}_quote_dailymove" class="h5 {{if .DiffAmt}}{{PriceMoveIndicatorCSS .DiffAmt}}{{end}}"></i></span>
+                      <span class="h5 {{PriceBigMoveColorCSS .DiffPerc}}">
+                        &nbsp;<span id="{{.TickerSymbol}}_quote_change">${{printf "%.2f" .DiffAmt}}</span>
+                        (<span id="{{.TickerSymbol}}_quote_change_pct">{{printf "%.2f" .DiffPerc}}%</span>)
+                        <i class="h5 {{PriceBigMoveIndicatorCSS .DiffPerc}}"></i>
+                      </span>
+                    {{- end }}
+=======
+                    <span id="{{$symbol}}_price" class="h4 text-white">{{printf "$%.2f" .Ticker.MarketPrice}}</span>
+                    <span id="{{$symbol}}_change_color" class="{{PriceMoveColorCSS .ChangeAmt}}"><i id="{{$symbol}}_change_indicator" class="h5 {{PriceMoveIndicatorCSS .ChangeAmt}}"></i></span>
+                    <span class="h5 {{PriceBigMoveColorCSS .ChangePct}}">
+                      &nbsp;<span id="{{$symbol}}_change_amount">${{printf "%.2f" .ChangeAmt}}</span>
+                      (<span id="{{$symbol}}_change_pct">{{printf "%.2f" .ChangePct}}%</span>)
+                      <i class="h5 {{PriceBigMoveIndicatorCSS .ChangePct}}"></i>
+                    </span>
+>>>>>>> Many, many changes - one commit
                     <span class="text-info">
+<<<<<<< HEAD
                     {{- if .quote}}as of </span><span id="{{.TickerSymbol}}_quote_asof" class="text-light">{{ FormatUnixTime .quote.QuoteTime "Jan 2 15:04" }}</span>
                     {{- else}}at close on </span><span id="{{.TickerSymbol}}_quote_asof" class="h6 text-light">{{ .ticker.MarketPriceDatetime.Format "Jan 2" }}</span>
+||||||| constructed merge base
+                    {{- if .quote}}as of </span><span id="{{.TickerSymbol}}_quote_asof" class="text-light">{{ FormatUnixTime .quote.QuoteTime "Jan 2 15:04" }}</span>
+                    {{- else}}at close on </span><span id="{{.TickerSymbol}}_quote_asof" class="h6 text-light">{{ .lastClose.PriceDatetime.Format "Jan 2" }}</span>
+=======
+                    {{- if $is_market_open}}
+                      <span class="text-info">as of </span><span class="text-light small"><span id="{{$symbol}}_asof">{{.Ticker.MarketPriceDatetime.Format "Jan 02 15:04:05"}}</span></span>
+                    {{- else}}
+                      <span class="text-info">at close on </span><span class="text-light small"><span id="{{$symbol}}_asof">{{.Ticker.MarketPriceDatetime.Format "Jan 02"}}</span></span>
+>>>>>>> Many, many changes - one commit
                     {{- end}}
                   </div>
 
                   <div class="small text-info">
+<<<<<<< HEAD
                     <span id="{{.TickerSymbol}}_ticker_quote_info">
                       {{- if .is_market_open}}
                       Ask: <span id="{{.TickerSymbol}}_quote_ask" class="h6 text-light">{{if .quote}}{{ printf "$%.2f" .quote.QuoteAsk}}{{end}}</span> for <span id="{{.TickerSymbol}}_quote_asksize" class="h6 text-light pe-2">{{if .quote}}{{.quote.QuoteAskSize}}{{end}}</span>
@@ -37,9 +79,51 @@
                       Low: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.LowPrice }}</span>
                       Close: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.ClosePrice }}</span>
                     </span> */}}
+||||||| constructed merge base
+                    <span id="{{.TickerSymbol}}_ticker_quote_info">
+                      {{- if .is_market_open}}
+                      Ask: <span id="{{.TickerSymbol}}_quote_ask" class="h6 text-light">{{if .quote}}{{ printf "$%.2f" .quote.QuoteAsk}}{{end}}</span> for <span id="{{.TickerSymbol}}_quote_asksize" class="h6 text-light pe-2">{{if .quote}}{{.quote.QuoteAskSize}}{{end}}</span>
+                      Bid: <span id="{{.TickerSymbol}}_quote_bid" class="h6 text-light">{{if .quote}}{{ printf "$%.2f" .quote.QuoteBid}}{{end}}</span> for <span id="{{.TickerSymbol}}_quote_bidsize" class="h6 text-light pe-2">{{if .quote}}{{.quote.QuoteBidSize}}{{end}}</span>
+                      {{- end}}
+                      Today's range: <span id="{{.TickerSymbol}}_quote_range" class="h6 text-light">{{if .quote}}{{ printf "$%.2f" .quote.QuoteLow }} - {{ printf "$%.2f" .quote.QuoteHigh }}{{end}}</span>
+                    </span>
+                    <span id="{{.TickerSymbol}}_ticker_eod_info">
+                      Open: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.OpenPrice }}</span>
+                      High: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.HighPrice }}</span>
+                      Low: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.LowPrice }}</span>
+                      Close: <span class="pe-2 text-light">{{ printf "$%.2f" .lastClose.ClosePrice }}</span>
+                    </span>
+=======
+                    {{- if $is_market_open}}
+                    <span id="{{$symbol}}_ticker_quote_info">
+                      Ask: <span id="{{$symbol}}_ask" class="h6 text-light">{{ printf "$%.2f" .LiveQuote.QuoteAsk}}</span> for <span id="{{$symbol}}_asksize" class="h6 text-light pe-2">{{.LiveQuote.QuoteAskSize}}</span>
+                      Bid: <span id="{{$symbol}}_bid" class="h6 text-light">{{ printf "$%.2f" .LiveQuote.QuoteBid}}</span> for <span id="{{$symbol}}_bidsize" class="h6 text-light pe-2">{{.LiveQuote.QuoteBidSize}}</span>
+                      Today's range: <span id="{{$symbol}}_range" class="h6 text-light">{{ printf "$%.2f" .LiveQuote.QuoteLow }} - {{ printf "$%.2f" .LiveQuote.QuoteHigh }}</span>
+                    </span><br/>
+                    {{else}}
+                    <span id="{{$symbol}}_ticker_eod_info">
+                      <span class="text-info">On </span><span class="text-light small">{{.LastEOD.PriceDatetime.Format "Jan 02"}}</span>
+                      Open: <span id="{{$symbol}}_last_open" class="pe-2 text-light">{{ printf "$%.2f" .LastEOD.OpenPrice }}</span>
+                      High: <span id="{{$symbol}}_last_high" class="pe-2 text-light">{{ printf "$%.2f" .LastEOD.HighPrice }}</span>
+                      Low: <span id="{{$symbol}}_last_low" class="pe-2 text-light">{{ printf "$%.2f" .LastEOD.LowPrice }}</span>
+                      Close: <span id="{{$symbol}}_last_close" class="pe-2 text-light">{{ printf "$%.2f" .LastEOD.ClosePrice }}</span>
+                    </span><br/>
+                    {{- end}}
+>>>>>>> Many, many changes - one commit
                     <span class="small text-info">Info refresh: </span>
+<<<<<<< HEAD
                     <span id="{{.TickerSymbol}}_auto_refresh"><i class="ms-2 mb-2 fad fa-sync fa-spin"></i> <span id="{{.TickerSymbol}}_auto_refresh_time">{{if .config.is_market_open}}20 sec{{else}}5 min{{end}}</span></span>
                     <i id="{{.TickerSymbol}}_auto_refresh_working" class="ms-2 mb-2 myyellow fad fa-pulse fa-signal-stream hide"></i>
                     <span id="{{.TickerSymbol}}_ticker_info_type">&nbsp;</span>
+||||||| constructed merge base
+                    <span id="{{.TickerSymbol}}_auto_refresh"><i class="ms-2 mb-2 fad fa-sync fa-spin"></i> <span id="{{.TickerSymbol}}_auto_refresh_time">20 sec</span></span>
+                    <i id="{{.TickerSymbol}}_auto_refresh_working" class="ms-2 mb-2 myyellow fad fa-pulse fa-signal-stream hide"></i>
+                    <span id="{{.TickerSymbol}}_ticker_info_type">&nbsp;</span>
+=======
+                    <span id="{{$symbol}}_auto_refresh"><i class="ms-2 mb-2 fad fa-sync fa-spin"></i> <span id="{{$symbol}}_auto_refresh_time">20 sec</span></span>
+                    <i id="{{$symbol}}_auto_refresh_working" class="ms-2 mb-2 myyellow fad fa-pulse fa-signal-stream hide"></i>
+                    <span id="{{$symbol}}_ticker_info_type">&nbsp;</span>
+>>>>>>> Many, many changes - one commit
                   </div>
+                  {{- end}}
 {{- end}}

@@ -78,13 +78,13 @@ func authLoginHandler(deps *Dependencies) http.HandlerFunc {
 
 func authCallbackHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sublog := deps.logger
+		sublog := deps.logger.With().Str("handler", "authCallbackHandler").Logger()
 
 		user, err := gothic.CompleteUserAuth(w, r)
 		if err != nil {
 			sublog.Error().Err(err).Str("handler", "authCallbackHandler").Msg("failed to complete auth")
 			deps.messages = append(deps.messages, Message{Text: fmt.Sprintf("Sorry, failed to complete oauth - %s", err), Level: "error"})
-			renderTemplate(w, r, deps, "home")
+			renderTemplate(w, r, deps, sublog, "home")
 			return
 		}
 		signinUser(deps, w, r, user)
@@ -153,7 +153,6 @@ func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, goth
 	}
 }
 
-// logout
 func signoutHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		signoutWatcher(deps)

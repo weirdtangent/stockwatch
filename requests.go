@@ -22,10 +22,14 @@ type StatusRecorder struct {
 	Status int
 }
 
+// object methods -------------------------------------------------------------
+
 func (r *StatusRecorder) WriteHeader(status int) {
 	r.Status = status
 	r.ResponseWriter.WriteHeader(status)
 }
+
+// misc -----------------------------------------------------------------------
 
 // requestHandler middleware --------------------------------------------------
 
@@ -86,9 +90,9 @@ func (rh requestHandler) requestHandler(h http.HandlerFunc) http.HandlerFunc {
 			"connect-src": {"'self'", "accounts.google.com", "www.google-analytics.com", "*.fontawesome.com", "api.amazon.com", "*.facebook.com"},
 			"style-src":   {"'self'", "fonts.googleapis.com", "accounts.google.com", "'unsafe-inline'"},
 			"script-src":  {"'self'", "apis.google.com", "www.googletagmanager.com", "accounts.google.com", "kit.fontawesome.com", "assets.loginwithamazon.com", "*.facebook.net", "'nonce-" + rh.deps.nonce + "'"},
-			"img-src":     {"* data:"}, // 'self' data: *.googleusercontent.com *.twimg.com avatars.githubusercontent.com assets.bwbx.io im.mstar.com im.morningstar.com mma.prnewswire.com",
 			"font-src":    {"'self'", "fonts.gstatic.com", "*.fontawesome.com"},
 			"frame-src":   {"'self'", "accounts.google.com", "*.amazon.com", "*.facebook.com"},
+			"img-src":     {"* data:"},
 			"object-src":  {"'none'"},
 			"report-uri":  {"/internal/cspviolations"},
 			"report-to":   {"default"},

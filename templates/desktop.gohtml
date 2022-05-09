@@ -1,11 +1,13 @@
 {{- define "desktop" -}}
 {{ template "_header" . }}
+          {{- if .TickerQuotes}}
           <script src="/static/js/quote_refresh.js"
-            data-symbols="{{range .RecentPlus}}{{.TickerSymbol}},{{end}}"
-            data-symbol-count={{len .RecentPlus}}
+            data-symbols="{{range .TickerQuotes}}{{.Ticker.TickerSymbol}},{{end}}"
+            data-symbol-count={{len .TickerQuotes}}
             data-is-market-open="{{.config.is_market_open}}"
             data-quote-refresh=20>
           </script>
+          {{- end}}
 
           <div class="row g-0">
             <div class="col-12">
@@ -14,8 +16,8 @@
                 <div class="bg-dark px-1 py-1">
                   <span class="small text-info">Info refresh: </span>
                   <span id="auto_refresh_link">
-                    <i id="auto_refresh" class="ms-2 mb-2 fad {{if gt (len .RecentPlus) 0}}fa-sync fa-spin{{else}}fa-pause-circle{{end}}"></i>
-                    <span id="auto_refresh_time">{{if gt (len .RecentPlus) 0}}{{if .config.is_market_open}}20 sec{{else}}5 min{{end}}{{else}}paused{{end}}</span>
+                    <i id="auto_refresh" class="ms-2 mb-2 fad {{if .TickerQuotes}}{{if gt (len .TickerQuotes) 0}}fa-sync fa-spin{{else}}fa-pause-circle{{end}}{{else}}fa-pause-circle{{end}}"></i>
+                    <span id="auto_refresh_time">{{if .TickerQuotes}}{{if gt (len .TickerQuotes) 0}}{{if .config.is_market_open}}20 sec{{else}}5 min{{end}}{{else}}paused{{end}}{{else}}paused{{end}}</span>
                   </span>
                   <i id="auto_refresh_working" class="ms-2 mb-2 myyellow fad fa-pulse fa-signal-stream hide"></i>
                 </div>
@@ -27,7 +29,7 @@
             <div class="col-12 px-2">
               {{- template "_messageblock" . }}
               {{- template "_announcement" . }}
-              {{- template "_recent_plus" . }}
+              {{- template "_recent_cards" . }}
               <div class="row g-2 mt-1">
                 <div id="movers" class="mt-1 col-12 col-lg-6 col-xxl-4 bg-transparent">
                   <div class="bg-warning text-dark px-2 py-1">Movers and Shakers, {{.Movers.ForDate.Format "Jan 02"}}</div>

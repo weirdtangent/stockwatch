@@ -35,8 +35,6 @@ func getLastDoneInfo(deps *Dependencies, task string, key string) (sql.NullTime,
 	lastdone := LastDone{Activity: task, UniqueKey: key}
 	err := lastdone.getByActivity(deps)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		// err = queueUpdateNews(deps)
-		// updatingNewsNow = (err == nil)
 		return lastSuccessDatetime, lastSuccessSince, runningTaskNow
 	} else if err != nil {
 		sublog.Error().Err(err).Msg("failed to get LastDone activity for {task}")
@@ -44,22 +42,17 @@ func getLastDoneInfo(deps *Dependencies, task string, key string) (sql.NullTime,
 	}
 
 	if lastdone.LastDoneDatetime.Valid {
-		lastSuccessDatetime = lastdone.LastDoneDatetime // .In(TZLocation)
+		lastSuccessDatetime = lastdone.LastDoneDatetime
 		lastSuccessSince = fmt.Sprintf("%.0f min ago", time.Since(lastSuccessDatetime.Time).Minutes())
 	}
 	if lastdone.LastStatus == "success" {
 		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
-			// sublog.Info().Msg("it has been long enough, queue {task}")
-			// err = queueUpdateNews(deps)
-			// updatingNewsNow = (err == nil)
 			return lastSuccessDatetime, lastSuccessSince, runningTaskNow
 		} else {
 			return lastSuccessDatetime, lastSuccessSince, false
 		}
 	}
 	sublog.Info().Msg("last try failed, queue {task}")
-	// err = queueUpdateNews(deps)
-	// updatingNewsNow = (err == nil)
 
 	return lastSuccessDatetime, lastSuccessSince, runningTaskNow
 }

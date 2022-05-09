@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gomodule/redigo/redis"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/weirdtangent/yhfinance"
 )
@@ -64,6 +65,8 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 		0,
 		"",
 		summaryResponse.QuoteType.Symbol,
+		summaryResponse.Price.QuoteType,
+		summaryResponse.QuoteType.Market,
 		exchange.ExchangeId,
 		summaryResponse.QuoteType.ShortName,
 		summaryResponse.QuoteType.LongName,
@@ -79,9 +82,9 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 		summaryResponse.Price.RegularMarketPrice.Raw,
 		summaryResponse.Price.RegularMarketPreviousClose.Raw,
 		summaryResponse.Price.RegularMarketVolume.Raw,
-		time.Unix(int64(summaryResponse.Price.RegularMarketTime), 0),
+		time.Unix(summaryResponse.Price.RegularMarketTime, 0),
 		"",
-		sql.NullTime{},
+		time.Now(),
 		"",
 		time.Now(),
 		time.Now(),
@@ -124,52 +127,28 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 }
 
 // load ticker up-to-date quote
-func fetchTickerQuoteFromYH(deps *Dependencies, symbol string) (yhfinance.YHQuote, error) {
-	redisPool := deps.redisPool
+func fetchTickerQuoteFromYH(deps *Dependencies, sublog zerolog.Logger, ticker Ticker) (yhfinance.YHQuote, error) {
 	secrets := deps.secrets
-	sublog := deps.logger
-
-	sublog.With().Str("symbol", symbol)
-
-	redisConn := redisPool.Get()
-	defer redisConn.Close()
 
 	apiKey := secrets["yhfinance_rapidapi_key"]
 	apiHost := secrets["yhfinance_rapidapi_host"]
 
-	var quote yhfinance.YHQuote
-
-	// pull recent response from redis (20 sec expire), or go get from YF
-	redisKey := "yhfinance/quote/" + symbol
-	response, err := redis.String(redisConn.Do("GET", redisKey))
-	if err == nil && response != "" && !skipRedisChecks {
-		sublog.Info().Str("redis_key", redisKey).Msg("redis cache hit")
-	} else {
-		start := time.Now()
-		var err error
-		quoteParams := map[string]string{"symbols": symbol}
-		response, err = yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "marketQuote", quoteParams)
-		sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Msg("timer: yhfinance marketQuote")
-		if err != nil {
-			log.Warn().Err(err).Msg("failed to retrieve quote")
-			return quote, err
-		}
-		if response != "" {
-			_, err = redisConn.Do("SET", redisKey, response, "EX", 20)
-			if err != nil {
-				sublog.Error().Err(err).Str("redis_key", redisKey).Msg("failed to save to redis")
-			}
-		}
+	quote := yhfinance.YHQuote{}
+	quoteParams := map[string]string{"symbols": ticker.TickerSymbol, "region": ticker.TickerMarket}
+	response, err := yhfinance.GetFromYHFinance(&sublog, apiKey, apiHost, "marketQuote", quoteParams)
+	if err != nil {
+		return quote, err
 	}
 
-	var quoteResponse yhfinance.YHGetQuotesResponse
-	json.NewDecoder(strings.NewReader(response)).Decode(&quoteResponse)
-
+	quoteResponse := yhfinance.YHGetQuotesResponse{}
+	err = json.NewDecoder(strings.NewReader(response)).Decode(&quoteResponse)
+	if err != nil {
+		return quote, err
+	}
 	if len(quoteResponse.QuoteResponse.Quotes) == 0 {
-		sublog.Warn().Msg(fmt.Sprintf("%#v", strings.NewReader(response)))
-		sublog.Warn().Msg("failed to get quote response back from yhfinance")
-		return quote, nil
+		return quote, fmt.Errorf("failed to get response data back from yhfinance")
 	}
+
 	quote = quoteResponse.QuoteResponse.Quotes[0]
 
 	return quote, nil
@@ -218,14 +197,8 @@ func loadMultiTickerQuotes(deps *Dependencies, symbols []string) (map[string]yhf
 }
 
 // load ticker historical prices
-func loadTickerEODsFromYH(deps *Dependencies, ticker Ticker) error {
+func fetchTickerEODsFromYH(deps *Dependencies, sublog zerolog.Logger, ticker Ticker) error {
 	secrets := deps.secrets
-	sublog := deps.logger
-
-	EasternTZ, _ := time.LoadLocation("America/New_York")
-	currentDate := time.Now().In(EasternTZ)
-	currentDateStr := currentDate.Format("2006-01-02")
-	currentTimeStr := currentDate.Format("15:04:05")
 
 	historicalParams := map[string]string{"symbol": ticker.TickerSymbol}
 
@@ -234,10 +207,7 @@ func loadTickerEODsFromYH(deps *Dependencies, ticker Ticker) error {
 	if apiKey == "" || apiHost == "" {
 		sublog.Fatal().Msg("apiKey or apiHost secret is missing")
 	}
-
-	start := time.Now()
-	response, err := yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "stockHistorical", historicalParams)
-	sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Msg("timer: yhfinance stockHistorical")
+	response, err := yhfinance.GetFromYHFinance(&sublog, apiKey, apiHost, "stockHistorical", historicalParams)
 	if err != nil {
 		sublog.Warn().Err(err).Str("ticker", ticker.TickerSymbol).Msg("failed to retrieve historical prices")
 		return err
@@ -248,16 +218,8 @@ func loadTickerEODsFromYH(deps *Dependencies, ticker Ticker) error {
 
 	var lastErr error
 	for _, price := range historicalResponse.Prices {
-		priceDate := FormatUnixTime(price.Date, "2006-01-02")
-		// if the price is for TODAY I will use the current time
-		// instead of the timestamp
-		priceTime := FormatUnixTime(price.Date, "15:04:05")
-		if priceDate == currentDateStr {
-			priceTime = currentTimeStr
-		}
-		priceDatetime, _ := time.Parse(sqlDatetimeParseType, priceDate+" "+priceTime)
-		tickerDaily := TickerDaily{0, "", ticker.TickerId, priceDatetime, price.Open, price.High, price.Low, price.Close, price.Volume, time.Now(), time.Now()}
-		err = tickerDaily.createOrUpdate(deps)
+		tickerDaily := TickerDaily{0, "", ticker.TickerId, time.Unix(price.Date, 0), price.Open, price.High, price.Low, price.Close, price.Volume, time.Now(), time.Now()}
+		err = tickerDaily.createOrUpdate(deps, sublog)
 		if err != nil {
 			lastErr = err
 		}
@@ -348,7 +310,7 @@ func listSearch(deps *Dependencies, searchString string, resultTypes string) ([]
 					Title:       newsResult.Title,
 					Type:        newsResult.Type,
 					URL:         newsResult.URL,
-					PublishDate: FormatUnixTime(newsResult.PublishTime, ""),
+					PublishDate: time.Unix(newsResult.PublishTime, 0).Format("Jan 2 15:04 MST 2006"),
 				},
 				Ticker: SearchResultTicker{},
 			})

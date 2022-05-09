@@ -33,7 +33,7 @@ type MarketIndexDaily struct {
 	HighPrice          float64   `db:"high_price"`
 	LowPrice           float64   `db:"low_price"`
 	ClosePrice         float64   `db:"close_price"`
-	Volume             float64   `db:"volume"`
+	Volume             int64     `db:"volume"`
 	CreateDatetime     time.Time `db:"create_datetime"`
 	UpdateDatetime     time.Time `db:"update_datetime"`
 }
@@ -50,7 +50,7 @@ type MarketIndexIntraday struct {
 	TickerId              uint64    `db:"ticker_id"`
 	PriceDate             string    `db:"price_date"`
 	LastPrice             float64   `db:"last_price"`
-	Volume                float64   `db:"volume"`
+	Volume                int64     `db:"volume"`
 	CreateDatetime        time.Time `db:"create_datetime"`
 	UpdateDatetime        time.Time `db:"update_datetime"`
 }
@@ -60,6 +60,8 @@ type MarketIndexIntradays struct {
 }
 
 type ByMarketIndexPriceTime MarketIndexIntradays
+
+// object methods -------------------------------------------------------------
 
 func (mi MarketIndex) LoadDailies(db *sqlx.DB, days int) ([]MarketIndexDaily, error) {
 	var daily MarketIndexDaily
@@ -170,17 +172,6 @@ func (mi MarketIndexDailies) Count() int {
 	return len(mi.Days)
 }
 
-func getMarketIndexDaily(db *sqlx.DB, marketindex_id uint64, daily_date string) (*MarketIndexDaily, error) {
-	var marketindexdaily MarketIndexDaily
-	if len(daily_date) > 10 {
-		daily_date = daily_date[0:10]
-	}
-	err := db.QueryRowx(
-		`SELECT * FROM marketindex_daily WHERE marketindex_id=? AND price_date=?`,
-		marketindex_id, daily_date).StructScan(&marketindexdaily)
-	return &marketindexdaily, err
-}
-
 func (a ByMarketIndexPriceTime) Len() int { return len(a.Moments) }
 func (a ByMarketIndexPriceTime) Less(i, j int) bool {
 	return a.Moments[i].PriceDate < a.Moments[j].PriceDate
@@ -201,4 +192,17 @@ func (i MarketIndexIntradays) Reverse() *MarketIndexIntradays {
 
 func (i MarketIndexIntradays) Count() int {
 	return len(i.Moments)
+}
+
+// misc -----------------------------------------------------------------------
+
+func getMarketIndexDaily(db *sqlx.DB, marketindex_id uint64, daily_date string) (*MarketIndexDaily, error) {
+	var marketindexdaily MarketIndexDaily
+	if len(daily_date) > 10 {
+		daily_date = daily_date[0:10]
+	}
+	err := db.QueryRowx(
+		`SELECT * FROM marketindex_daily WHERE marketindex_id=? AND price_date=?`,
+		marketindex_id, daily_date).StructScan(&marketindexdaily)
+	return &marketindexdaily, err
 }

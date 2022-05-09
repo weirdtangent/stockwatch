@@ -22,16 +22,21 @@ type Profile struct {
 	Emails         []ProfileEmail
 }
 
+// object methods -------------------------------------------------------------
+
+// misc -----------------------------------------------------------------------
+
 func profileHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		webdata := deps.webdata
-		sublog := deps.logger
 
 		watcher := checkAuthState(w, r, deps)
 		if watcher.WatcherId == 0 {
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
+
+		sublog := deps.logger.With().Str("watcher", watcher.EId).Logger()
 
 		params := mux.Vars(r)
 		status := params["status"]
@@ -60,7 +65,7 @@ func profileHandler(deps *Dependencies) http.HandlerFunc {
 
 		webdata["timezones"] = timezones
 
-		renderTemplate(w, r, deps, "profile")
+		renderTemplate(w, r, deps, sublog, "profile")
 	})
 }
 

@@ -27,7 +27,7 @@
     <meta name="google-signin-client_id" content="602086455575-42rg6ja1qb8sebu2tqbokrd8h8n70j3e.apps.googleusercontent.com" />
     <meta name="msvalidate.01" content="6FFF19E03DBE868A750489C711DD5448" />
     <meta name="yandex-verification" content="455a64659a5c4954" />
-    <title>{{if .ticker}}{{.ticker.TickerSymbol}} - {{.ticker.TickerName}} - {{end}}Graystorm StockWatch</title>
+    <title>{{if .TickerQuote}}{{.TickerQuote.Ticker.TickerSymbol}} - {{.TickerQuote.Ticker.TickerName}} - {{end}}Graystorm StockWatch</title>
   </head>
 
   <body id="page-top" class="{{.config.template_name}}">

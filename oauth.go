@@ -17,9 +17,11 @@ type OAuth struct {
 	UpdateDatetime time.Time `db:"update_datetime"`
 }
 
+// object methods -------------------------------------------------------------
+
 func (o *OAuth) create(deps *Dependencies) error {
 	db := deps.db
-	sublog := deps.logger
+	sublog := deps.logger.With().Str("provider", o.OAuthIssuer).Logger()
 
 	_, err := db.Exec(
 		"INSERT INTO oauth SET oauth_issuer=?, oauth_sub=?, oauth_issued=?, oauth_expires=?",
@@ -34,7 +36,7 @@ func (o *OAuth) create(deps *Dependencies) error {
 
 func (o *OAuth) createOrUpdate(deps *Dependencies) error {
 	db := deps.db
-	sublog := deps.logger
+	sublog := deps.logger.With().Str("provider", o.OAuthIssuer).Logger()
 
 	err := o.getBySub(deps)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
@@ -59,3 +61,5 @@ func (o *OAuth) getBySub(deps *Dependencies) error {
 	err := db.QueryRowx("SELECT * FROM oauth WHERE oauth_sub=?", o.OAuthSub).StructScan(o)
 	return err
 }
+
+// misc -----------------------------------------------------------------------

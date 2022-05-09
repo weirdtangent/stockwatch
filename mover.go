@@ -16,9 +16,9 @@ type Mover struct {
 	MoverDate      time.Time `db:"mover_date"`
 	MoverType      string    `db:"mover_type"`
 	LastPrice      float64   `db:"last_price"`
-	PriceChange    float64   `db:"price_change"`
-	PriceChangePct float64   `db:"price_change_pct"`
-	Volume         float64   `db:"volume"`
+	PriceChange    float32   `db:"price_change"`
+	PriceChangePct float32   `db:"price_change_pct"`
+	Volume         int64     `db:"volume"`
 	VolumeStr      string
 	CreateDatetime time.Time `db:"create_datetime"`
 	UpdateDatetime time.Time `db:"update_datetime"`
@@ -36,8 +36,9 @@ type Movers struct {
 	ForDate time.Time
 }
 
-type ByGainers Movers
+// object methods -------------------------------------------------------------
 
+type ByGainers Movers
 func (a ByGainers) Len() int { return len(a.Gainers) }
 func (a ByGainers) Less(i, j int) bool {
 	return a.Gainers[i].Mover.PriceChangePct < a.Gainers[j].Mover.PriceChangePct
@@ -45,7 +46,6 @@ func (a ByGainers) Less(i, j int) bool {
 func (a ByGainers) Swap(i, j int) { a.Gainers[i], a.Gainers[j] = a.Gainers[j], a.Gainers[i] }
 
 type ByLosers Movers
-
 func (a ByLosers) Len() int { return len(a.Losers) }
 func (a ByLosers) Less(i, j int) bool {
 	return a.Losers[i].Mover.PriceChangePct < a.Losers[j].Mover.PriceChangePct
@@ -53,7 +53,6 @@ func (a ByLosers) Less(i, j int) bool {
 func (a ByLosers) Swap(i, j int) { a.Losers[i], a.Losers[j] = a.Losers[j], a.Losers[i] }
 
 type ByActives Movers
-
 func (a ByActives) Len() int { return len(a.Actives) }
 func (a ByActives) Less(i, j int) bool {
 	return a.Actives[i].Mover.Volume < a.Actives[j].Mover.Volume
@@ -74,6 +73,8 @@ func (m Movers) SortActives() *[]WebMover {
 	sort.Sort(sort.Reverse(ByActives(m)))
 	return &m.Actives
 }
+
+// misc -----------------------------------------------------------------------
 
 func getMovers(deps *Dependencies) Movers {
 	db := deps.db
@@ -106,9 +107,9 @@ func getMovers(deps *Dependencies) Movers {
 			continue
 		}
 		if mover.Volume > 1_000_000 {
-			mover.VolumeStr = fmt.Sprintf("%.2fM", mover.Volume/1_000_000)
+			mover.VolumeStr = fmt.Sprintf("%.2fM", float32(mover.Volume)/1_000_000)
 		} else if mover.Volume > 1_000 {
-			mover.VolumeStr = fmt.Sprintf("%.2fK", mover.Volume/1_000)
+			mover.VolumeStr = fmt.Sprintf("%.2fK", float32(mover.Volume)/1_000)
 		}
 		ticker := Ticker{TickerId: mover.TickerId}
 		err := ticker.getById(deps)

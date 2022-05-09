@@ -27,3 +27,7 @@ type BarFinancials struct {
 type QuarterlyFinancials struct {
 	Quarters []BarFinancials
 }
+
+// object methods -------------------------------------------------------------
+
+// misc -----------------------------------------------------------------------

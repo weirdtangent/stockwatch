@@ -36,7 +36,7 @@ func chartHandlerFinancialsBar(deps *Dependencies, ticker Ticker, exchange *Exch
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
 		charts.WithTitleOpts(opts.Title{
-			Title: fmt.Sprintf("%s/%s - %s", ticker.TickerSymbol, strings.ToLower(exchange.ExchangeAcronym), ticker.TickerName),
+			Title:  fmt.Sprintf("%s/%s - %s", ticker.TickerSymbol, strings.ToLower(exchange.ExchangeAcronym), ticker.TickerName),
 			Target: nonce,
 		}),
 		charts.WithTooltipOpts(opts.Tooltip{
@@ -104,7 +104,7 @@ func chartHandlerFinancialsLine(deps *Dependencies, ticker Ticker, exchange *Exc
 			AssetsHost: "https://stockwatch.graystorm.com/static/vendor/echarts/dist/",
 		}),
 		charts.WithTitleOpts(opts.Title{
-			Title: fmt.Sprintf("%s/%s - %s", ticker.TickerSymbol, strings.ToLower(exchange.ExchangeAcronym), ticker.TickerName),
+			Title:  fmt.Sprintf("%s/%s - %s", ticker.TickerSymbol, strings.ToLower(exchange.ExchangeAcronym), ticker.TickerName),
 			Target: nonce,
 		}),
 		charts.WithTooltipOpts(opts.Tooltip{

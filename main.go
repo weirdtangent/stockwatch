@@ -16,21 +16,15 @@ const (
 
 	zoneDir = "/usr/share/zoneinfo/"
 
-	minTickerNewsDelay       = 60 * 1  //  1 hours
-	minTickerFinancialsDelay = 60 * 24 // 24 hours
+	minTickerReloadDelayOpen   = 1       //  1 minute
+	minTickerReloadDelayClosed = 60 * 1  //  1 hour
+	minTickerNewsDelay         = 60 * 1  //  1 hour
+	minTickerFinancialsDelay   = 60 * 24 // 24 hours
 
 	volumeUnits    = 1_000_000 // factor to reduce volume counts by when graphing
 	maxRecentCount = 6         // limit watcher_recents
 	debugging      = true      // output DEBUG level logs
 
-)
-
-var (
-// regexs
-// absoluteUrl         = regexp.MustCompile(`^https?\://\S+`)
-// relativeProtocolUrl = regexp.MustCompile(`^//\S+`)
-// getProtocolUrl      = regexp.MustCompile(`^https?\:`)
-// relativePathUrl     = regexp.MustCompile(`^/[^/]\S+`)
 )
 
 func main() {

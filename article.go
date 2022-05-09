@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -91,29 +92,21 @@ type WebArticle struct {
 	BodyTemplate       template.HTML
 }
 
-func (a Article) encryptId(deps *Dependencies) string {
-	return encryptId(deps, "article", a.ArticleId)
-}
+// misc -----------------------------------------------------------------------
 
-func (wa WebArticle) encryptId(deps *Dependencies) string {
-	return encryptId(deps, "article", wa.ArticleId)
-}
-
-func getArticlesByTicker(deps *Dependencies, ticker Ticker, max, days int64) []WebArticle {
+func getArticlesByTicker(deps *Dependencies, sublog zerolog.Logger, ticker Ticker, max int, goBack time.Duration) ([]WebArticle, error) {
 	db := deps.db
-	sublog := deps.logger.With().Str("symbol", ticker.TickerSymbol).Logger()
 
-	if max == 0 || max > 20 {
+	if max < 1 || max > 20 {
 		max = 20
 	}
-	if days == 0 || days > 180 {
-		days = 180
+
+	// to go back in time, our duration needs to be negative
+	if goBack > 0 {
+		goBack *= -1
 	}
 
-	// go back as far as 180 days but limited to 20 articles
-	goback := time.Duration(-1 * 24 * time.Duration(days) * time.Hour)
-	fromDate := time.Now().Add(goback).Format(sqlDatetimeSearchType)
-	sublog.Info().Str("from_date", fromDate).Msg("checking for {symbol} news since {from_date}")
+	fromDate := time.Now().Add(goBack).Format(sqlDatetimeSearchType)
 	query := `SELECT article.article_id, article.source_id, article.external_id, article.published_datetime, article.pubupdated_datetime,
 	            article.title, article.body, article.article_url, article.image_url,
                 ANY_VALUE(article_author.byline) AS author_byline,
@@ -135,8 +128,7 @@ func getArticlesByTicker(deps *Dependencies, ticker Ticker, max, days int64) []W
     		  LIMIT ?`
 	rows, err := db.Queryx(query, fromDate, ticker.TickerId, max)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to check for articles")
-		return []WebArticle{}
+		return []WebArticle{}, err
 	}
 
 	defer rows.Close()
@@ -149,30 +141,38 @@ func getArticlesByTicker(deps *Dependencies, ticker Ticker, max, days int64) []W
 			log.Warn().Err(err).Msg("error reading row")
 			continue
 		}
-		article.EId = article.encryptId(deps)
+		article.EId = encryptId(deps, "article", article.ArticleId)
 		sha := fmt.Sprintf("%x", sha256.Sum256([]byte(article.Title)))
 		// skip this one if we've seen the same title already
 		if _, ok := bodySHA256[sha]; ok {
 			continue
 		}
 		bodySHA256[sha] = true
-		article.ArticleId = 0
-
-		quote_rx := regexp.MustCompile(`'`)
-		article.Body = string(quote_rx.ReplaceAll([]byte(article.Body), []byte("&apos;")))
-
-		http_rx := regexp.MustCompile(`http:`)
-		article.Body = string(http_rx.ReplaceAll([]byte(article.Body), []byte("https:")))
-		article.AuthorImageURL.String = string(http_rx.ReplaceAll([]byte(article.AuthorImageURL.String), []byte("https:")))
-
+		article.Body = cleanArticleText(article.Body)
+		if article.AuthorImageURL.Valid {
+			article.AuthorImageURL.String = cleanArticleText(article.AuthorImageURL.String)
+		}
 		articles = append(articles, article)
 	}
 	if err := rows.Err(); err != nil {
-		log.Warn().Err(err).Msg("error reading rows")
-		return []WebArticle{}
+		return []WebArticle{}, err
 	}
 
-	return articles
+	return articles, nil
+}
+
+func cleanArticleText(text string) string {
+	if text == "" {
+		return ""
+	}
+
+	quote_re := regexp.MustCompile(`'`)
+	text = string(quote_re.ReplaceAll([]byte(text), []byte("&apos;")))
+
+	http_re := regexp.MustCompile(`http:`)
+	text = string(http_re.ReplaceAll([]byte(text), []byte("https:")))
+
+	return text
 }
 
 func getRecentArticles(deps *Dependencies) []WebArticle {
@@ -212,7 +212,7 @@ func getRecentArticles(deps *Dependencies) []WebArticle {
 			sublog.Warn().Err(err).Msg("error reading row")
 			continue
 		}
-		article.EId = article.encryptId(deps)
+		article.EId = encryptId(deps, "article", article.ArticleId)
 		sha := fmt.Sprintf("%x", sha256.Sum256([]byte(article.Title)))
 		// skip this one if we've seen the same title already
 		if _, ok := bodySHA256[sha]; ok {

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,8 +20,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/gomodule/redigo/redis"
 	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/weirdtangent/mytime"
+	"github.com/weirdtangent/yhfinance"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -29,35 +32,30 @@ import (
 type Ticker struct {
 	TickerId            uint64 `db:"ticker_id"`
 	EId                 string
-	TickerSymbol        string       `db:"ticker_symbol"`
-	ExchangeId          uint64       `db:"exchange_id"`
-	TickerName          string       `db:"ticker_name"`
-	CompanyName         string       `db:"company_name"`
-	Address             string       `db:"address"`
-	City                string       `db:"city"`
-	State               string       `db:"state"`
-	Zip                 string       `db:"zip"`
-	Country             string       `db:"country"`
-	Website             string       `db:"website"`
-	Phone               string       `db:"phone"`
-	Sector              string       `db:"sector"`
-	Industry            string       `db:"industry"`
-	MarketPrice         float64      `db:"market_price"`
-	MarketPrevClose     float64      `db:"market_prev_close"`
-	MarketVolume        int64        `db:"market_volume"`
-	MarketPriceDatetime time.Time    `db:"market_price_datetime"`
-	FavIconS3Key        string       `db:"favicon_s3key"`
-	FetchDatetime       sql.NullTime `db:"fetch_datetime"`
-	MSPerformanceId     string       `db:"ms_performance_id"`
-	CreateDatetime      time.Time    `db:"create_datetime"`
-	UpdateDatetime      time.Time    `db:"update_datetime"`
-}
-
-type TickersEODTask struct {
-	TaskAction string `json:"action"`
-	TickerId   uint64 `json:"ticker_id"`
-	DaysBack   int    `json:"days_back"`
-	Offset     int    `json:"offset"`
+	TickerSymbol        string    `db:"ticker_symbol"`
+	TickerType          string    `db:"ticker_type"`
+	TickerMarket        string    `db:"ticker_market"`
+	ExchangeId          uint64    `db:"exchange_id"`
+	TickerName          string    `db:"ticker_name"`
+	CompanyName         string    `db:"company_name"`
+	Address             string    `db:"address"`
+	City                string    `db:"city"`
+	State               string    `db:"state"`
+	Zip                 string    `db:"zip"`
+	Country             string    `db:"country"`
+	Website             string    `db:"website"`
+	Phone               string    `db:"phone"`
+	Sector              string    `db:"sector"`
+	Industry            string    `db:"industry"`
+	MarketPrice         float64   `db:"market_price"`
+	MarketPrevClose     float64   `db:"market_prev_close"`
+	MarketVolume        int64     `db:"market_volume"`
+	MarketPriceDatetime time.Time `db:"market_price_datetime"`
+	FavIconS3Key        string    `db:"favicon_s3key"`
+	FetchDatetime       time.Time `db:"fetch_datetime"`
+	MSPerformanceId     string    `db:"ms_performance_id"`
+	CreateDatetime      time.Time `db:"create_datetime"`
+	UpdateDatetime      time.Time `db:"update_datetime"`
 }
 
 type TickerAttribute struct {
@@ -104,7 +102,7 @@ type TickerIntraday struct {
 	TickerId         uint64    `db:"ticker_id"`
 	PriceDate        string    `db:"price_date"`
 	LastPrice        float64   `db:"last_price"`
-	Volume           float64   `db:"volume"`
+	Volume           int64     `db:"volume"`
 	CreateDatetime   time.Time `db:"create_datetime"`
 	UpdateDatetime   time.Time `db:"update_datetime"`
 }
@@ -137,10 +135,49 @@ type TickerSplit struct {
 	UpdateDatetime time.Time `db:"update_datetime"`
 }
 
-func (t *Ticker) getBySymbol(deps *Dependencies) error {
+type TickerQuote struct {
+	Ticker      Ticker
+	Exchange    Exchange
+	Description TickerDescription
+	LiveQuote   yhfinance.YHQuote
+	LastEOD     TickerDaily
+	ChangeDir   string
+	ChangeAmt   float32
+	ChangePct   float32
+	Locked      bool
+	FavIcon     string
+	SymbolNews  struct {
+		LastChecked time.Time
+		UpdatingNow bool
+		Articles    []WebArticle
+	}
+}
+
+type TickerDetails struct {
+	Attributes []TickerAttribute
+	Splits     []TickerSplit
+	UpDowns    []TickerUpDown
+}
+
+// object methods -------------------------------------------------------------
+
+func (t *Ticker) Update(deps *Dependencies, sublog zerolog.Logger) error {
 	db := deps.db
 
-	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_symbol=?", t.TickerSymbol).StructScan(t)
+	var update = "UPDATE ticker SET ticker_type=?, ticker_market=?, exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=?, market_price=?, market_prev_close=?, market_volume=?, market_price_datetime=?, favicon_s3key=?, fetch_datetime=now() WHERE ticker_id=?"
+	_, err := db.Exec(update, t.TickerType, t.TickerMarket, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry, t.MarketPrice, t.MarketPrevClose, t.MarketVolume, t.MarketPriceDatetime, t.FavIconS3Key, t.TickerId)
+	return err
+}
+
+func (t *Ticker) UpdateTickerWithLiveQuote(deps *Dependencies, sublog zerolog.Logger, quote yhfinance.YHQuote) error {
+	db := deps.db
+
+	t.MarketPrice = quote.QuotePrice
+	t.MarketVolume = quote.QuoteVolume
+	t.MarketPriceDatetime = time.Unix(quote.QuoteTime, 0)
+
+	var update = "UPDATE ticker SET market_price=?, market_volume=?, market_price_datetime=? WHERE ticker_id=?"
+	_, err := db.Exec(update, t.MarketPrice, t.MarketVolume, t.MarketPriceDatetime, t.TickerId)
 	return err
 }
 
@@ -168,11 +205,8 @@ func (t *Ticker) create(deps *Dependencies) error {
 		return nil
 	}
 
-	var insert = "INSERT INTO ticker SET ticker_symbol=?, exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=?, market_price=?, market_prev_close=?, market_volume=?, market_price_datetime=?"
-	if !t.FetchDatetime.Valid {
-		insert += ", fetch_datetime=now()"
-	}
-	res, err := db.Exec(insert, t.TickerSymbol, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry, t.MarketPrice, t.MarketPrevClose, t.MarketVolume, t.MarketPriceDatetime)
+	insert := "INSERT INTO ticker SET ticker_symbol=?, ticker_type=?, ticker_market=?, exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=?, market_price=?, market_prev_close=?, market_volume=?, fetch_datetime=?"
+	res, err := db.Exec(insert, t.TickerSymbol, t.TickerType, t.TickerMarket, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry, t.MarketPrice, t.MarketPrevClose, t.MarketVolume, t.FetchDatetime)
 	if err != nil {
 		sublog.Fatal().Err(err).Str("ticker", t.TickerSymbol).Msg("failed on INSERT")
 		return err
@@ -187,7 +221,6 @@ func (t *Ticker) create(deps *Dependencies) error {
 }
 
 func (t *Ticker) createOrUpdate(deps *Dependencies) error {
-	db := deps.db
 	sublog := deps.logger
 
 	if t.TickerSymbol == "" {
@@ -203,11 +236,7 @@ func (t *Ticker) createOrUpdate(deps *Dependencies) error {
 		}
 	}
 
-	var update = "UPDATE ticker SET exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=?, market_price=?, market_prev_close=?, market_volume=?, market_price_datetime=?, favicon_s3key=?, fetch_datetime=now() WHERE ticker_id=?"
-	_, err := db.Exec(update, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry, t.MarketPrice, t.MarketPrevClose, t.MarketVolume, t.MarketPriceDatetime, t.FavIconS3Key, t.TickerId)
-	if err != nil {
-		sublog.Error().Err(err).Str("symbol", t.TickerSymbol).Msg("failed on update")
-	}
+	t.Update(deps, *sublog)
 	return t.getById(deps)
 }
 
@@ -264,7 +293,7 @@ func (t Ticker) haveEODForDate(deps *Dependencies, dateStr string) bool {
 	// for past days, a time of exactly 9:30:00 is considered a locked-in value
 	// but if it is anything else, it needs to be after 16:00:00
 	var count int
-	err := db.QueryRowx("SELECT COUNT(*) FROM ticker_daily WHERE ticker_id=? AND price_date=? AND (price_time = ? OR price_time >= ?)", t.TickerId, dateStr, "09:30:00", "16:00:00").Scan(&count)
+	err := db.QueryRowx("SELECT COUNT(*) FROM ticker_daily WHERE ticker_id=? AND price_datetime IS BETWEEN ? AND ?", t.TickerId, dateStr+"20:00:00", dateStr+"23:59:59").Scan(&count)
 	return err == nil && count > 0
 }
 
@@ -274,63 +303,8 @@ func (t Ticker) EarliestEOD(db *sqlx.DB) (string, float64, error) {
 		price float64
 	}
 	var earliest Earliest
-	err := db.QueryRowx("SELECT price_date, close_price FROM ticker_daily WHERE ticker_id=? ORDER BY price_datetime LIMIT 1", t.TickerId).StructScan(&earliest)
+	err := db.QueryRowx("SELECT price_datetime, close_price FROM ticker_daily WHERE ticker_id=? ORDER BY price_datetime LIMIT 1", t.TickerId).StructScan(&earliest)
 	return earliest.date, earliest.price, err
-}
-
-func (t Ticker) ScheduleEODUpdate(deps *Dependencies) bool {
-	db := deps.db
-	sublog := deps.logger
-
-	earliest, _, err := t.EarliestEOD(db)
-	if err != nil {
-		sublog.Error().Err(err).Msg("failed to find earliest EOD")
-	}
-
-	if len(earliest) > 0 {
-		if days, err := mytime.DaysAgo(earliest); err != nil || days > 900 {
-			return false
-		}
-	}
-
-	taskAction := "eod"
-
-	// submit task for 1000 EODs
-	taskVars := TickersEODTask{taskAction, t.TickerId, 1000, 0}
-	taskJSON, err := json.Marshal(taskVars)
-	sublog.Info().Msg(string(taskJSON))
-	if err != nil {
-		sublog.Error().Err(err).
-			Uint64("ticker_id", t.TickerId).
-			Msg("failed to create task JSON for EOD update for ticker")
-		return false
-	}
-
-	_, err = sendNotification(deps, "tickers", taskAction, string(taskJSON))
-	if err == nil {
-		sublog.Info().
-			Uint64("ticker_id", t.TickerId).
-			Msg("sent task notification for EOD update for ticker")
-	}
-
-	// submit task for 1000 more EODs
-	taskVars = TickersEODTask{taskAction, t.TickerId, 1000, 1000}
-	taskJSON, err = json.Marshal(taskVars)
-	sublog.Info().Msg(string(taskJSON))
-	if err != nil {
-		sublog.Error().Err(err).
-			Uint64("ticker_id", t.TickerId).
-			Msg("failed to create task JSON for EOD update for ticker")
-		return true
-	}
-
-	_, err = sendNotification(deps, "tickers", taskAction, string(taskJSON))
-	if err == nil {
-		sublog.Info().
-			Uint64("ticker_id", t.TickerId).
-			Msg("sent task notification for EOD update for ticker")
-	}
-	return true
 }
 
 func (t Ticker) getTickerEODs(deps *Dependencies, days int) ([]TickerDaily, error) {
@@ -345,7 +319,7 @@ func (t Ticker) getTickerEODs(deps *Dependencies, days int) ([]TickerDaily, erro
 		`SELECT * FROM (
            SELECT * FROM ticker_daily WHERE ticker_id=? AND volume > 0 AND price_datetime > ?
 		   ORDER BY price_datetime DESC) DT1
-		 ORDER BY price_date`,
+		 ORDER BY price_datetime`,
 		t.TickerId, fromDate)
 	if err != nil {
 		return dailies, err
@@ -365,6 +339,19 @@ func (t Ticker) getTickerEODs(deps *Dependencies, days int) ([]TickerDaily, erro
 	}
 
 	return dailies, nil
+}
+
+func (t Ticker) getLastTickerEOD(deps *Dependencies, sublog zerolog.Logger) (TickerDaily, error) {
+	db := deps.db
+
+	var eod TickerDaily
+
+	err := db.QueryRowx(`SELECT * FROM ticker_daily WHERE ticker_id=? ORDER BY price_datetime DESC`, t.TickerId).StructScan(&eod)
+	if err != nil {
+		return TickerDaily{}, err
+	}
+
+	return eod, nil
 }
 
 func (t Ticker) getUpDowns(deps *Dependencies, daysAgo int) ([]TickerUpDown, error) {
@@ -456,152 +443,6 @@ func (t Ticker) getSplits(deps *Dependencies) ([]TickerSplit, error) {
 	return tickerSplits, nil
 }
 
-func (t Ticker) queueUpdateInfo(deps *Dependencies) error {
-	awssess := deps.awssess
-	awssvc := sqs.New(awssess)
-	queueName := "stockwatch-tickers"
-
-	urlResult, err := awssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
-		QueueName: &queueName,
-	})
-	if err != nil {
-		return err
-	}
-
-	type TaskTickerNewsBody struct {
-		TickerId     uint64 `json:"ticker_id"`
-		EId          string
-		TickerSymbol string `json:"ticker_symbol"`
-		ExchangeId   uint64 `json:"exchange_id"`
-	}
-
-	// get next message from queue, if any
-	queueURL := urlResult.QueueUrl
-	messageBytes, _ := json.Marshal(TaskTickerNewsBody{TickerSymbol: t.TickerSymbol})
-	messageBody := string(messageBytes)
-	messageAttributes := map[string]*sqs.MessageAttributeValue{
-		"action": {
-			DataType:    aws.String("String"),
-			StringValue: aws.String("info"),
-		}}
-	_, err = awssvc.SendMessage(&sqs.SendMessageInput{
-		MessageBody:       aws.String(messageBody),
-		MessageAttributes: messageAttributes,
-		QueueUrl:          queueURL,
-	})
-	return err
-}
-
-func (t Ticker) queueUpdateNews(deps *Dependencies) error {
-	awssess := deps.awssess
-	awssvc := sqs.New(awssess)
-	queueName := "stockwatch-tickers"
-
-	urlResult, err := awssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
-		QueueName: &queueName,
-	})
-	if err != nil {
-		return err
-	}
-
-	type TaskTickerNewsBody struct {
-		TickerId     uint64 `json:"ticker_id"`
-		EId          string
-		TickerSymbol string `json:"ticker_symbol"`
-		ExchangeId   uint64 `json:"exchange_id"`
-	}
-
-	// get next message from queue, if any
-	queueURL := urlResult.QueueUrl
-	messageBytes, _ := json.Marshal(TaskTickerNewsBody{TickerSymbol: t.TickerSymbol})
-	messageBody := string(messageBytes)
-	messageAttributes := map[string]*sqs.MessageAttributeValue{
-		"action": {
-			DataType:    aws.String("String"),
-			StringValue: aws.String("news"),
-		}}
-	_, err = awssvc.SendMessage(&sqs.SendMessageInput{
-		MessageBody:       aws.String(messageBody),
-		MessageAttributes: messageAttributes,
-		QueueUrl:          queueURL,
-	})
-	return err
-}
-
-func (t Ticker) queueUpdateFinancials(deps *Dependencies) error {
-	awssess := deps.awssess
-	awssvc := sqs.New(awssess)
-	queueName := "stockwatch-tickers"
-
-	urlResult, err := awssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
-		QueueName: &queueName,
-	})
-	if err != nil {
-		return err
-	}
-
-	type TaskTickerNewsBody struct {
-		TickerId     uint64 `json:"ticker_id"`
-		EId          string
-		TickerSymbol string `json:"ticker_symbol"`
-		ExchangeId   uint64 `json:"exchange_id"`
-	}
-
-	// get next message from queue, if any
-	queueURL := urlResult.QueueUrl
-	messageBytes, _ := json.Marshal(TaskTickerNewsBody{TickerSymbol: t.TickerSymbol})
-	messageBody := string(messageBytes)
-	messageAttributes := map[string]*sqs.MessageAttributeValue{
-		"action": {
-			DataType:    aws.String("String"),
-			StringValue: aws.String("financials"),
-		}}
-	_, err = awssvc.SendMessage(&sqs.SendMessageInput{
-		MessageBody:       aws.String(messageBody),
-		MessageAttributes: messageAttributes,
-		QueueUrl:          queueURL,
-	})
-	return err
-}
-
-func (t Ticker) queueUpdateEODs(deps *Dependencies) error {
-	awssess := deps.awssess
-	awssvc := sqs.New(awssess)
-	queueName := "stockwatch-tickers"
-
-	urlResult, err := awssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
-		QueueName: &queueName,
-	})
-	if err != nil {
-		return err
-	}
-
-	type TaskTickerNewsBody struct {
-		TickerId     uint64 `json:"ticker_id"`
-		EId          string
-		TickerSymbol string `json:"ticker_symbol"`
-		ExchangeId   uint64 `json:"exchange_id"`
-	}
-
-	// get next message from queue, if any
-	queueURL := urlResult.QueueUrl
-	messageBytes, _ := json.Marshal(TaskTickerNewsBody{TickerSymbol: t.TickerSymbol})
-	messageBody := string(messageBytes)
-	messageAttributes := map[string]*sqs.MessageAttributeValue{
-		"action": {
-			DataType:    aws.String("String"),
-			StringValue: aws.String("eod"),
-		}}
-	_, err = awssvc.SendMessage(&sqs.SendMessageInput{
-		MessageBody:       aws.String(messageBody),
-		MessageAttributes: messageAttributes,
-		QueueUrl:          queueURL,
-	})
-	return err
-}
-
-// misc -----------------------------------------------------------------------
-
 func (ta *TickerAttribute) getByUniqueKey(deps *Dependencies) error {
 	db := deps.db
 
@@ -639,13 +480,14 @@ func (td *TickerDaily) checkByDate(deps *Dependencies) uint64 {
 	db := deps.db
 
 	var tickerDailyId uint64
-	db.QueryRowx(`SELECT ticker_daily_id FROM ticker_daily WHERE ticker_id=? AND price_datetime LIKE ?`, td.TickerId, td.PriceDatetime.Format("2006-01-02%")).Scan(&tickerDailyId)
+	db.QueryRowx(`SELECT ticker_daily_id FROM ticker_daily WHERE ticker_id=? AND price_datetime=?`, td.TickerId, td.PriceDatetime).Scan(&tickerDailyId)
 	return tickerDailyId
 }
 
-func (td *TickerDaily) create(deps *Dependencies) error {
+func (td *TickerDaily) create(deps *Dependencies, sublog zerolog.Logger) error {
 	db := deps.db
-	sublog := deps.logger
+	_, calling_file, calling_line, _ := runtime.Caller(1)
+	tasklog := sublog.With().Str("called_by", fmt.Sprintf("%s %d", calling_file, calling_line)).Logger()
 
 	if td.Volume == 0 {
 		// Refusing to add ticker daily with 0 volume
@@ -655,12 +497,12 @@ func (td *TickerDaily) create(deps *Dependencies) error {
 	var insert = "INSERT INTO ticker_daily SET ticker_id=?, price_datetime=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=?"
 	_, err := db.Exec(insert, td.TickerId, td.PriceDatetime, td.OpenPrice, td.HighPrice, td.LowPrice, td.ClosePrice, td.Volume)
 	if err != nil {
-		sublog.Fatal().Err(err).Msg("failed on INSERT")
+		tasklog.Fatal().Err(err).Msg("failed on INSERT")
 	}
 	return err
 }
 
-func (td *TickerDaily) createOrUpdate(deps *Dependencies) error {
+func (td *TickerDaily) createOrUpdate(deps *Dependencies, sublog zerolog.Logger) error {
 	db := deps.db
 
 	if td.Volume == 0 {
@@ -670,65 +512,15 @@ func (td *TickerDaily) createOrUpdate(deps *Dependencies) error {
 
 	td.TickerDailyId = td.checkByDate(deps)
 	if td.TickerDailyId == 0 {
-		return td.create(deps)
+		return td.create(deps, sublog)
 	}
 
-	var update = "UPDATE ticker_daily SET price_datetime=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=? WHERE ticker_id=? AND price_datetime LIKE ?"
-	_, err := db.Exec(update, td.PriceDatetime, td.OpenPrice, td.HighPrice, td.LowPrice, td.ClosePrice, td.Volume, td.TickerId, td.PriceDatetime.Format("2006-01-02%"))
+	var update = "UPDATE ticker_daily SET price_datetime=?, open_price=?, high_price=?, low_price=?, close_price=?, volume=? WHERE ticker_id=? AND price_datetime=?"
+	_, err := db.Exec(update, td.PriceDatetime, td.OpenPrice, td.HighPrice, td.LowPrice, td.ClosePrice, td.Volume, td.TickerId, td.PriceDatetime)
 	if err != nil {
-		log.Warn().Err(err).Msg("failed on UPDATE")
+		sublog.Warn().Err(err).Msg("failed on UPDATE")
 	}
 	return err
-}
-
-func getLastTickerDailyMove(deps *Dependencies, ticker_id uint64) (string, error) {
-	db := deps.db
-
-	var lastTickerDailyMove string
-	row := db.QueryRowx(
-		`SELECT IF(ticker_daily.close_price > prev_daily.close_price,"up",
-		        IF(ticker_daily.close_price < prev_daily.close_price,"down",
-				IF(ticker_daily.close_price = prev_daily.close_price,"unchanged", "unknown"))) AS lastTickerDailyMove
-		 FROM ticker_daily
-		 LEFT JOIN (
-		   SELECT ticker_id, close_price FROM ticker_daily AS prev_ticker_daily
-			 WHERE ticker_id=? ORDER by price_datetime DESC LIMIT 1,1
-		 ) AS prev_daily ON (ticker_daily.ticker_id = prev_daily.ticker_id)
-		 WHERE ticker_daily.ticker_id=?
-		 ORDER BY price_datetime DESC
-		 LIMIT 2`,
-		ticker_id, ticker_id)
-	err := row.Scan(&lastTickerDailyMove)
-	return lastTickerDailyMove, err
-}
-
-// load last ticker price
-func getLastTickerDaily(deps *Dependencies, ticker_id uint64) ([]TickerDaily, error) {
-	db := deps.db
-	sublog := deps.logger
-
-	lastTickerDaily := []TickerDaily{}
-	rows, err := db.Queryx(`SELECT * FROM ticker_daily WHERE ticker_daily.ticker_id=? ORDER BY price_datetime DESC LIMIT 2`, ticker_id)
-	if err != nil {
-		sublog.Fatal().Err(err).Uint64("ticker_id", ticker_id).Msg("failed to select last 2 ticker_daily records")
-		return []TickerDaily{}, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var tickerDaily TickerDaily
-		err := rows.StructScan(&tickerDaily)
-		if err != nil {
-			sublog.Fatal().Err(err).Uint64("ticker_id", ticker_id).Msg("failed to scan ticker_daily into struct")
-			continue
-		}
-		lastTickerDaily = append(lastTickerDaily, tickerDaily)
-	}
-	if len(lastTickerDaily) != 2 {
-		return lastTickerDaily, fmt.Errorf("failed to load 2 most recent ticker_daily records")
-	}
-
-	return lastTickerDaily, nil
 }
 
 func (td *TickerDescription) getByUniqueKey(deps *Dependencies) error {
@@ -763,16 +555,6 @@ func (td *TickerDescription) createOrUpdate(deps *Dependencies) error {
 		sublog.Fatal().Err(err).Msg("failed on insert")
 	}
 	return err
-}
-
-// misc -----------------------------------------------------------------------
-
-func getTickerDescriptionByTickerId(deps *Dependencies, ticker_id uint64) (*TickerDescription, error) {
-	db := deps.db
-
-	var tickerDescription TickerDescription
-	err := db.QueryRowx(`SELECT * FROM ticker_description WHERE ticker_id=?`, ticker_id).StructScan(&tickerDescription)
-	return &tickerDescription, err
 }
 
 type ByTickerPriceTime TickerIntradays
@@ -999,4 +781,332 @@ func (t *Ticker) getFavIconCDATA(deps *Dependencies) string {
 	}
 
 	return data
+}
+
+// misc -----------------------------------------------------------------------
+
+func getTickerBySymbol(deps *Dependencies, sublog zerolog.Logger, symbol string) (Ticker, error) {
+	db := deps.db
+
+	ticker := Ticker{}
+	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_symbol=?", symbol).StructScan(&ticker)
+	if err == nil {
+		ticker.EId = encryptId(deps, "ticker", ticker.TickerId)
+	}
+	return ticker, err
+}
+
+func getTickerDescriptionById(deps *Dependencies, sublog zerolog.Logger, ticker_id uint64) (TickerDescription, error) {
+	db := deps.db
+
+	var tickerDescription TickerDescription
+	err := db.QueryRowx(`SELECT * FROM ticker_description WHERE ticker_id=?`, ticker_id).StructScan(&tickerDescription)
+	if err == nil {
+		tickerDescription.EId = encryptId(deps, "ticker_description", tickerDescription.TickerDescriptionId)
+	}
+	return tickerDescription, err
+}
+
+func getTickerQuote(deps *Dependencies, sublog zerolog.Logger, watcher Watcher, symbol string) (TickerQuote, error) {
+	start := time.Now()
+	tickerQuote := TickerQuote{}
+	sublog = sublog.With().Str("watcher", watcher.EId).Str("symbol", symbol).Logger()
+
+	ticker, err := getFreshTicker(deps, sublog, symbol)
+	if err != nil {
+		sublog.Error().Err(err).Msg("failed to getFreshTicker")
+		return TickerQuote{}, err
+	}
+	tickerQuote.Ticker = ticker
+
+	exchange, err := getExchangeById(deps, sublog, ticker.ExchangeId)
+	if err != nil {
+		sublog.Error().Err(err).Msg("failed to getExchangeById")
+		return TickerQuote{}, err
+	}
+	tickerQuote.Exchange = exchange
+
+	tickerDescription, err := getTickerDescriptionById(deps, sublog, ticker.TickerId)
+	if err != nil {
+		sublog.Error().Err(err).Msg("failed to getTickerDescriptionById")
+		return TickerQuote{}, err
+	}
+	tickerQuote.Description = tickerDescription
+
+	// if the market is open, lets get a live quote
+	if isMarketOpen() {
+		quote, err := fetchTickerQuoteFromYH(deps, sublog, ticker)
+		if err == nil {
+			tickerQuote.LiveQuote = quote
+			tickerQuote.Ticker.UpdateTickerWithLiveQuote(deps, sublog, quote)
+		}
+	} else {
+		if tickerQuote.Ticker.needEODs(deps) {
+			err := fetchTickerEODsFromYH(deps, sublog, ticker)
+			if err != nil {
+				sublog.Error().Err(err).Msg("failed to fetch tickerEODs")
+				return TickerQuote{}, err
+			}
+		}
+		lastEOD, err := tickerQuote.Ticker.getLastTickerEOD(deps, sublog)
+		if err == nil {
+			tickerQuote.LastEOD = lastEOD
+		}
+	}
+
+	if ticker.MarketPrice > 0 && ticker.MarketPrevClose > 0 {
+		tickerQuote.ChangeAmt = float32(ticker.MarketPrice - ticker.MarketPrevClose)
+		tickerQuote.ChangePct = float32((ticker.MarketPrice - ticker.MarketPrevClose) / ticker.MarketPrevClose * 100)
+		if ticker.MarketPrice-ticker.MarketPrevClose > 0 {
+			tickerQuote.ChangeDir = "up"
+		} else if ticker.MarketPrice-ticker.MarketPrevClose < 0 {
+			tickerQuote.ChangeDir = "down"
+		} else {
+			tickerQuote.ChangeDir = "unchanged"
+		}
+	}
+
+	tickerQuote.Locked, err = isWatcherRecent(deps, sublog, watcher, ticker)
+	if err != nil {
+		sublog.Error().Err(err).Msg("failed to check isWatcherRecent")
+		return TickerQuote{}, err
+	}
+
+	articles, err := getArticlesByTicker(deps, sublog, ticker, 20, time.Duration(180*24*time.Hour))
+	if err != nil {
+		sublog.Error().Err(err).Msg("failed to getArticlesByTicker")
+		return TickerQuote{}, err
+	}
+	tickerQuote.SymbolNews.Articles = articles
+
+	// schedule to update ticker news
+	lastdone := LastDone{Activity: "ticker_news", UniqueKey: ticker.TickerSymbol}
+	err = lastdone.getByActivity(deps)
+	if err == nil && lastdone.LastStatus == "success" {
+		tickerQuote.SymbolNews.LastChecked = lastdone.LastDoneDatetime.Time
+		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
+			err = ticker.queueUpdateNews(deps)
+			if err != nil {
+				sublog.Error().Err(err).Msg("failed to queue UpdateNews")
+			}
+		}
+	} else {
+		err = ticker.queueUpdateNews(deps)
+		if err != nil {
+			sublog.Error().Err(err).Msg("failed to queue UpdateNews")
+		}
+	}
+
+	// schedule to update ticker financials
+	lastdone = LastDone{Activity: "ticker_financials", UniqueKey: ticker.TickerSymbol}
+	err = lastdone.getByActivity(deps)
+	if err == nil && lastdone.LastStatus == "success" {
+		if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerFinancialsDelay).Before(time.Now()) {
+			err = ticker.queueUpdateFinancials(deps)
+			if err != nil {
+				sublog.Error().Err(err).Msg("failed to queue UpdateFinancials")
+			}
+		}
+	} else {
+		err = ticker.queueUpdateFinancials(deps)
+		if err != nil {
+			sublog.Error().Err(err).Msg("failed to queue UpdateFinancials")
+		}
+	}
+
+	tickerQuote.FavIcon = ticker.getFavIconCDATA(deps)
+
+	sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Msg("timer: getTickerQuote")
+	return tickerQuote, err
+}
+
+func getFreshTicker(deps *Dependencies, sublog zerolog.Logger, symbol string) (Ticker, error) {
+	// load ticker from DB or go get from YH if new
+	// also, update from YH if ticker is over 24 hours old
+	ticker, err := getTickerBySymbol(deps, sublog, symbol)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		ticker, err = fetchTickerInfoFromYH(deps, symbol)
+		if err != nil {
+			return Ticker{}, err
+		}
+		ticker.FetchDatetime = time.Now()
+		err = ticker.Update(deps, sublog)
+		if err != nil {
+			sublog.Error().Err(err).Msg("failed to save updates to ticker")
+		}
+	} else if err != nil {
+		return Ticker{}, err
+	} else if ticker.FetchDatetime.Before(time.Now().Add(-24*time.Hour)) ||
+		(!isMarketOpen() && time.Since(ticker.FetchDatetime).Minutes() > minTickerReloadDelayOpen) ||
+		(isMarketOpen() && time.Since(ticker.FetchDatetime).Minutes() > minTickerReloadDelayClosed) {
+		ticker, err = fetchTickerInfoFromYH(deps, symbol)
+		if err != nil {
+			return Ticker{}, err
+		}
+		ticker.FetchDatetime = time.Now()
+		err = ticker.Update(deps, sublog)
+		if err != nil {
+			sublog.Error().Err(err).Msg("failed to save updates to ticker")
+		}
+	}
+	return ticker, nil
+}
+
+func getFreshTickers(deps *Dependencies, sublog zerolog.Logger, symbols []string) ([]Ticker, error) {
+	tickers := []Ticker{}
+
+	quotes, err := loadMultiTickerQuotes(deps, symbols)
+	if err != nil {
+		return []Ticker{}, err
+	}
+
+	for symbol, quote := range quotes {
+		ticker, err := getTickerBySymbol(deps, sublog, symbol)
+		if err != nil {
+			return []Ticker{}, err
+		}
+
+		ticker.FetchDatetime = time.Now()
+		ticker.MarketPrice = quote.QuotePrice
+		ticker.MarketVolume = quote.QuoteVolume
+		ticker.MarketPriceDatetime = time.Unix(quote.QuoteTime, 0)
+		err = ticker.Update(deps, sublog)
+		if err != nil {
+			sublog.Error().Err(err).Msg("failed to save updates to ticker")
+		}
+		tickers = append(tickers, ticker)
+	}
+
+	return tickers, nil
+}
+
+func getTickerDetails(deps *Dependencies, sublog zerolog.Logger, watcher Watcher, symbol string) (TickerDetails, error) {
+	tickerDetails := TickerDetails{}
+
+	ticker, err := getFreshTicker(deps, sublog, symbol)
+	if err != nil {
+		sublog.Error().Err(err).Msg("failed to getFreshTicker")
+		return TickerDetails{}, err
+	}
+
+	tickerAttributes, err := ticker.getAttributes(deps)
+	if err != nil {
+		return TickerDetails{}, err
+	}
+	tickerDetails.Attributes = tickerAttributes
+
+	tickerSplits, err := ticker.getSplits(deps)
+	if err != nil {
+		return TickerDetails{}, err
+	}
+	tickerDetails.Splits = tickerSplits
+
+	tickerUpDowns, err := ticker.getUpDowns(deps, 90)
+	if err != nil {
+		return TickerDetails{}, err
+	}
+	tickerDetails.UpDowns = tickerUpDowns
+
+	return tickerDetails, nil
+}
+
+func getRecentsQuotes(deps *Dependencies, sublog zerolog.Logger, watcher Watcher, recents []WatcherRecent) ([]TickerQuote, error) {
+	start := time.Now()
+	tickerQuotes := []TickerQuote{}
+
+	symbols := []string{}
+	for _, recent := range recents {
+		symbols = append(symbols, recent.TickerSymbol)
+	}
+
+	tickers, err := getFreshTickers(deps, sublog, symbols)
+	if err != nil {
+		sublog.Error().Err(err).Msg("failed to getFreshTicker")
+		return []TickerQuote{}, err
+	}
+	for _, ticker := range tickers {
+		symbol := ticker.TickerSymbol
+		tickerQuote := TickerQuote{}
+		tickerQuote.Ticker = ticker
+
+		exchange, err := getExchangeById(deps, sublog, ticker.ExchangeId)
+		if err != nil {
+			sublog.Error().Err(err).Msg("failed to getExchangeById")
+			return []TickerQuote{}, err
+		}
+		tickerQuote.Exchange = exchange
+
+		tickerDescription, err := getTickerDescriptionById(deps, sublog, ticker.TickerId)
+		if err != nil {
+			sublog.Error().Err(err).Msg("failed to getTickerDescriptionById")
+			return []TickerQuote{}, err
+		}
+		tickerQuote.Description = tickerDescription
+
+		if ticker.MarketPrice > 0 && ticker.MarketPrevClose > 0 {
+			tickerQuote.ChangeAmt = float32(ticker.MarketPrice - ticker.MarketPrevClose)
+			tickerQuote.ChangePct = float32((ticker.MarketPrice - ticker.MarketPrevClose) / ticker.MarketPrevClose * 100)
+		}
+
+		tickerQuote.Locked, err = isWatcherRecent(deps, sublog, watcher, ticker)
+		if err != nil {
+			sublog.Error().Err(err).Msg("failed to check isWatcherRecent")
+			return []TickerQuote{}, err
+		}
+
+		articles, err := getArticlesByTicker(deps, sublog, ticker, 5, time.Duration(7*24*time.Hour))
+		if err != nil {
+			sublog.Error().Err(err).Msg("failed to getArticlesByTicker")
+			return []TickerQuote{}, err
+		}
+		tickerQuote.SymbolNews.Articles = articles
+
+		if !isMarketOpen() {
+			lastEOD, err := tickerQuote.Ticker.getLastTickerEOD(deps, sublog)
+			if err == nil {
+				tickerQuote.LastEOD = lastEOD
+			}
+		}
+
+		// schedule to update ticker news
+		lastdone := LastDone{Activity: "ticker_news", UniqueKey: ticker.TickerSymbol}
+		err = lastdone.getByActivity(deps)
+		if err == nil && lastdone.LastStatus == "success" {
+			tickerQuote.SymbolNews.LastChecked = lastdone.LastDoneDatetime.Time
+			if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerNewsDelay).Before(time.Now()) {
+				err = ticker.queueUpdateNews(deps)
+				if err != nil {
+					sublog.Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
+				}
+			}
+		} else {
+			err = ticker.queueUpdateNews(deps)
+			if err != nil {
+				sublog.Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
+			}
+		}
+
+		// schedule to update ticker financials
+		lastdone = LastDone{Activity: "ticker_financials", UniqueKey: ticker.TickerSymbol}
+		err = lastdone.getByActivity(deps)
+		if err == nil && lastdone.LastStatus == "success" {
+			if lastdone.LastDoneDatetime.Time.Add(time.Minute * minTickerFinancialsDelay).Before(time.Now()) {
+				err = ticker.queueUpdateFinancials(deps)
+				if err != nil {
+					sublog.Error().Err(err).Msg("failed to queue UpdateFinancials")
+				}
+			}
+		} else {
+			err = ticker.queueUpdateFinancials(deps)
+			if err != nil {
+				sublog.Error().Err(err).Msg("failed to queue UpdateFinancials")
+			}
+		}
+
+		tickerQuote.FavIcon = ticker.getFavIconCDATA(deps)
+		tickerQuotes = append(tickerQuotes, tickerQuote)
+	}
+
+	sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Msg("timer: getRecentsQuotes")
+	return tickerQuotes, err
 }
