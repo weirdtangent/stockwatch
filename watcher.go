@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 type Watcher struct {
@@ -60,7 +60,7 @@ func getWatcherById(deps *Dependencies, watcherId uint64) (Watcher, error) {
 	return w, err
 }
 
-func updateWatcher(deps *Dependencies, w Watcher) error {
+func updateWatcher(deps *Dependencies, sublog zerolog.Logger, w Watcher) error {
 	db := deps.db
 
 	update := "UPDATE watcher SET watcher_name=?, watcher_nickname=?, update_createtime=now() WHERE watcher_id=?"
@@ -102,9 +102,7 @@ func createWatcher(deps *Dependencies, w Watcher, email string) (Watcher, error)
 	return w, err
 }
 
-func createOrUpdateWatcherFromOAuth(deps *Dependencies, watcher Watcher, email string) (Watcher, error) {
-	sublog := deps.logger
-
+func createOrUpdateWatcherFromOAuth(deps *Dependencies, sublog zerolog.Logger, watcher Watcher, email string) (Watcher, error) {
 	watcherId, err := getWatcherIdBySession(deps, watcher.SessionId)
 	if err != nil {
 		return watcher, err
@@ -183,9 +181,8 @@ func getWatcherIdByEmail(deps *Dependencies, email string) (uint64, error) {
 	return watcherId, err
 }
 
-func (wr *WatcherRecent) create(deps *Dependencies) error {
+func (wr *WatcherRecent) create(deps *Dependencies, sublog zerolog.Logger) error {
 	db := deps.db
-	sublog := deps.logger
 
 	insert := "INSERT INTO watcher_recent SET watcher_id=?, ticker_id=?, locked=?"
 	_, err := db.Exec(insert, wr.WatcherId, wr.TickerId, wr.Locked)
@@ -197,9 +194,8 @@ func (wr *WatcherRecent) create(deps *Dependencies) error {
 	return nil
 }
 
-func (wr *WatcherRecent) createOrUpdate(deps *Dependencies) error {
+func (wr *WatcherRecent) createOrUpdate(deps *Dependencies, sublog zerolog.Logger) error {
 	db := deps.db
-	sublog := deps.logger
 
 	insert_or_update := "INSERT INTO watcher_recent SET watcher_id=?, ticker_id=?, locked=? ON DUPLICATE KEY UPDATE locked=? update_datetime=now()"
 	_, err := db.Exec(insert_or_update, wr.WatcherId, wr.TickerId, wr.Locked, wr.Locked)
@@ -211,9 +207,8 @@ func (wr *WatcherRecent) createOrUpdate(deps *Dependencies) error {
 	return nil
 }
 
-func (wr *WatcherRecent) update(deps *Dependencies, watcher Watcher, ticker Ticker) error {
+func (wr *WatcherRecent) update(deps *Dependencies, sublog zerolog.Logger, watcher Watcher, ticker Ticker) error {
 	db := deps.db
-	sublog := deps.logger
 
 	insert_or_update := "UPDATE watcher_recent SET locked=?, update_datetime=now() WHERE watcher_id=? and ticker_id=?"
 	_, err := db.Exec(insert_or_update, wr.Locked, wr.WatcherId, wr.TickerId)
@@ -225,25 +220,25 @@ func (wr *WatcherRecent) update(deps *Dependencies, watcher Watcher, ticker Tick
 	return nil
 }
 
-func lockWatcherRecent(deps *Dependencies, watcher Watcher, ticker Ticker) bool {
+func lockWatcherRecent(deps *Dependencies, sublog zerolog.Logger, watcher Watcher, ticker Ticker) bool {
 	db := deps.db
 
 	var update = "UPDATE watcher_recent SET locked=true WHERE watcher_id=? AND ticker_id=?"
 	_, err := db.Exec(update, watcher.WatcherId, ticker.TickerId)
 	if err != nil {
-		log.Warn().Err(err).Msg("failed on UPDATE")
+		sublog.Warn().Err(err).Msg("failed on UPDATE")
 		return false
 	}
 	return true
 }
 
-func unlockWatcherRecent(deps *Dependencies, watcher Watcher, ticker Ticker) bool {
+func unlockWatcherRecent(deps *Dependencies, sublog zerolog.Logger, watcher Watcher, ticker Ticker) bool {
 	db := deps.db
 
 	var update = "UPDATE watcher_recent SET locked=false WHERE watcher_id=? AND ticker_id=?"
 	_, err := db.Exec(update, watcher.WatcherId, ticker.TickerId)
 	if err != nil {
-		log.Warn().Err(err).Msg("failed on UPDATE")
+		sublog.Warn().Err(err).Msg("failed on UPDATE")
 		return false
 	}
 	return true

@@ -181,7 +181,7 @@ func (t *Ticker) UpdateTickerWithLiveQuote(deps *Dependencies, sublog zerolog.Lo
 	return err
 }
 
-func (t *Ticker) getIdBySymbol(deps *Dependencies) (uint64, error) {
+func (t *Ticker) getIdBySymbol(deps *Dependencies, sublog zerolog.Logger) (uint64, error) {
 	db := deps.db
 
 	var tickerId uint64
@@ -189,16 +189,15 @@ func (t *Ticker) getIdBySymbol(deps *Dependencies) (uint64, error) {
 	return tickerId, err
 }
 
-func (t *Ticker) getById(deps *Dependencies) error {
+func (t *Ticker) getById(deps *Dependencies, sublog zerolog.Logger) error {
 	db := deps.db
 
 	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_id=?", t.TickerId).StructScan(t)
 	return err
 }
 
-func (t *Ticker) create(deps *Dependencies) error {
+func (t *Ticker) create(deps *Dependencies, sublog zerolog.Logger) error {
 	db := deps.db
-	sublog := deps.logger
 
 	if t.TickerSymbol == "" {
 		// refusing to add ticker with blank symbol
@@ -208,21 +207,19 @@ func (t *Ticker) create(deps *Dependencies) error {
 	insert := "INSERT INTO ticker SET ticker_symbol=?, ticker_type=?, ticker_market=?, exchange_id=?, ticker_name=?, company_name=?, address=?, city=?, state=?, zip=?, country=?, website=?, phone=?, sector=?, industry=?, market_price=?, market_prev_close=?, market_volume=?, fetch_datetime=?"
 	res, err := db.Exec(insert, t.TickerSymbol, t.TickerType, t.TickerMarket, t.ExchangeId, t.TickerName, t.CompanyName, t.Address, t.City, t.State, t.Zip, t.Country, t.Website, t.Phone, t.Sector, t.Industry, t.MarketPrice, t.MarketPrevClose, t.MarketVolume, t.FetchDatetime)
 	if err != nil {
-		sublog.Fatal().Err(err).Str("ticker", t.TickerSymbol).Msg("failed on INSERT")
+		sublog.Fatal().Err(err).Msg("failed on INSERT")
 		return err
 	}
 	tickerId, err := res.LastInsertId()
 	if err != nil {
-		sublog.Fatal().Err(err).Str("symbol", t.TickerSymbol).Msg("failed on LAST_INSERTID")
+		sublog.Fatal().Err(err).Msg("failed on LAST_INSERTID")
 		return err
 	}
 	t.TickerId = uint64(tickerId)
 	return nil
 }
 
-func (t *Ticker) createOrUpdate(deps *Dependencies) error {
-	sublog := deps.logger
-
+func (t *Ticker) createOrUpdate(deps *Dependencies, sublog zerolog.Logger) error {
 	if t.TickerSymbol == "" {
 		sublog.Error().Interface("ticker", t).Msg("refusing to insert ticker with blank symbol")
 		return nil
@@ -230,25 +227,17 @@ func (t *Ticker) createOrUpdate(deps *Dependencies) error {
 
 	if t.TickerId == 0 {
 		var err error
-		t.TickerId, err = t.getIdBySymbol(deps)
+		t.TickerId, err = t.getIdBySymbol(deps, sublog)
 		if errors.Is(err, sql.ErrNoRows) || t.TickerId == 0 {
-			return t.create(deps)
+			return t.create(deps, sublog)
 		}
 	}
 
-	t.Update(deps, *sublog)
-	return t.getById(deps)
+	t.Update(deps, sublog)
+	return t.getById(deps, sublog)
 }
 
-func (t *Ticker) updatePriceAndVolume(deps *Dependencies, price float64, volume int64) error {
-	db := deps.db
-
-	var update = "UPDATE ticker SET market_price=?, market_volume=? WHERE ticker_id=?"
-	_, err := db.Exec(update, price, volume, t.TickerId)
-	return err
-}
-
-func (t *Ticker) createOrUpdateAttribute(deps *Dependencies, attributeName, attributeComment, attributeValue string) error {
+func (t *Ticker) createOrUpdateAttribute(deps *Dependencies, sublog zerolog.Logger, attributeName, attributeComment, attributeValue string) error {
 	db := deps.db
 
 	attribute := TickerAttribute{0, "", t.TickerId, attributeName, attributeComment, attributeValue, time.Now(), time.Now()}
@@ -265,7 +254,7 @@ func (t *Ticker) createOrUpdateAttribute(deps *Dependencies, attributeName, attr
 }
 
 // if it is a workday after 4 and we don't have the EOD, or we don't have the prior workday EOD, get them
-func (t *Ticker) needEODs(deps *Dependencies) bool {
+func (t *Ticker) needEODs(deps *Dependencies, sublog zerolog.Logger) bool {
 	EasternTZ, _ := time.LoadLocation("America/New_York")
 	currentDate := time.Now().In(EasternTZ)
 	currentTimeStr := currentDate.Format("1505")
@@ -307,7 +296,7 @@ func (t Ticker) EarliestEOD(db *sqlx.DB) (string, float64, error) {
 	return earliest.date, earliest.price, err
 }
 
-func (t Ticker) getTickerEODs(deps *Dependencies, days int) ([]TickerDaily, error) {
+func (t Ticker) getTickerEODs(deps *Dependencies, sublog zerolog.Logger, days int) ([]TickerDaily, error) {
 	db := deps.db
 
 	var ticker_daily TickerDaily
@@ -354,7 +343,7 @@ func (t Ticker) getLastTickerEOD(deps *Dependencies, sublog zerolog.Logger) (Tic
 	return eod, nil
 }
 
-func (t Ticker) getUpDowns(deps *Dependencies, daysAgo int) ([]TickerUpDown, error) {
+func (t Ticker) getUpDowns(deps *Dependencies, sublog zerolog.Logger, daysAgo int) ([]TickerUpDown, error) {
 	db := deps.db
 
 	var tickerUpDown TickerUpDown
@@ -371,7 +360,7 @@ func (t Ticker) getUpDowns(deps *Dependencies, daysAgo int) ([]TickerUpDown, err
 	for rows.Next() {
 		err = rows.StructScan(&tickerUpDown)
 		if err != nil {
-			log.Warn().Err(err).Msg("error reading result rows")
+			sublog.Warn().Err(err).Msg("failed reading result rows")
 		} else {
 			upDowns = append(upDowns, tickerUpDown)
 		}
@@ -383,7 +372,7 @@ func (t Ticker) getUpDowns(deps *Dependencies, daysAgo int) ([]TickerUpDown, err
 	return upDowns, nil
 }
 
-func (t Ticker) getAttributes(deps *Dependencies) ([]TickerAttribute, error) {
+func (t Ticker) getAttributes(deps *Dependencies, sublog zerolog.Logger) ([]TickerAttribute, error) {
 	db := deps.db
 
 	var tickerAttribute TickerAttribute
@@ -399,7 +388,7 @@ func (t Ticker) getAttributes(deps *Dependencies) ([]TickerAttribute, error) {
 	for rows.Next() {
 		err = rows.StructScan(&tickerAttribute)
 		if err != nil {
-			log.Warn().Err(err).Msg("error reading result rows")
+			sublog.Warn().Err(err).Msg("error reading result rows")
 		} else {
 			underscore_rx := regexp.MustCompile(`_`)
 			tickerAttribute.AttributeName = string(underscore_rx.ReplaceAll([]byte(tickerAttribute.AttributeName), []byte(" ")))
@@ -414,7 +403,7 @@ func (t Ticker) getAttributes(deps *Dependencies) ([]TickerAttribute, error) {
 	return tickerAttributes, nil
 }
 
-func (t Ticker) getSplits(deps *Dependencies) ([]TickerSplit, error) {
+func (t Ticker) getSplits(deps *Dependencies, sublog zerolog.Logger) ([]TickerSplit, error) {
 	db := deps.db
 
 	var tickerSplit TickerSplit
@@ -530,9 +519,8 @@ func (td *TickerDescription) getByUniqueKey(deps *Dependencies) error {
 	return err
 }
 
-func (td *TickerDescription) createOrUpdate(deps *Dependencies) error {
+func (td *TickerDescription) createOrUpdate(deps *Dependencies, sublog zerolog.Logger) error {
 	db := deps.db
-	sublog := deps.logger
 
 	if td.BusinessSummary == "" {
 		return nil
@@ -586,9 +574,8 @@ func (tud *TickerUpDown) getByUniqueKey(deps *Dependencies) error {
 	return err
 }
 
-func (tud *TickerUpDown) createIfNew(deps *Dependencies) error {
+func (tud *TickerUpDown) createIfNew(deps *Dependencies, sublog zerolog.Logger) error {
 	db := deps.db
-	sublog := deps.logger
 
 	if tud.UpDownToGrade == "" {
 		return nil
@@ -615,9 +602,8 @@ func (ts *TickerSplit) getByDate(deps *Dependencies) error {
 	return err
 }
 
-func (ts *TickerSplit) createIfNew(deps *Dependencies) error {
+func (ts *TickerSplit) createIfNew(deps *Dependencies, sublog zerolog.Logger) error {
 	db := deps.db
-	sublog := deps.logger
 
 	if ts.SplitRatio == "" {
 		// Refusing to add ticker split with blank ratio
@@ -637,7 +623,7 @@ func (ts *TickerSplit) createIfNew(deps *Dependencies) error {
 	return err
 }
 
-func (t *Ticker) GetFinancials(deps *Dependencies, period, chartType string, isPercentage int) ([]string, []map[string]float64, error) {
+func (t *Ticker) GetFinancials(deps *Dependencies, sublog zerolog.Logger, period, chartType string, isPercentage int) ([]string, []map[string]float64, error) {
 	db := deps.db
 
 	var periodStrs = []string{}
@@ -688,7 +674,7 @@ func (t *Ticker) GetFinancials(deps *Dependencies, period, chartType string, isP
 	return periodStrs, barValues, nil
 }
 
-func (t Ticker) queueSaveFavIcon(deps *Dependencies) error {
+func (t Ticker) queueSaveFavIcon(deps *Dependencies, sublog zerolog.Logger) error {
 	awssess := deps.awssess
 	awssvc := sqs.New(awssess)
 	queueName := "stockwatch-tickers"
@@ -724,15 +710,14 @@ func (t Ticker) queueSaveFavIcon(deps *Dependencies) error {
 	return err
 }
 
-func (t *Ticker) getFavIconCDATA(deps *Dependencies) string {
+func (t *Ticker) getFavIconCDATA(deps *Dependencies, sublog zerolog.Logger) string {
 	awssess := deps.awssess
-	sublog := deps.logger
 
 	if t.FavIconS3Key == "none" {
 		return ""
 	}
 	if t.FavIconS3Key == "" {
-		t.queueSaveFavIcon(deps)
+		t.queueSaveFavIcon(deps, sublog)
 		return ""
 	}
 	redisPool := deps.redisPool
@@ -791,7 +776,7 @@ func getTickerBySymbol(deps *Dependencies, sublog zerolog.Logger, symbol string)
 	ticker := Ticker{}
 	err := db.QueryRowx("SELECT * FROM ticker WHERE ticker_symbol=?", symbol).StructScan(&ticker)
 	if err == nil {
-		ticker.EId = encryptId(deps, "ticker", ticker.TickerId)
+		ticker.EId = encryptId(deps, *deps.logger, "ticker", ticker.TickerId)
 	}
 	return ticker, err
 }
@@ -802,7 +787,7 @@ func getTickerDescriptionById(deps *Dependencies, sublog zerolog.Logger, ticker_
 	var tickerDescription TickerDescription
 	err := db.QueryRowx(`SELECT * FROM ticker_description WHERE ticker_id=?`, ticker_id).StructScan(&tickerDescription)
 	if err == nil {
-		tickerDescription.EId = encryptId(deps, "ticker_description", tickerDescription.TickerDescriptionId)
+		tickerDescription.EId = encryptId(deps, *deps.logger, "ticker_description", tickerDescription.TickerDescriptionId)
 	}
 	return tickerDescription, err
 }
@@ -841,7 +826,7 @@ func getTickerQuote(deps *Dependencies, sublog zerolog.Logger, watcher Watcher, 
 			tickerQuote.Ticker.UpdateTickerWithLiveQuote(deps, sublog, quote)
 		}
 	} else {
-		if tickerQuote.Ticker.needEODs(deps) {
+		if tickerQuote.Ticker.needEODs(deps, sublog) {
 			err := fetchTickerEODsFromYH(deps, sublog, ticker)
 			if err != nil {
 				sublog.Error().Err(err).Msg("failed to fetch tickerEODs")
@@ -914,7 +899,7 @@ func getTickerQuote(deps *Dependencies, sublog zerolog.Logger, watcher Watcher, 
 		}
 	}
 
-	tickerQuote.FavIcon = ticker.getFavIconCDATA(deps)
+	tickerQuote.FavIcon = ticker.getFavIconCDATA(deps, sublog)
 
 	sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Msg("timer: getTickerQuote")
 	return tickerQuote, err
@@ -925,7 +910,7 @@ func getFreshTicker(deps *Dependencies, sublog zerolog.Logger, symbol string) (T
 	// also, update from YH if ticker is over 24 hours old
 	ticker, err := getTickerBySymbol(deps, sublog, symbol)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		ticker, err = fetchTickerInfoFromYH(deps, symbol)
+		ticker, err = fetchTickerInfoFromYH(deps, sublog, symbol)
 		if err != nil {
 			return Ticker{}, err
 		}
@@ -939,7 +924,7 @@ func getFreshTicker(deps *Dependencies, sublog zerolog.Logger, symbol string) (T
 	} else if ticker.FetchDatetime.Before(time.Now().Add(-24*time.Hour)) ||
 		(!isMarketOpen() && time.Since(ticker.FetchDatetime).Minutes() > minTickerReloadDelayOpen) ||
 		(isMarketOpen() && time.Since(ticker.FetchDatetime).Minutes() > minTickerReloadDelayClosed) {
-		ticker, err = fetchTickerInfoFromYH(deps, symbol)
+		ticker, err = fetchTickerInfoFromYH(deps, sublog, symbol)
 		if err != nil {
 			return Ticker{}, err
 		}
@@ -955,7 +940,7 @@ func getFreshTicker(deps *Dependencies, sublog zerolog.Logger, symbol string) (T
 func getFreshTickers(deps *Dependencies, sublog zerolog.Logger, symbols []string) ([]Ticker, error) {
 	tickers := []Ticker{}
 
-	quotes, err := loadMultiTickerQuotes(deps, symbols)
+	quotes, err := loadMultiTickerQuotes(deps, sublog, symbols)
 	if err != nil {
 		return []Ticker{}, err
 	}
@@ -989,19 +974,19 @@ func getTickerDetails(deps *Dependencies, sublog zerolog.Logger, watcher Watcher
 		return TickerDetails{}, err
 	}
 
-	tickerAttributes, err := ticker.getAttributes(deps)
+	tickerAttributes, err := ticker.getAttributes(deps, sublog)
 	if err != nil {
 		return TickerDetails{}, err
 	}
 	tickerDetails.Attributes = tickerAttributes
 
-	tickerSplits, err := ticker.getSplits(deps)
+	tickerSplits, err := ticker.getSplits(deps, sublog)
 	if err != nil {
 		return TickerDetails{}, err
 	}
 	tickerDetails.Splits = tickerSplits
 
-	tickerUpDowns, err := ticker.getUpDowns(deps, 90)
+	tickerUpDowns, err := ticker.getUpDowns(deps, sublog, 90)
 	if err != nil {
 		return TickerDetails{}, err
 	}
@@ -1103,7 +1088,7 @@ func getRecentsQuotes(deps *Dependencies, sublog zerolog.Logger, watcher Watcher
 			}
 		}
 
-		tickerQuote.FavIcon = ticker.getFavIconCDATA(deps)
+		tickerQuote.FavIcon = ticker.getFavIconCDATA(deps, sublog)
 		tickerQuotes = append(tickerQuotes, tickerQuote)
 	}
 

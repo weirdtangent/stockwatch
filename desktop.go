@@ -6,18 +6,18 @@ import (
 
 func desktopHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		watcher := checkAuthState(w, r, deps)
+		watcher := checkAuthState(w, r, deps, *deps.logger)
 		webdata := deps.webdata
 
 		sublog := deps.logger.With().Str("watcher", watcher.EId).Logger()
 
-		movers := getMovers(deps)
+		movers := getMovers(deps, sublog)
 		webdata["Movers"] = movers
 
-		articles := getRecentArticles(deps)
+		articles := getRecentArticles(deps, sublog)
 		webdata["Articles"] = articles
 
-		recents := getWatcherRecents(deps, watcher)
+		recents := getWatcherRecents(deps, sublog, watcher)
 		tickerQuotes, err := getRecentsQuotes(deps, sublog, watcher, recents)
 		if err != nil {
 			sublog.Error().Err(err).Msg("getRecentsQuotes failed, redirecting to /desktop")

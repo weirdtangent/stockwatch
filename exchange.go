@@ -22,11 +22,11 @@ type Exchange struct {
 }
 
 // object methods -------------------------------------------------------------
-func (e *Exchange) getByCode(deps *Dependencies) error {
+func (e *Exchange) getByCode(deps *Dependencies, sublog zerolog.Logger) error {
 	db := deps.db
 
 	err := db.QueryRowx("SELECT * FROM exchange WHERE exchange_code=?", e.ExchangeCode).StructScan(e)
-	e.EId = encryptId(deps, "exchange", e.ExchangeId)
+	e.EId = encryptId(deps, *deps.logger, "exchange", e.ExchangeId)
 	return err
 }
 
@@ -38,7 +38,7 @@ func getExchangeById(deps *Dependencies, sublog zerolog.Logger, exchange_id uint
 	exchange := Exchange{}
 	err := db.QueryRowx("SELECT * FROM exchange WHERE exchange_id=?", exchange_id).StructScan(&exchange)
 	if err == nil {
-		exchange.EId = encryptId(deps, "exchange", exchange.ExchangeId)
+		exchange.EId = encryptId(deps, *deps.logger, "exchange", exchange.ExchangeId)
 	}
 	return exchange, err
 }

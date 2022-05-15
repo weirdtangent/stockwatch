@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog"
 )
 
 type jsonResponseData struct {
@@ -27,8 +28,7 @@ type jsonResponseData struct {
 
 func apiV1Handler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		watcher := checkAuthState(w, r, deps)
-		sublog := deps.logger
+		watcher := checkAuthState(w, r, deps, *deps.logger)
 
 		w.Header().Add("Content-Type", "application/json")
 
@@ -40,9 +40,13 @@ func apiV1Handler(deps *Dependencies) http.HandlerFunc {
 		params := mux.Vars(r)
 		endpoint := params["endpoint"]
 
-		jsonResponse := jsonResponseData{ApiVersion: "0.1.0", Endpoint: endpoint, Success: false, Data: make(map[string]interface{})}
-		newlog := sublog.With().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", jsonResponse.Endpoint).Logger()
-		sublog = &newlog
+		jsonResponse := jsonResponseData{
+			ApiVersion: "0.1.0",
+			Endpoint:   endpoint,
+			Success:    false,
+			Data:       make(map[string]interface{}),
+		}
+		sublog := deps.logger.With().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", jsonResponse.Endpoint).Logger()
 
 		switch endpoint {
 		case "version":
@@ -51,18 +55,18 @@ func apiV1Handler(deps *Dependencies) http.HandlerFunc {
 
 		case "quotes":
 			symbolStr := r.FormValue("symbols")
-			apiQuotes(deps, symbolStr, &jsonResponse)
+			apiQuotes(deps, sublog, symbolStr, &jsonResponse)
 
 		case "recents":
 			if r.FormValue("remove") != "" {
 				removeStr := r.FormValue("remove")
-				apiRecents(deps, watcher, "remove", removeStr, &jsonResponse)
+				apiRecents(deps, sublog, watcher, "remove", removeStr, &jsonResponse)
 			} else if r.FormValue("lock") != "" {
 				lockStr := r.FormValue("lock")
-				apiRecents(deps, watcher, "lock", lockStr, &jsonResponse)
+				apiRecents(deps, sublog, watcher, "lock", lockStr, &jsonResponse)
 			} else if r.FormValue("unlock") != "" {
 				unlockStr := r.FormValue("unlock")
-				apiRecents(deps, watcher, "unlock", unlockStr, &jsonResponse)
+				apiRecents(deps, sublog, watcher, "unlock", unlockStr, &jsonResponse)
 			}
 
 		case "chart":
@@ -71,42 +75,39 @@ func apiV1Handler(deps *Dependencies) http.HandlerFunc {
 			timespan, err := strconv.Atoi(r.FormValue("timespan"))
 			if err != nil {
 				jsonResponse.Success = false
-				jsonResponse.Message = "Failure: invalid timespan"
+				jsonResponse.Message = "failure: invalid timespan"
 				break
 			}
-			apiChart(deps, nonce, chart, symbol, timespan, &jsonResponse)
+			apiChart(deps, sublog, nonce, chart, symbol, timespan, &jsonResponse)
 
 		default:
-			sublog.Error().Str("api_version", jsonResponse.ApiVersion).Str("endpoint", endpoint).Err(fmt.Errorf("failure: call to unknown api endpoint")).Msg("api call failed")
 			jsonResponse.Success = false
-			jsonResponse.Message = "Failure: unknown endpoint"
+			jsonResponse.Message = "failure: unknown endpoint"
 		}
 
 		json.NewEncoder(w).Encode(jsonResponse)
 	})
 }
 
-func apiQuotes(deps *Dependencies, symbolStr string, jsonR *jsonResponseData) {
-	sublog := deps.logger
-
-	quotes, err := loadMultiTickerQuotes(deps, strings.Split(symbolStr, ","))
+func apiQuotes(deps *Dependencies, sublog zerolog.Logger, symbolStr string, jsonR *jsonResponseData) {
+	quotes, err := loadMultiTickerQuotes(deps, sublog, strings.Split(symbolStr, ","))
 	if err != nil {
 		sublog.Error().Msg("failed to get live quotes")
 		jsonR.Success = false
-		jsonR.Message = "Failure: could not load quote"
+		jsonR.Message = "failure: could not load quote"
 		return
 	}
 
 	for _, quote := range quotes {
 		symbol := quote.Symbol
-		ticker, err := getTickerBySymbol(deps, *sublog, symbol)
+		ticker, err := getTickerBySymbol(deps, sublog, symbol)
 		if err != nil {
 			sublog.Error().Str("symbol", symbol).Msg("failed to find ticker")
 			jsonR.Success = false
-			jsonR.Message = "Failure: could not load quote"
+			jsonR.Message = "failure: could not load quote"
 			return
 		}
-		ticker.UpdateTickerWithLiveQuote(deps, *sublog, quote)
+		ticker.UpdateTickerWithLiveQuote(deps, sublog, quote)
 		jsonR.Data[symbol+":price"] = fmt.Sprintf("$%.2f", ticker.MarketPrice)
 		jsonR.Data[symbol+":ask"] = fmt.Sprintf("$%.2f", quote.QuoteAsk)
 		jsonR.Data[symbol+":asksize"] = fmt.Sprintf("%d", quote.QuoteAskSize)
@@ -129,12 +130,12 @@ func apiQuotes(deps *Dependencies, symbolStr string, jsonR *jsonResponseData) {
 		}
 		jsonR.Data[symbol+":dailyrange"] = fmt.Sprintf("$%.2f - $%.2f", quote.QuoteLow, quote.QuoteHigh)
 
-		_, lastChecked, updatingNow := getLastDoneInfo(deps, "ticker_news", ticker.TickerSymbol)
+		_, lastChecked, updatingNow := getLastDoneInfo(deps, sublog, "ticker_news", ticker.TickerSymbol)
 		jsonR.Data[symbol+":last_checked"] = lastChecked
 		jsonR.Data[symbol+":updating_now"] = updatingNow
 	}
 
-	_, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, "financial_news", "stockwatch")
+	_, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, sublog, "financial_news", "stockwatch")
 	jsonR.Data["last_checked_since"] = lastCheckedSince
 	jsonR.Data["updating_news_now"] = updatingNewsNow
 
@@ -142,9 +143,7 @@ func apiQuotes(deps *Dependencies, symbolStr string, jsonR *jsonResponseData) {
 	jsonR.Success = true
 }
 
-func apiRecents(deps *Dependencies, watcher Watcher, action, symbolStr string, jsonR *jsonResponseData) {
-	sublog := deps.logger
-
+func apiRecents(deps *Dependencies, sublog zerolog.Logger, watcher Watcher, action, symbolStr string, jsonR *jsonResponseData) {
 	symbols := strings.Split(symbolStr, ",")
 
 	switch {
@@ -153,7 +152,7 @@ func apiRecents(deps *Dependencies, watcher Watcher, action, symbolStr string, j
 			if symbol == "" {
 				continue
 			}
-			ticker, err := getTickerBySymbol(deps, *sublog, symbol)
+			ticker, err := getTickerBySymbol(deps, sublog, symbol)
 			if err != nil {
 				sublog.Error().Str("symbol", symbol).Msg("failed to find ticker")
 				continue
@@ -165,32 +164,32 @@ func apiRecents(deps *Dependencies, watcher Watcher, action, symbolStr string, j
 			if symbol == "" {
 				continue
 			}
-			ticker, err := getTickerBySymbol(deps, *sublog, symbol)
+			ticker, err := getTickerBySymbol(deps, sublog, symbol)
 			if err != nil {
 				sublog.Error().Str("symbol", symbol).Msg("failed to find ticker")
 				continue
 			}
-			lockWatcherRecent(deps, watcher, ticker)
+			lockWatcherRecent(deps, sublog, watcher, ticker)
 		}
 	case action == "unlock":
 		for _, symbol := range symbols {
 			if symbol == "" {
 				continue
 			}
-			ticker, err := getTickerBySymbol(deps, *sublog, symbol)
+			ticker, err := getTickerBySymbol(deps, sublog, symbol)
 			if err != nil {
 				sublog.Error().Str("symbol", symbol).Msg("failed to find ticker")
 				continue
 			}
-			unlockWatcherRecent(deps, watcher, ticker)
+			unlockWatcherRecent(deps, sublog, watcher, ticker)
 		}
 	}
 	jsonR.Success = true
 	jsonR.Message = "ok"
 }
 
-func apiChart(deps *Dependencies, nonce string, chart string, symbol string, timespan int, jsonR *jsonResponseData) {
-	sublog := deps.logger.With().Str("chart", chart).Str("symbol", symbol).Int("timespan", timespan).Logger()
+func apiChart(deps *Dependencies, sublog zerolog.Logger, nonce string, chart string, symbol string, timespan int, jsonR *jsonResponseData) {
+	sublog = sublog.With().Str("chart", chart).Str("symbol", symbol).Int("timespan", timespan).Logger()
 
 	start := time.Now()
 
@@ -198,65 +197,65 @@ func apiChart(deps *Dependencies, nonce string, chart string, symbol string, tim
 	if err != nil {
 		sublog.Error().Msg("failed to find symbol {symbol}")
 		jsonR.Success = false
-		jsonR.Message = "Failure: unknown symbol"
+		jsonR.Message = "failure: unknown symbol"
 		return
 	}
 	exchange, err := getExchangeById(deps, sublog, ticker.ExchangeId)
 	if err != nil {
 		sublog.Error().Msg("failed to find exchange for {symbol}")
 		jsonR.Success = false
-		jsonR.Message = "Failure: unknown symbol"
+		jsonR.Message = "failure: unknown symbol"
 		return
 	}
 
 	switch chart {
 	case "symbolLine":
-		ticker_dailies, _ := ticker.getTickerEODs(deps, timespan)
-		webwatches, _ := loadWebWatches(deps, ticker.TickerId)
-		chartHTML := chartHandlerTickerDailyLine(deps, ticker, &exchange, ticker_dailies, webwatches)
+		ticker_dailies, _ := ticker.getTickerEODs(deps, sublog, timespan)
+		webwatches, _ := loadWebWatches(deps, sublog, ticker.TickerId)
+		chartHTML := chartHandlerTickerDailyLine(deps, sublog, ticker, &exchange, ticker_dailies, webwatches)
 		jsonR.Data["chartHTML"] = chartHTML
 		jsonR.Success = true
 		jsonR.Message = "ok"
 	case "symbolKline":
-		ticker_dailies, _ := ticker.getTickerEODs(deps, timespan)
-		webwatches, _ := loadWebWatches(deps, ticker.TickerId)
-		chartHTML := chartHandlerTickerDailyKLine(deps, ticker, &exchange, ticker_dailies, webwatches)
+		ticker_dailies, _ := ticker.getTickerEODs(deps, sublog, timespan)
+		webwatches, _ := loadWebWatches(deps, sublog, ticker.TickerId)
+		chartHTML := chartHandlerTickerDailyKLine(deps, sublog, ticker, &exchange, ticker_dailies, webwatches)
 		jsonR.Data["chartHTML"] = chartHTML
 		jsonR.Success = true
 		jsonR.Message = "ok"
 	case "financialQuarterlyBar":
-		qtrBarStrs, qtrBarValues, _ := ticker.GetFinancials(deps, "Quarterly", "bar", 0)
-		chartHTML := chartHandlerFinancialsBar(deps, ticker, &exchange, qtrBarStrs, qtrBarValues)
+		qtrBarStrs, qtrBarValues, _ := ticker.GetFinancials(deps, sublog, "Quarterly", "bar", 0)
+		chartHTML := chartHandlerFinancialsBar(deps, sublog, ticker, &exchange, qtrBarStrs, qtrBarValues)
 		jsonR.Data["chartHTML"] = chartHTML
 		jsonR.Success = true
 		jsonR.Message = "ok"
 	case "financialAnnualBar":
-		annBarStrs, annBarValues, _ := ticker.GetFinancials(deps, "Annual", "bar", 0)
-		chartHTML := chartHandlerFinancialsBar(deps, ticker, &exchange, annBarStrs, annBarValues)
+		annBarStrs, annBarValues, _ := ticker.GetFinancials(deps, sublog, "Annual", "bar", 0)
+		chartHTML := chartHandlerFinancialsBar(deps, sublog, ticker, &exchange, annBarStrs, annBarValues)
 		jsonR.Data["chartHTML"] = chartHTML
 		jsonR.Success = true
 		jsonR.Message = "ok"
 	case "financialQuarterlyLine":
-		qtrLineStrs, qtrLineValues, _ := ticker.GetFinancials(deps, "Quarterly", "line", 0)
-		chartHTML := chartHandlerFinancialsLine(deps, ticker, &exchange, qtrLineStrs, qtrLineValues, 0)
+		qtrLineStrs, qtrLineValues, _ := ticker.GetFinancials(deps, sublog, "Quarterly", "line", 0)
+		chartHTML := chartHandlerFinancialsLine(deps, sublog, ticker, &exchange, qtrLineStrs, qtrLineValues, 0)
 		jsonR.Data["chartHTML"] = chartHTML
 		jsonR.Success = true
 		jsonR.Message = "ok"
 	case "financialAnnualLine":
-		annLineStrs, annLineValues, _ := ticker.GetFinancials(deps, "Annual", "line", 0)
-		chartHTML := chartHandlerFinancialsLine(deps, ticker, &exchange, annLineStrs, annLineValues, 0)
+		annLineStrs, annLineValues, _ := ticker.GetFinancials(deps, sublog, "Annual", "line", 0)
+		chartHTML := chartHandlerFinancialsLine(deps, sublog, ticker, &exchange, annLineStrs, annLineValues, 0)
 		jsonR.Data["chartHTML"] = chartHTML
 		jsonR.Success = true
 		jsonR.Message = "ok"
 	case "financialQuarterlyPerc":
-		qtrPercStrs, qtrPercValues, _ := ticker.GetFinancials(deps, "Quarterly", "line", 1)
-		chartHTML := chartHandlerFinancialsLine(deps, ticker, &exchange, qtrPercStrs, qtrPercValues, 1)
+		qtrPercStrs, qtrPercValues, _ := ticker.GetFinancials(deps, sublog, "Quarterly", "line", 1)
+		chartHTML := chartHandlerFinancialsLine(deps, sublog, ticker, &exchange, qtrPercStrs, qtrPercValues, 1)
 		jsonR.Data["chartHTML"] = chartHTML
 		jsonR.Success = true
 		jsonR.Message = "ok"
 	case "financialAnnualcwPercLine":
-		annPercStrs, annPercValues, _ := ticker.GetFinancials(deps, "Annual", "line", 1)
-		chartHTML := chartHandlerFinancialsLine(deps, ticker, &exchange, annPercStrs, annPercValues, 1)
+		annPercStrs, annPercValues, _ := ticker.GetFinancials(deps, sublog, "Annual", "line", 1)
+		chartHTML := chartHandlerFinancialsLine(deps, sublog, ticker, &exchange, annPercStrs, annPercValues, 1)
 		jsonR.Data["chartHTML"] = chartHTML
 		jsonR.Success = true
 		jsonR.Message = "ok"

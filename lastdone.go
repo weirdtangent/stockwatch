@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 type LastDone struct {
@@ -25,8 +27,8 @@ func (ld *LastDone) getByActivity(deps *Dependencies) error {
 }
 
 // misc -----------------------------------------------------------------------
-func getLastDoneInfo(deps *Dependencies, task string, key string) (sql.NullTime, string, bool) {
-	sublog := deps.logger.With().Str("task", task).Logger()
+func getLastDoneInfo(deps *Dependencies, sublog zerolog.Logger, task string, key string) (sql.NullTime, string, bool) {
+	sublog = sublog.With().Str("task", task).Logger()
 
 	lastSuccessDatetime := sql.NullTime{Valid: false, Time: time.Time{}}
 	lastSuccessSince := "unknown"

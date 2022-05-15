@@ -11,8 +11,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-
-	"github.com/rs/zerolog/log"
 )
 
 func pingHandler() http.HandlerFunc {
@@ -22,6 +20,7 @@ func pingHandler() http.HandlerFunc {
 
 func JSONReportHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sublog := deps.logger
 		awssess := deps.awssess
 		s3svc := s3.New(awssess)
 
@@ -42,7 +41,7 @@ func JSONReportHandler(deps *Dependencies) http.HandlerFunc {
 
 		_, err := s3svc.PutObject(inputPutObj)
 		if err != nil {
-			log.Warn().Err(err).Str("bucket", awsPrivateBucketName).Str("key", logKey).Msg("failed to upload to S3 bucket")
+			sublog.Warn().Err(err).Str("bucket", awsPrivateBucketName).Str("key", logKey).Msg("failed to upload to S3 bucket")
 		}
 	})
 }

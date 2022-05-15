@@ -14,10 +14,10 @@ import (
 )
 
 // fetch ticker info (and possibly new exchange) from yhfinance
-func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
+func fetchTickerInfoFromYH(deps *Dependencies, sublog zerolog.Logger, symbol string) (Ticker, error) {
 	redisPool := deps.redisPool
 	secrets := deps.secrets
-	sublog := deps.logger.With().Str("symbol", symbol).Logger()
+	sublog = sublog.With().Str("symbol", symbol).Logger()
 
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
@@ -54,7 +54,7 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 	// table to translate those to Exchange MIC or Acronym... so I have to
 	// link them manually for now
 	exchange := Exchange{ExchangeCode: summaryResponse.Price.ExchangeCode}
-	err = exchange.getByCode(deps)
+	err = exchange.getByCode(deps, sublog)
 	if err != nil {
 		sublog.Error().Err(err).Str("ticker", summaryResponse.QuoteType.Symbol).Str("exchange_code", summaryResponse.Price.ExchangeCode).Msg("failed to find exchange_code matched to exchange mic record")
 		return Ticker{}, err
@@ -89,7 +89,7 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 		time.Now(),
 		time.Now(),
 	}
-	err = ticker.createOrUpdate(deps)
+	err = ticker.createOrUpdate(deps, sublog)
 	if err != nil {
 		sublog.Error().Err(err).Str("symbol", ticker.TickerSymbol).Msg("failed to create or update ticker")
 		return Ticker{}, err
@@ -99,7 +99,7 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 	}
 
 	tickerDescription := TickerDescription{0, "", ticker.TickerId, summaryResponse.SummaryProfile.LongBusinessSummary, time.Now(), time.Now()}
-	err = tickerDescription.createOrUpdate(deps)
+	err = tickerDescription.createOrUpdate(deps, sublog)
 	if err != nil {
 		sublog.Error().Err(err).Str("ticker", ticker.TickerSymbol).Msg("failed to create ticker description")
 	}
@@ -108,20 +108,20 @@ func fetchTickerInfoFromYH(deps *Dependencies, symbol string) (Ticker, error) {
 	for _, updown := range summaryResponse.UpgradeDowngradeHistory.Histories {
 		updownDate := time.Unix(updown.GradeDate, 0)
 		UpDown := TickerUpDown{0, "", ticker.TickerId, updown.Action, updown.FromGrade, updown.ToGrade, sql.NullTime{Valid: true, Time: updownDate}, updown.Firm, "", time.Now(), time.Now()}
-		UpDown.createIfNew(deps)
+		UpDown.createIfNew(deps, sublog)
 	}
 
 	// create/update ticker_attributes
-	ticker.createOrUpdateAttribute(deps, "sector", "", summaryResponse.SummaryProfile.Sector)
-	ticker.createOrUpdateAttribute(deps, "industry", "", summaryResponse.SummaryProfile.Industry)
-	ticker.createOrUpdateAttribute(deps, "short_ratio", "", summaryResponse.DefaultKeyStatistics.ShortRatio.Fmt)
-	ticker.createOrUpdateAttribute(deps, "last_split_date", "", summaryResponse.DefaultKeyStatistics.LastSplitDate.Fmt)
-	ticker.createOrUpdateAttribute(deps, "last_dividend_date", "", summaryResponse.DefaultKeyStatistics.LastDividendDate.Fmt)
-	ticker.createOrUpdateAttribute(deps, "shares_short", "", summaryResponse.DefaultKeyStatistics.SharesShort.Fmt)
-	ticker.createOrUpdateAttribute(deps, "float_shares", "", summaryResponse.DefaultKeyStatistics.FloatShares.Fmt)
-	ticker.createOrUpdateAttribute(deps, "forward_eps", "", summaryResponse.DefaultKeyStatistics.ForwardEPS.Fmt)
-	ticker.createOrUpdateAttribute(deps, "enterprize_to_revenue", "", summaryResponse.DefaultKeyStatistics.EnterprizeToRevenue.Fmt)
-	ticker.createOrUpdateAttribute(deps, "enterprize_to_ebita", "", summaryResponse.DefaultKeyStatistics.EnterprizeToEbita.Fmt)
+	ticker.createOrUpdateAttribute(deps, sublog, "sector", "", summaryResponse.SummaryProfile.Sector)
+	ticker.createOrUpdateAttribute(deps, sublog, "industry", "", summaryResponse.SummaryProfile.Industry)
+	ticker.createOrUpdateAttribute(deps, sublog, "short_ratio", "", summaryResponse.DefaultKeyStatistics.ShortRatio.Fmt)
+	ticker.createOrUpdateAttribute(deps, sublog, "last_split_date", "", summaryResponse.DefaultKeyStatistics.LastSplitDate.Fmt)
+	ticker.createOrUpdateAttribute(deps, sublog, "last_dividend_date", "", summaryResponse.DefaultKeyStatistics.LastDividendDate.Fmt)
+	ticker.createOrUpdateAttribute(deps, sublog, "shares_short", "", summaryResponse.DefaultKeyStatistics.SharesShort.Fmt)
+	ticker.createOrUpdateAttribute(deps, sublog, "float_shares", "", summaryResponse.DefaultKeyStatistics.FloatShares.Fmt)
+	ticker.createOrUpdateAttribute(deps, sublog, "forward_eps", "", summaryResponse.DefaultKeyStatistics.ForwardEPS.Fmt)
+	ticker.createOrUpdateAttribute(deps, sublog, "enterprize_to_revenue", "", summaryResponse.DefaultKeyStatistics.EnterprizeToRevenue.Fmt)
+	ticker.createOrUpdateAttribute(deps, sublog, "enterprize_to_ebita", "", summaryResponse.DefaultKeyStatistics.EnterprizeToEbita.Fmt)
 
 	return ticker, nil
 }
@@ -154,10 +154,9 @@ func fetchTickerQuoteFromYH(deps *Dependencies, sublog zerolog.Logger, ticker Ti
 	return quote, nil
 }
 
-func loadMultiTickerQuotes(deps *Dependencies, symbols []string) (map[string]yhfinance.YHQuote, error) {
+func loadMultiTickerQuotes(deps *Dependencies, sublog zerolog.Logger, symbols []string) (map[string]yhfinance.YHQuote, error) {
 	redisPool := deps.redisPool
 	secrets := deps.secrets
-	sublog := deps.logger
 
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
@@ -171,7 +170,7 @@ func loadMultiTickerQuotes(deps *Dependencies, symbols []string) (map[string]yhf
 	var err error
 	quoteParams := map[string]string{"symbols": strings.Join(symbols, ",")}
 	sublog.Info().Str("symbols", strings.Join(symbols, ",")).Msg("getting multi-symbol quote from yhfinance")
-	fullResponse, err := yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "marketQuote", quoteParams)
+	fullResponse, err := yhfinance.GetFromYHFinance(&sublog, apiKey, apiHost, "marketQuote", quoteParams)
 	sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Msg("timer: yhfinance multi marketQuote")
 	if err != nil {
 		log.Warn().Err(err).Str("symbols", strings.Join(symbols, ",")).Msg("failed to retrieve quote")
@@ -230,7 +229,7 @@ func fetchTickerEODsFromYH(deps *Dependencies, sublog zerolog.Logger, ticker Tic
 
 	for _, split := range historicalResponse.Events {
 		tickerSplit := TickerSplit{0, "", ticker.TickerId, time.Unix(split.Date, 0), split.SplitRatio, time.Now(), time.Now()}
-		err = tickerSplit.createIfNew(deps)
+		err = tickerSplit.createIfNew(deps, sublog)
 		if err != nil {
 			lastErr = err
 		}
@@ -243,10 +242,10 @@ func fetchTickerEODsFromYH(deps *Dependencies, sublog zerolog.Logger, ticker Tic
 }
 
 // search for ticker and return highest scored quote symbol
-func jumpSearch(deps *Dependencies, searchString string) (SearchResultTicker, error) {
+func jumpSearch(deps *Dependencies, sublog zerolog.Logger, searchString string) (SearchResultTicker, error) {
 	var searchResult SearchResultTicker
 
-	searchResults, err := listSearch(deps, searchString, "ticker")
+	searchResults, err := listSearch(deps, sublog, searchString, "ticker")
 	if err != nil {
 		return searchResult, err
 	}
@@ -269,9 +268,8 @@ func jumpSearch(deps *Dependencies, searchString string) (SearchResultTicker, er
 }
 
 // search for ticker or news
-func listSearch(deps *Dependencies, searchString string, resultTypes string) ([]SearchResult, error) {
+func listSearch(deps *Dependencies, sublog zerolog.Logger, searchString string, resultTypes string) ([]SearchResult, error) {
 	secrets := deps.secrets
-	sublog := deps.logger
 
 	apiKey := secrets["yhfinance_rapidapi_key"]
 	apiHost := secrets["yhfinance_rapidapi_host"]
@@ -279,7 +277,7 @@ func listSearch(deps *Dependencies, searchString string, resultTypes string) ([]
 	start := time.Now()
 	searchResults := make([]SearchResult, 100)
 	searchParams := map[string]string{"q": searchString, "region": "US"}
-	response, err := yhfinance.GetFromYHFinance(sublog, apiKey, apiHost, "autocomplete", searchParams)
+	response, err := yhfinance.GetFromYHFinance(&sublog, apiKey, apiHost, "autocomplete", searchParams)
 	sublog.Info().Int64("response_time", time.Since(start).Nanoseconds()).Msg("timer: yhfinance autocomplete")
 	if err != nil {
 		return searchResults, err
@@ -323,7 +321,7 @@ func listSearch(deps *Dependencies, searchString string, resultTypes string) ([]
 				continue
 			}
 			exchange := Exchange{ExchangeCode: quoteResult.ExchangeCode}
-			err := exchange.getByCode(deps)
+			err := exchange.getByCode(deps, sublog)
 			if err != nil {
 				sublog.Error().Err(err).Str("symbol", quoteResult.Symbol).Str("exchange_code", quoteResult.ExchangeCode).Msg("skipping {symbol} with unknown {exchange_code}")
 				continue

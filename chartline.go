@@ -10,9 +10,10 @@ import (
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
+	"github.com/rs/zerolog"
 )
 
-func chartHandlerTickerDailyLine(deps *Dependencies, ticker Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
+func chartHandlerTickerDailyLine(deps *Dependencies, sublog zerolog.Logger, ticker Ticker, exchange *Exchange, dailies []TickerDaily, webwatches []WebWatch) template.HTML {
 	nonce := deps.nonce
 
 	mainX := "700px"
@@ -24,7 +25,7 @@ func chartHandlerTickerDailyLine(deps *Dependencies, ticker Ticker, exchange *Ex
 	// build data needed
 	days := len(dailies)
 	if days == 0 {
-		html, _ := renderTemplateToString(deps, "_emptychart", nil)
+		html, _ := renderTemplateToString(deps, sublog, "_emptychart", nil)
 		return html
 	}
 

@@ -16,17 +16,17 @@ import (
 	"github.com/dgryski/go-skip32"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
+	"github.com/rs/zerolog"
 )
 
-func checkAuthState(w http.ResponseWriter, r *http.Request, deps *Dependencies) Watcher {
+func checkAuthState(w http.ResponseWriter, r *http.Request, deps *Dependencies, sublog zerolog.Logger) Watcher {
 	webdata := deps.webdata
-	sublog := deps.logger
 	session := deps.session
 
 	if session.Values["encWatcherId"] != nil {
 		encWatcherId := session.Values["encWatcherId"].(string)
 		if encWatcherId != "" {
-			watcherId := decryptedId(deps, "watcher", encWatcherId)
+			watcherId := decryptedId(deps, sublog, "watcher", encWatcherId)
 			watcher, err := getWatcherById(deps, watcherId)
 			if err != nil {
 				sublog.Error().Err(err).Str("encWatcherId", encWatcherId).Msg("failed to load watcher via encWatcherId {encWatcherId}")
@@ -65,12 +65,12 @@ func checkAuthState(w http.ResponseWriter, r *http.Request, deps *Dependencies) 
 
 func authLoginHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sublog := deps.logger
+		sublog := deps.logger.With().Str("handler", "authLoginHandler").Logger()
 
 		if user, err := gothic.CompleteUserAuth(w, r); err == nil {
-			signinUser(deps, w, r, user)
+			signinUser(deps, sublog, w, r, user)
 		} else {
-			sublog.Error().Err(err).Str("handler", "authLoginHandler").Msg("failed to complete auth")
+			sublog.Error().Err(err).Msg("failed to complete auth")
 			gothic.BeginAuthHandler(w, r)
 		}
 	})
@@ -82,17 +82,16 @@ func authCallbackHandler(deps *Dependencies) http.HandlerFunc {
 
 		user, err := gothic.CompleteUserAuth(w, r)
 		if err != nil {
-			sublog.Error().Err(err).Str("handler", "authCallbackHandler").Msg("failed to complete auth")
+			sublog.Error().Err(err).Msg("failed to complete auth")
 			deps.messages = append(deps.messages, Message{Text: fmt.Sprintf("Sorry, failed to complete oauth - %s", err), Level: "error"})
 			renderTemplate(w, r, deps, sublog, "home")
 			return
 		}
-		signinUser(deps, w, r, user)
+		signinUser(deps, sublog, w, r, user)
 	})
 }
 
-func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, gothUser goth.User) {
-	sublog := deps.logger
+func signinUser(deps *Dependencies, sublog zerolog.Logger, w http.ResponseWriter, r *http.Request, gothUser goth.User) {
 	session := deps.session
 
 	// get (or create) watcher account based on oauth properties
@@ -111,7 +110,7 @@ func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, goth
 		CreateDatetime:  time.Now(),
 		UpdateDatetime:  time.Now(),
 	}
-	watcher, err := createOrUpdateWatcherFromOAuth(deps, watcher, gothUser.Email)
+	watcher, err := createOrUpdateWatcherFromOAuth(deps, sublog, watcher, gothUser.Email)
 	if err != nil {
 		sublog.Error().Err(err).Msg("failed to get/create watcher from oauth response")
 		http.NotFound(w, r)
@@ -135,14 +134,14 @@ func signinUser(deps *Dependencies, w http.ResponseWriter, r *http.Request, goth
 		CreateDatetime: time.Now(),
 		UpdateDatetime: time.Now(),
 	}
-	err = oauth.createOrUpdate(deps)
+	err = oauth.createOrUpdate(deps, sublog)
 	if err != nil {
 		sublog.Error().Err(err).Msg("failed to create/update oauth record")
 		http.NotFound(w, r)
 		return
 	}
 
-	session.Values["encWatcherId"] = encryptId(deps, "watcher", watcher.WatcherId)
+	session.Values["encWatcherId"] = encryptId(deps, sublog, "watcher", watcher.WatcherId)
 	session.Values["provider"] = gothUser.Provider
 
 	// only once do these two dates match - when the watcher is brand new
@@ -190,7 +189,7 @@ func RandStringMask(n int) string {
 	return string(b)
 }
 
-func encryptURL(deps *Dependencies, text []byte) ([]byte, error) {
+func encryptURL(deps *Dependencies, sublog zerolog.Logger, text []byte) ([]byte, error) {
 	secrets := deps.secrets
 
 	secret := secrets["next_url_key"]
@@ -211,7 +210,7 @@ func encryptURL(deps *Dependencies, text []byte) ([]byte, error) {
 	return cipherstring, nil
 }
 
-func decryptURL(deps *Dependencies, cipherstring []byte) ([]byte, error) {
+func decryptURL(deps *Dependencies, sublog zerolog.Logger, cipherstring []byte) ([]byte, error) {
 	secrets := deps.secrets
 
 	secret := secrets["next_url_key"]
@@ -240,8 +239,7 @@ func decryptURL(deps *Dependencies, cipherstring []byte) ([]byte, error) {
 }
 
 // split uint64 into high/low uint32s and skip32 them and return as 8 hex chars
-func encryptId(deps *Dependencies, objectType string, id uint64) string {
-	sublog := deps.logger
+func encryptId(deps *Dependencies, sublog zerolog.Logger, objectType string, id uint64) string {
 	secrets := deps.secrets
 
 	skip64Key := fmt.Sprintf("skip64_%s", objectType)
@@ -268,8 +266,7 @@ func encryptId(deps *Dependencies, objectType string, id uint64) string {
 }
 
 // break 8 hex chars into high/low uint32s and un-skip32 them and combine to single uint64
-func decryptedId(deps *Dependencies, objectType string, obfuscated string) uint64 {
-	sublog := deps.logger
+func decryptedId(deps *Dependencies, sublog zerolog.Logger, objectType string, obfuscated string) uint64 {
 	secrets := deps.secrets
 
 	if len(obfuscated) != 8 && len(obfuscated) != 16 {

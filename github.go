@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/gomarkdown/markdown"
+	"github.com/rs/zerolog"
 )
 
 type Contents struct {
@@ -37,9 +38,8 @@ type Commit struct {
 
 // misc -----------------------------------------------------------------------
 
-func getGithubCommits(deps *Dependencies) (*string, *[]Commit, error) {
+func getGithubCommits(deps *Dependencies, sublog zerolog.Logger) (*string, *[]Commit, error) {
 	secrets := deps.secrets
-	sublog := deps.logger
 
 	var commitsResponse []Commit
 	var readmeResponse Contents

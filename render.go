@@ -10,19 +10,18 @@ import (
 
 func staticPageHandler(deps *Dependencies, tmplname string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sublog := deps.logger
-
-		checkAuthState(w, r, deps)
+		watcher := checkAuthState(w, r, deps, *deps.logger)
+		sublog := deps.logger.With().Str("watcher", watcher.EId).Logger()
 		webdata := deps.webdata
 
 		if tmplname == "home" || tmplname == "terms" || tmplname == "privacy" {
 			webdata["hideRecents"] = true
 		}
 		if tmplname == "about" {
-			webdata["about"], webdata["commits"], _ = getGithubCommits(deps)
+			webdata["about"], webdata["commits"], _ = getGithubCommits(deps, sublog)
 		}
 
-		renderTemplate(w, r, deps, *sublog, tmplname)
+		renderTemplate(w, r, deps, *deps.logger, tmplname)
 	})
 }
 
@@ -55,9 +54,8 @@ func renderTemplate(w http.ResponseWriter, r *http.Request, deps *Dependencies, 
 	return nil
 }
 
-func renderTemplateToString(deps *Dependencies, tmplname string, data interface{}) (template.HTML, error) {
+func renderTemplateToString(deps *Dependencies, sublog zerolog.Logger, tmplname string, data interface{}) (template.HTML, error) {
 	tmpl := deps.templates
-	sublog := deps.logger
 
 	// Create a buffer to temporarily write to and check if any errors were encountered.
 	buf := deps.bufpool.Get()

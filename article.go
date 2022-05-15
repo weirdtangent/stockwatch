@@ -141,7 +141,7 @@ func getArticlesByTicker(deps *Dependencies, sublog zerolog.Logger, ticker Ticke
 			log.Warn().Err(err).Msg("error reading row")
 			continue
 		}
-		article.EId = encryptId(deps, "article", article.ArticleId)
+		article.EId = encryptId(deps, sublog, "article", article.ArticleId)
 		sha := fmt.Sprintf("%x", sha256.Sum256([]byte(article.Title)))
 		// skip this one if we've seen the same title already
 		if _, ok := bodySHA256[sha]; ok {
@@ -175,9 +175,8 @@ func cleanArticleText(text string) string {
 	return text
 }
 
-func getRecentArticles(deps *Dependencies) []WebArticle {
+func getRecentArticles(deps *Dependencies, sublog zerolog.Logger) []WebArticle {
 	db := deps.db
-	sublog := deps.logger
 
 	// go back as far as 30 days but limited to 30 articles
 	fromDate := time.Now().Add(-1 * 30 * 24 * time.Hour).Format(sqlDatetimeSearchType)
@@ -212,7 +211,7 @@ func getRecentArticles(deps *Dependencies) []WebArticle {
 			sublog.Warn().Err(err).Msg("error reading row")
 			continue
 		}
-		article.EId = encryptId(deps, "article", article.ArticleId)
+		article.EId = encryptId(deps, sublog, "article", article.ArticleId)
 		sha := fmt.Sprintf("%x", sha256.Sum256([]byte(article.Title)))
 		// skip this one if we've seen the same title already
 		if _, ok := bodySHA256[sha]; ok {

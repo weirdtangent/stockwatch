@@ -8,9 +8,10 @@ import (
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
+	"github.com/rs/zerolog"
 )
 
-func chartHandlerFinancialsBar(deps *Dependencies, ticker Ticker, exchange *Exchange, periodStrs []string, barValues []map[string]float64) template.HTML {
+func chartHandlerFinancialsBar(deps *Dependencies, sublog zerolog.Logger, ticker Ticker, exchange *Exchange, periodStrs []string, barValues []map[string]float64) template.HTML {
 	nonce := deps.nonce
 	mainX := "700px"
 	mainY := "400px"
@@ -75,7 +76,7 @@ func chartHandlerFinancialsBar(deps *Dependencies, ticker Ticker, exchange *Exch
 	return renderToHtml(deps, barChart)
 }
 
-func chartHandlerFinancialsLine(deps *Dependencies, ticker Ticker, exchange *Exchange, periodStrs []string, lineValues []map[string]float64, isPercentage int) template.HTML {
+func chartHandlerFinancialsLine(deps *Dependencies, sublog zerolog.Logger, ticker Ticker, exchange *Exchange, periodStrs []string, lineValues []map[string]float64, isPercentage int) template.HTML {
 	nonce := deps.nonce
 	mainX := "700px"
 	mainY := "400px"

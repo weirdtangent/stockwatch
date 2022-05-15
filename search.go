@@ -38,7 +38,7 @@ func searchHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		webdata := deps.webdata
 
-		checkAuthState(w, r, deps)
+		checkAuthState(w, r, deps, *deps.logger)
 
 		params := mux.Vars(r)
 		searchType := params["type"]
@@ -57,14 +57,14 @@ func searchHandler(deps *Dependencies) http.HandlerFunc {
 			sublog.Info().Str("search_provider", "yhfinance").Str("search_string", searchString).Msg("Search performed")
 
 			if searchType == "jump" {
-				searchResultTicker, err := jumpSearch(deps, searchString)
+				searchResultTicker, err := jumpSearch(deps, sublog, searchString)
 				if err != nil || searchResultTicker.TickerSymbol == "" {
 					break
 				}
 				http.Redirect(w, r, fmt.Sprintf("/view/%s", searchResultTicker.TickerSymbol), http.StatusFound)
 				return
 			} else if searchType == "search" {
-				searchResults, err := listSearch(deps, searchString, "both")
+				searchResults, err := listSearch(deps, sublog, searchString, "both")
 				if err != nil || len(searchResults) == 0 {
 					break
 				}

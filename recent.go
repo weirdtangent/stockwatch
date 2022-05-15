@@ -32,9 +32,9 @@ func (r *Recent) createOrUpdate(deps *Dependencies) error {
 
 // misc -----------------------------------------------------------------------
 
-func getWatcherRecents(deps *Dependencies, watcher Watcher) []WatcherRecent {
+func getWatcherRecents(deps *Dependencies, sublog zerolog.Logger, watcher Watcher) []WatcherRecent {
 	db := deps.db
-	sublog := deps.logger.With().Str("watcherEid", encryptId(deps, "watcher", watcher.WatcherId)).Logger()
+	sublog = sublog.With().Str("watcherEid", encryptId(deps, *deps.logger, "watcher", watcher.WatcherId)).Logger()
 
 	watcherRecents := make([]WatcherRecent, 0, 30)
 	if watcher.WatcherId == 0 {
@@ -77,31 +77,31 @@ func addTickerToWatcherRecents(deps *Dependencies, sublog zerolog.Logger, watche
 	watcherRecent, err := getWatcherRecent(deps, watcher, ticker)
 	if err != nil {
 		watcherRecent = WatcherRecent{0, "", watcher.WatcherId, ticker.TickerId, ticker.TickerSymbol, false, time.Now(), time.Now()}
-		err = watcherRecent.create(deps)
+		err = watcherRecent.create(deps, sublog)
 		if err != nil {
-			return getWatcherRecents(deps, watcher), err
+			return getWatcherRecents(deps, sublog, watcher), err
 		}
 
 		// if at max already, need to delete an unlocked one before allowing another
 		var count int32
 		err = db.QueryRowx("SELECT count(*) FROM watcher_recent WHERE watcher_id=?", watcher.WatcherId).Scan(&count)
 		if err != nil {
-			return getWatcherRecents(deps, watcher), err
+			return getWatcherRecents(deps, sublog, watcher), err
 		} else {
 			if count >= maxRecentCount {
 				_, err := db.Exec("DELETE FROM watcher_recent WHERE watcher_id=? AND locked=false ORDER BY update_datetime LIMIT ?", watcher.WatcherId, count-maxRecentCount)
 				if err != nil && errors.Is(err, sql.ErrNoRows) {
-					return getWatcherRecents(deps, watcher), nil
+					return getWatcherRecents(deps, sublog, watcher), nil
 				}
 				if err != nil {
-					return getWatcherRecents(deps, watcher), err
+					return getWatcherRecents(deps, sublog, watcher), err
 				}
 			}
 		}
 	} else {
-		err = watcherRecent.update(deps, watcher, ticker)
+		err = watcherRecent.update(deps, sublog, watcher, ticker)
 		if err != nil {
-			return getWatcherRecents(deps, watcher), err
+			return getWatcherRecents(deps, sublog, watcher), err
 		}
 	}
 
@@ -109,7 +109,7 @@ func addTickerToWatcherRecents(deps *Dependencies, sublog zerolog.Logger, watche
 	recent := Recent{ticker.TickerId, "", ticker.MSPerformanceId, time.Now()}
 	recent.createOrUpdate(deps)
 
-	return getWatcherRecents(deps, watcher), err
+	return getWatcherRecents(deps, sublog, watcher), err
 }
 
 func isWatcherRecent(deps *Dependencies, sublog zerolog.Logger, watcher Watcher, ticker Ticker) (bool, error) {

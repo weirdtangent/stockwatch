@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog"
 )
 
 type ProfileEmail struct {
@@ -30,7 +31,7 @@ func profileHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		webdata := deps.webdata
 
-		watcher := checkAuthState(w, r, deps)
+		watcher := checkAuthState(w, r, deps, *deps.logger)
 		if watcher.WatcherId == 0 {
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
@@ -48,16 +49,16 @@ func profileHandler(deps *Dependencies) http.HandlerFunc {
 			but meanwhile you can just email request@graystorm.com. I suspect, though, I will most often be
 			thinking, "yeah, I dunno how to do that" ;) Also, these profile settings below don't quite
 			work yet, but I'm working on it!`}
-			updateWatcher(deps, watcher)
+			updateWatcher(deps, sublog, watcher)
 		}
 
-		profile, err := getProfile(deps, watcher)
+		profile, err := getProfile(deps, sublog, watcher)
 		if err != nil {
 			sublog.Error().Err(err).Msg("failed to get profile info")
 		}
 		webdata["profile"] = profile
 
-		timezones := getTimezones(deps)
+		timezones := getTimezones(deps, sublog)
 
 		sort.Slice(timezones, func(i, j int) bool {
 			return timezones[i].Location < timezones[j].Location
@@ -69,11 +70,10 @@ func profileHandler(deps *Dependencies) http.HandlerFunc {
 	})
 }
 
-func getProfile(deps *Dependencies, watcher Watcher) (*Profile, error) {
+func getProfile(deps *Dependencies, sublog zerolog.Logger, watcher Watcher) (*Profile, error) {
 	db := deps.db
-	sublog := deps.logger
 
-	var profile Profile
+	profile := Profile{}
 
 	profile.Name = watcher.WatcherName
 	profile.Nickname = watcher.WatcherNickname
@@ -87,17 +87,17 @@ func getProfile(deps *Dependencies, watcher Watcher) (*Profile, error) {
 	}
 	defer rows.Close()
 
-	var watcherEmail WatcherEmail
+	watcherEmail := WatcherEmail{}
 	emails := make([]ProfileEmail, 0)
 	for rows.Next() {
 		err = rows.StructScan(&watcherEmail)
 		if err != nil {
-			sublog.Fatal().Err(err).Msg("Error reading result rows")
+			sublog.Fatal().Err(err).Msg("failed reading result rows")
 		}
 		emails = append(emails, ProfileEmail{watcherEmail.EmailAddress, watcherEmail.IsPrimary})
 	}
 	if err := rows.Err(); err != nil {
-		sublog.Fatal().Err(err).Msg("Error reading result rows")
+		sublog.Fatal().Err(err).Msg("failed reading result rows")
 	}
 
 	profile.Emails = emails

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 type OAuth struct {
@@ -34,9 +36,9 @@ func (o *OAuth) create(deps *Dependencies) error {
 	return o.getBySub(deps)
 }
 
-func (o *OAuth) createOrUpdate(deps *Dependencies) error {
+func (o *OAuth) createOrUpdate(deps *Dependencies, sublog zerolog.Logger) error {
 	db := deps.db
-	sublog := deps.logger.With().Str("provider", o.OAuthIssuer).Logger()
+	sublog = sublog.With().Str("provider", o.OAuthIssuer).Logger()
 
 	err := o.getBySub(deps)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {

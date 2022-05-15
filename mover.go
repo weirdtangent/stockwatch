@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 type Mover struct {
@@ -39,6 +39,7 @@ type Movers struct {
 // object methods -------------------------------------------------------------
 
 type ByGainers Movers
+
 func (a ByGainers) Len() int { return len(a.Gainers) }
 func (a ByGainers) Less(i, j int) bool {
 	return a.Gainers[i].Mover.PriceChangePct < a.Gainers[j].Mover.PriceChangePct
@@ -46,6 +47,7 @@ func (a ByGainers) Less(i, j int) bool {
 func (a ByGainers) Swap(i, j int) { a.Gainers[i], a.Gainers[j] = a.Gainers[j], a.Gainers[i] }
 
 type ByLosers Movers
+
 func (a ByLosers) Len() int { return len(a.Losers) }
 func (a ByLosers) Less(i, j int) bool {
 	return a.Losers[i].Mover.PriceChangePct < a.Losers[j].Mover.PriceChangePct
@@ -53,6 +55,7 @@ func (a ByLosers) Less(i, j int) bool {
 func (a ByLosers) Swap(i, j int) { a.Losers[i], a.Losers[j] = a.Losers[j], a.Losers[i] }
 
 type ByActives Movers
+
 func (a ByActives) Len() int { return len(a.Actives) }
 func (a ByActives) Less(i, j int) bool {
 	return a.Actives[i].Mover.Volume < a.Actives[j].Mover.Volume
@@ -76,9 +79,8 @@ func (m Movers) SortActives() *[]WebMover {
 
 // misc -----------------------------------------------------------------------
 
-func getMovers(deps *Dependencies) Movers {
+func getMovers(deps *Dependencies, sublog zerolog.Logger) Movers {
 	db := deps.db
-	sublog := deps.logger
 
 	movers := Movers{}
 	gainers := make([]WebMover, 0)
@@ -90,11 +92,11 @@ func getMovers(deps *Dependencies) Movers {
 		sublog.Error().Err(err).Msg("failed to get latest movers date")
 		return movers
 	}
-	sublog.Info().Err(err).Str("mover_date", latestMoverDate.Format("2006-01-02")).Msg("latest movers date")
+	sublog = sublog.With().Str("mover_date", latestMoverDate.Format("2006-01-02")).Logger()
 
 	rows, err := db.Queryx(`SELECT * FROM mover WHERE mover_date=?`, latestMoverDate.Format("2006-01-02"))
 	if err != nil {
-		sublog.Error().Err(err).Str("mover_date", latestMoverDate.Format("2006-01-02")).Msg("failed to load movers")
+		sublog.Error().Err(err).Msg("failed to load movers")
 		return movers
 	}
 
@@ -103,7 +105,7 @@ func getMovers(deps *Dependencies) Movers {
 	for rows.Next() {
 		err = rows.StructScan(&mover)
 		if err != nil {
-			log.Warn().Err(err).Msg("error reading row")
+			sublog.Warn().Err(err).Msg("failed reading row")
 			continue
 		}
 		if mover.Volume > 1_000_000 {
@@ -112,9 +114,9 @@ func getMovers(deps *Dependencies) Movers {
 			mover.VolumeStr = fmt.Sprintf("%.2fK", float32(mover.Volume)/1_000)
 		}
 		ticker := Ticker{TickerId: mover.TickerId}
-		err := ticker.getById(deps)
+		err := ticker.getById(deps, sublog)
 		if err != nil {
-			log.Warn().Err(err).Msg("error reading row")
+			sublog.Warn().Err(err).Msg("failed reading row")
 			continue
 		}
 		switch mover.MoverType {
@@ -133,7 +135,7 @@ func getMovers(deps *Dependencies) Movers {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		log.Warn().Err(err).Msg("error reading rows")
+		sublog.Warn().Err(err).Msg("failed reading rows")
 		return movers
 	}
 
@@ -144,7 +146,7 @@ func getMovers(deps *Dependencies) Movers {
 func getLatestMoversDate(deps *Dependencies) (time.Time, error) {
 	db := deps.db
 
-	var maxMoverDate time.Time
+	maxMoverDate := time.Time{}
 	err := db.QueryRowx(`SELECT MAX(mover_date) FROM mover`).Scan(&maxMoverDate)
 	return maxMoverDate, err
 }

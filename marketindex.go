@@ -5,8 +5,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	"github.com/weirdtangent/mytime"
 )
 
@@ -63,8 +62,10 @@ type ByMarketIndexPriceTime MarketIndexIntradays
 
 // object methods -------------------------------------------------------------
 
-func (mi MarketIndex) LoadDailies(db *sqlx.DB, days int) ([]MarketIndexDaily, error) {
-	var daily MarketIndexDaily
+func (mi MarketIndex) LoadDailies(deps *Dependencies, sublog zerolog.Logger, days int) ([]MarketIndexDaily, error) {
+	db := deps.db
+
+	daily := MarketIndexDaily{}
 	dailies := make([]MarketIndexDaily, 0, days)
 
 	rows, err := db.Queryx(
@@ -81,9 +82,7 @@ func (mi MarketIndex) LoadDailies(db *sqlx.DB, days int) ([]MarketIndexDaily, er
 	for rows.Next() {
 		err = rows.StructScan(&daily)
 		if err != nil {
-			log.Warn().Err(err).
-				Str("table_name", "daily").
-				Msg("Error reading result rows")
+			sublog.Warn().Err(err).Msg("failed reading result rows")
 		} else {
 			dailies = append(dailies, daily)
 		}
@@ -117,20 +116,18 @@ func (mi MarketIndex) LoadMarketIndexIntraday(deps *Dependencies, intradate stri
 	if err != nil {
 		return marketindex_intradays, fmt.Errorf("failed to get prior business day date")
 	}
-	preDaily, err := getMarketIndexDaily(db, mi.MarketIndexId, priorBusinessDay)
+	preDaily, err := getMarketIndexDaily(deps, *sublog, mi.MarketIndexId, priorBusinessDay)
 	if err == nil {
 		marketindex_intradays = append(marketindex_intradays, MarketIndexIntraday{0, "", mi.MarketIndexId, priorBusinessDay, preDaily.ClosePrice, 0, time.Now(), time.Now()})
 	} else {
-		sublog.Info().Msg("PriorBusinessDay close price was NOT included")
+		sublog.Info().Msg("failure: PriorBusinessDay close price was NOT included")
 	}
 
 	// add these marketindex intraday prices
 	for rows.Next() {
 		err = rows.StructScan(&marketindex_intraday)
 		if err != nil {
-			log.Warn().Err(err).
-				Str("table_name", "marketindex_intraday").
-				Msg("Error reading result rows")
+			sublog.Warn().Err(err).Msg("failed reading result rows")
 		} else {
 			marketindex_intradays = append(marketindex_intradays, marketindex_intraday)
 		}
@@ -144,11 +141,11 @@ func (mi MarketIndex) LoadMarketIndexIntraday(deps *Dependencies, intradate stri
 	if err != nil {
 		return marketindex_intradays, fmt.Errorf("failed to get next business day date")
 	}
-	postDaily, err := getMarketIndexDaily(db, mi.MarketIndexId, nextBusinessDay)
+	postDaily, err := getMarketIndexDaily(deps, *sublog, mi.MarketIndexId, nextBusinessDay)
 	if err == nil {
 		marketindex_intradays = append(marketindex_intradays, MarketIndexIntraday{0, "", mi.MarketIndexId, nextBusinessDay, postDaily.OpenPrice, 0, time.Now(), time.Now()})
 	} else {
-		sublog.Info().Msg("NextBusinessDay open price was NOT included")
+		sublog.Info().Msg("failure: NextBusinessDay open price was NOT included")
 	}
 
 	return marketindex_intradays, nil
@@ -196,8 +193,10 @@ func (i MarketIndexIntradays) Count() int {
 
 // misc -----------------------------------------------------------------------
 
-func getMarketIndexDaily(db *sqlx.DB, marketindex_id uint64, daily_date string) (*MarketIndexDaily, error) {
-	var marketindexdaily MarketIndexDaily
+func getMarketIndexDaily(deps *Dependencies, sublog zerolog.Logger, marketindex_id uint64, daily_date string) (*MarketIndexDaily, error) {
+	db := deps.db
+
+	marketindexdaily := MarketIndexDaily{}
 	if len(daily_date) > 10 {
 		daily_date = daily_date[0:10]
 	}

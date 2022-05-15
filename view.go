@@ -9,7 +9,7 @@ import (
 func viewTickerDailyHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		webdata := deps.webdata
-		watcher := checkAuthState(w, r, deps)
+		watcher := checkAuthState(w, r, deps, *deps.logger)
 
 		params := mux.Vars(r)
 		symbol := params["symbol"]
@@ -41,7 +41,7 @@ func viewTickerDailyHandler(deps *Dependencies) http.HandlerFunc {
 
 		if webdata["timespan"] == nil {
 			webdata["timespan"] = 180
-    	}
+		}
 
 		renderTemplate(w, r, deps, sublog, "view-daily")
 	})
@@ -50,7 +50,7 @@ func viewTickerDailyHandler(deps *Dependencies) http.HandlerFunc {
 func viewTickerArticleHandler(deps *Dependencies) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		webdata := deps.webdata
-		watcher := checkAuthState(w, r, deps)
+		watcher := checkAuthState(w, r, deps, *deps.logger)
 
 		params := mux.Vars(r)
 		symbol := params["symbol"]

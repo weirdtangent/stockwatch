@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 type Timezone struct {
@@ -14,7 +16,7 @@ type Timezone struct {
 	Text     string
 }
 
-func getTimezones(deps *Dependencies) []Timezone {
+func getTimezones(deps *Dependencies, sublog zerolog.Logger) []Timezone {
 	var tzlist []Timezone
 
 	tzlist = append(tzlist, procTimezoneDir(deps, zoneDir, "")...)
