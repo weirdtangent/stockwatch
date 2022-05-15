@@ -38,7 +38,7 @@ $(document).ready(function() {
             loadChart(chart, symbol, timespan);
             $('#tickerChart').fadeIn('fast');
         });
-        showing = clicked;
+        showing = chart;
     });
 
 

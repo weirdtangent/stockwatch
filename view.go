@@ -39,6 +39,10 @@ func viewTickerDailyHandler(deps *Dependencies) http.HandlerFunc {
 		}
 		webdata["Recents"] = recents
 
+		if webdata["timespan"] == nil {
+			webdata["timespan"] = 180
+    	}
+
 		renderTemplate(w, r, deps, sublog, "view-daily")
 	})
 }
