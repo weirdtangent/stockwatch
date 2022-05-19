@@ -9,6 +9,7 @@ services/pqms/
 static/css/.sass-cache
 static/css/custom*.css
 static/css/custom*.map
+static/examples
 static/vendor/bootstrap/*
 static/vendor/echarts/*
 static/vendor/fontawesome/*
