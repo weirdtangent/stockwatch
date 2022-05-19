@@ -19,7 +19,7 @@
                               <span class="{{PriceBigMoveColorCSS .ChangePct}}">
                                 <span id="{{$symbol}}_change_amt">${{printf "%.2f" .ChangeAmt}}</span>
                                 (<span id="{{$symbol}}_change_pct">{{printf "%.2f" .ChangePct}}%</span>)
-                                <i class="h5 {{PriceBigMoveIndicatorCSS .ChangePct}}"></i>
+                                <i class="h5 {{PriceBigMoveIndicatorCSS .ChangePct}}" data-bs-toggle="tooltip" title="move of more than 5%"></i>
                               </span>
                               <br/>
                               {{- if $is_market_open}}

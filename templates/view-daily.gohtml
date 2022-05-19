@@ -1,7 +1,8 @@
 {{- define "view-daily" -}}
   {{- template "_header" . }}
+          {{- $symbol := .TickerQuote.Ticker.TickerSymbol}}
           <script src="/static/js/quote_refresh.js"
-            data-symbols="{{.TickerQuote.Ticker.TickerSymbol}}"
+            data-symbols="{{$symbol}}"
             data-is-market-open="{{.config.is_market_open}}"
             data-quote-refresh="20">
           </script>
@@ -19,7 +20,7 @@
                 <div class="bg-white text-light">
                   <script id="chartCall" src="/static/js/chart.js"
                     data-chart="symbolLine"
-                    data-symbol="{{.TickerQuote.Ticker.TickerSymbol}}"
+                    data-symbol="{{$symbol}}"
                     data-nonce="{{.nonce}}"
                     data-timespan="180">
                   </script>
@@ -33,8 +34,8 @@
                   <div class="d-flex">
                     <div class="px-2 flex-fill">Related News</div>
                     <div class="px-2 ">Last Checked:
-                      <span id="{{.TickerSymbol}}_last_checked_news">{{.LastCheckedSince}}</span>
-                      <i id="{{.TickerSymbol}}_updating_news_now" class="ms-2 mb-2 fad fa-sync fa-spin{{if .UpdatingNewsNow}}{{else}} hide{{end}}"></i>
+                      <span id="{{$symbol}}_last_checked_since">{{MinutesSince .TickerQuote.SymbolNews.LastChecked}}</span>
+                      <i id="{{$symbol}}_updating_news_now" class="ms-2 mb-2 fad fa-sync fa-spin{{if .TickerQuote.SymbolNews.UpdatingNow}}{{else}} hide{{end}}"></i>
                     </div>
                   </div>
                 </div>
@@ -72,16 +73,20 @@
               <div class="me-1 mb-2">
                 <div class="bg-warning text-dark ps-2 py-1">Financial Details</div>
                 <div class="list-group list-group-flush bg-dark min-box lh-1 px-2 py-1">
+                  {{- $ticker := .TickerQuote.Ticker}}
                   {{- range .TickerDetails.Attributes}}
                   {{- if .AttributeValue}}
                     <div class="list-group-item px-1">
                       <div class="d-flex">
-                        <div class="text-success">{{.AttributeName -}}
+                        <div class="text-success"{{if .Definition.Valid}} data-bs-toggle="tooltop" title="{{.Definition.String}}"{{end}}>{{.AttributeName -}}
                           {{- if .AttributeComment -}}
                           <span class="small text-warning"> {{.AttributeComment}}</span>
                           {{- end -}}
+                          {{- if .Definition.Valid -}}
+                          <i class="ps-1 text-light fa-xs fa-solid fa-book"></i>
+                          {{- end -}}
                         </div>
-                        <div class="ms-auto text-light">{{.AttributeValue}}</div>
+                        <div class="ms-auto {{AttributeColorCSS .AttributeName .AttributeValue $ticker}}">{{.AttributeValue}}</div>
                       </div>
                     </div>
                   {{- end}}

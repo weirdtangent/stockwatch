@@ -17,6 +17,10 @@ func desktopHandler(deps *Dependencies) http.HandlerFunc {
 		articles := getRecentArticles(deps, sublog)
 		webdata["Articles"] = articles
 
+		_, lastCheckedSince, updatingNewsNow := getLastDoneInfo(deps, sublog, "financial_news", "stockwatch")
+		webdata["LastCheckedSince"] = lastCheckedSince
+		webdata["UpdatingNewsNow"] = updatingNewsNow
+
 		recents := getWatcherRecents(deps, sublog, watcher)
 		tickerQuotes, err := getRecentsQuotes(deps, sublog, watcher, recents)
 		if err != nil {

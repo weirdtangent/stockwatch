@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -101,4 +102,24 @@ func Concat(strs ...string) string {
 
 func MinutesSince(t time.Time) string {
 	return fmt.Sprintf("%.0f min ago", time.Since(t).Minutes())
+}
+
+func AttributeColorCSS(attrname, attrvalue string, ticker Ticker) string {
+	color := "text-light"
+
+	switch attrname {
+	case "Price/Book (Mrq)":
+		if value, err := strconv.ParseFloat(attrvalue, 32); err == nil {
+			switch {
+			case value < 1:
+				color = "test-success"
+			case value < 3:
+				color = "text-warning"
+			case value > 1:
+				color = "text-danger"
+			}
+		}
+	}
+
+	return color
 }

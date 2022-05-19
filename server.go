@@ -166,6 +166,7 @@ func setupTemplates(deps *Dependencies) {
 	sublog := deps.logger
 
 	funcMap := template.FuncMap{
+		"AttributeColorCSS":        AttributeColorCSS,
 		"Concat":                   Concat,
 		"GradeColorCSS":            GradeColorCSS,
 		"MinutesSince":             MinutesSince,

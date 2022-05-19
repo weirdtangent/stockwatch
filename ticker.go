@@ -61,8 +61,9 @@ type Ticker struct {
 type TickerAttribute struct {
 	TickerAttributeId uint64 `db:"attribute_id"`
 	EId               string
-	TickerId          uint64    `db:"ticker_id"`
-	AttributeName     string    `db:"attribute_name"`
+	TickerId          uint64 `db:"ticker_id"`
+	AttributeName     string `db:"attribute_name"`
+	Definition        sql.NullString
 	AttributeComment  string    `db:"attribute_comment"`
 	AttributeValue    string    `db:"attribute_value"`
 	CreateDatetime    time.Time `db:"create_datetime"`
@@ -173,11 +174,12 @@ func (t *Ticker) UpdateTickerWithLiveQuote(deps *Dependencies, sublog zerolog.Lo
 	db := deps.db
 
 	t.MarketPrice = quote.QuotePrice
+	t.MarketPrevClose = quote.QuotePrevClose
 	t.MarketVolume = quote.QuoteVolume
 	t.MarketPriceDatetime = time.Unix(quote.QuoteTime, 0)
 
-	var update = "UPDATE ticker SET market_price=?, market_volume=?, market_price_datetime=? WHERE ticker_id=?"
-	_, err := db.Exec(update, t.MarketPrice, t.MarketVolume, t.MarketPriceDatetime, t.TickerId)
+	var update = "UPDATE ticker SET market_price=?, market_volume=?, market_prev_close=?, market_price_datetime=? WHERE ticker_id=?"
+	_, err := db.Exec(update, t.MarketPrice, t.MarketVolume, t.MarketPrevClose, t.MarketPriceDatetime, t.TickerId)
 	return err
 }
 
@@ -228,8 +230,11 @@ func (t *Ticker) createOrUpdate(deps *Dependencies, sublog zerolog.Logger) error
 	if t.TickerId == 0 {
 		var err error
 		t.TickerId, err = t.getIdBySymbol(deps, sublog)
-		if errors.Is(err, sql.ErrNoRows) || t.TickerId == 0 {
+		if errors.Is(err, sql.ErrNoRows) {
 			return t.create(deps, sublog)
+		}
+		if err != nil {
+			return err
 		}
 	}
 
@@ -240,7 +245,7 @@ func (t *Ticker) createOrUpdate(deps *Dependencies, sublog zerolog.Logger) error
 func (t *Ticker) createOrUpdateAttribute(deps *Dependencies, sublog zerolog.Logger, attributeName, attributeComment, attributeValue string) error {
 	db := deps.db
 
-	attribute := TickerAttribute{0, "", t.TickerId, attributeName, attributeComment, attributeValue, time.Now(), time.Now()}
+	attribute := TickerAttribute{0, "", t.TickerId, attributeName, sql.NullString{}, attributeComment, attributeValue, time.Now(), time.Now()}
 	err := attribute.getByUniqueKey(deps)
 	if err == nil {
 		var update = "UPDATE ticker_attribute SET attribute_value=? WHERE ticker_id=? AND attribute_name=? AND attribute_comment=?"
@@ -379,7 +384,7 @@ func (t Ticker) getAttributes(deps *Dependencies, sublog zerolog.Logger) ([]Tick
 	tickerAttributes := make([]TickerAttribute, 0)
 
 	rows, err := db.Queryx(
-		`SELECT * FROM ticker_attribute WHERE ticker_id=?`, t.TickerId)
+		`SELECT ticker_attribute.*,definition.definition FROM ticker_attribute LEFT JOIN definition ON (REPLACE(attribute_name,"_"," ") = term) WHERE ticker_id=?`, t.TickerId)
 	if err != nil {
 		return tickerAttributes, err
 	}
@@ -874,12 +879,14 @@ func getTickerQuote(deps *Dependencies, sublog zerolog.Logger, watcher Watcher, 
 			if err != nil {
 				sublog.Error().Err(err).Msg("failed to queue UpdateNews")
 			}
+			tickerQuote.SymbolNews.UpdatingNow = true
 		}
 	} else {
 		err = ticker.queueUpdateNews(deps)
 		if err != nil {
 			sublog.Error().Err(err).Msg("failed to queue UpdateNews")
 		}
+		tickerQuote.SymbolNews.UpdatingNow = true
 	}
 
 	// schedule to update ticker financials
@@ -1063,12 +1070,14 @@ func getRecentsQuotes(deps *Dependencies, sublog zerolog.Logger, watcher Watcher
 				if err != nil {
 					sublog.Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
 				}
+				tickerQuote.SymbolNews.UpdatingNow = true
 			}
 		} else {
 			err = ticker.queueUpdateNews(deps)
 			if err != nil {
 				sublog.Error().Err(err).Str("ticker", symbol).Uint64("exchange_id", ticker.ExchangeId).Msg("failed to queue UpdateNews")
 			}
+			tickerQuote.SymbolNews.UpdatingNow = true
 		}
 
 		// schedule to update ticker financials

@@ -3,7 +3,6 @@
           {{- if .TickerQuotes}}
           <script src="/static/js/quote_refresh.js"
             data-symbols="{{range .TickerQuotes}}{{.Ticker.TickerSymbol}},{{end}}"
-            data-symbol-count={{len .TickerQuotes}}
             data-is-market-open="{{.config.is_market_open}}"
             data-quote-refresh=20>
           </script>

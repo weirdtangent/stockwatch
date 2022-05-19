@@ -3,7 +3,6 @@ var lastScript = scripts[scripts.length-1];
 var scriptName = lastScript;
 
 var symbols = scriptName.getAttribute('data-symbols');
-var symbol_count = scriptName.getAttribute('data-symbol-count');
 var is_market_open = scriptName.getAttribute('data-is-market-open') === 'true';
 
 var quote_refresh = 20; // scriptName.getAttribute('data-quote-refresh');
@@ -14,6 +13,9 @@ function quoteRefresh() {
         return;
     }
     $('#auto_refresh_working').removeClass('hide');
+    while (symbols.charAt(symbols.length-1) == ',') {
+        symbols = symbols.substring(0, symbols.length-1);
+    }
     var response = $.ajax({
         type: 'GET',
         url: '/api/v1/quotes?symbols=' + symbols,
@@ -50,19 +52,19 @@ function quoteRefresh() {
                     });
                 }
 
-                phaseChange(response, 'last_checked_since')
-                if (response.data.updating_news_now=='true' && $('#updating_news_now').hasClass('hide')) {
-                    $('#updating_news_now').removeClass('hide');
-                } else if (response.data.updating_news_now=='false' && !$('#updating_news_now').hasClass('hide')) {
-                    $('#updating_news_now').addClass('hide');
+                phaseChangeSymbol(response, symbol, 'last_checked_since')
+                if (response.data.symbol+':updating_now' == true) {
+                    $('#'+symbol+'_updating_news_now').removeClass('hide');
+                } else if (response.data.symbol+':updating_now' == false) {
+                    $('#'+symbol+'_updating_news_now').addClass('hide');
                 }
             });
 
-            phaseChangeSymbol(response, symbol, 'last_checked_since')
-            if (response.data.symbol+':updating_news_now' == true) {
-                $('#'+symbol+'_updating_news_now').removeClass('hide');
-            } else if (response.data.symbol+':updating_news_now' == false) {
-                $('#'+symbol+'_updating_news_now').addClass('hide');
+            phaseChange(response, 'last_checked_since')
+            if (response.data.updating_news_now=='true' && $('#updating_news_now').hasClass('hide')) {
+                $('#updating_news_now').removeClass('hide');
+            } else if (response.data.updating_news_now=='false' && !$('#updating_news_now').hasClass('hide')) {
+                $('#updating_news_now').addClass('hide');
             }
 
             if (is_market_open && $('#is_market_open_color').hasClass('text-danger')) {
