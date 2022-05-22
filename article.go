@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -167,10 +168,13 @@ func cleanArticleText(text string) string {
 	}
 
 	quote_re := regexp.MustCompile(`'`)
-	text = string(quote_re.ReplaceAll([]byte(text), []byte("&apos;")))
+	text = quote_re.ReplaceAllString(text, "&apos;")
 
 	http_re := regexp.MustCompile(`http:`)
-	text = string(http_re.ReplaceAll([]byte(text), []byte("https:")))
+	text = http_re.ReplaceAllString(text, "https:")
+
+	policy := bluemonday.UGCPolicy()
+	text = policy.Sanitize(text)
 
 	return text
 }
@@ -220,12 +224,10 @@ func getRecentArticles(deps *Dependencies, sublog zerolog.Logger) []WebArticle {
 		bodySHA256[sha] = true
 		article.ArticleId = 0
 
-		quote_rx := regexp.MustCompile(`'`)
-		article.Body = quote_rx.ReplaceAllString(article.Body, "&apos;")
-
-		http_rx := regexp.MustCompile(`http:`)
-		article.Body = http_rx.ReplaceAllString(article.Body, "https:")
-		article.AuthorImageURL.String = http_rx.ReplaceAllString(article.AuthorImageURL.String, "https:")
+		article.Body = cleanArticleText(article.Body)
+		if article.AuthorImageURL.Valid {
+			article.AuthorImageURL.String = cleanArticleText(article.AuthorImageURL.String)
+		}
 
 		articles = append(articles, article)
 	}
