@@ -245,6 +245,10 @@ func (t *Ticker) createOrUpdate(deps *Dependencies, sublog zerolog.Logger) error
 func (t *Ticker) createOrUpdateAttribute(deps *Dependencies, sublog zerolog.Logger, attributeName, attributeComment, attributeValue string) error {
 	db := deps.db
 
+	if attributeName == "" || attributeValue == "" {
+		return nil
+	}
+
 	attribute := TickerAttribute{0, "", t.TickerId, attributeName, sql.NullString{}, attributeComment, attributeValue, time.Now(), time.Now()}
 	err := attribute.getByUniqueKey(deps)
 	if err == nil {
@@ -817,11 +821,9 @@ func getTickerQuote(deps *Dependencies, sublog zerolog.Logger, watcher Watcher, 
 	tickerQuote.Exchange = exchange
 
 	tickerDescription, err := getTickerDescriptionById(deps, sublog, ticker.TickerId)
-	if err != nil {
-		sublog.Error().Err(err).Msg("failed to getTickerDescriptionById")
-		return TickerQuote{}, err
+	if err == nil {
+		tickerQuote.Description = tickerDescription
 	}
-	tickerQuote.Description = tickerDescription
 
 	// if the market is open, lets get a live quote
 	if isMarketOpen() {
@@ -1029,11 +1031,9 @@ func getRecentsQuotes(deps *Dependencies, sublog zerolog.Logger, watcher Watcher
 		tickerQuote.Exchange = exchange
 
 		tickerDescription, err := getTickerDescriptionById(deps, sublog, ticker.TickerId)
-		if err != nil {
-			sublog.Error().Err(err).Msg("failed to getTickerDescriptionById")
-			return []TickerQuote{}, err
+		if err == nil {
+			tickerQuote.Description = tickerDescription
 		}
-		tickerQuote.Description = tickerDescription
 
 		if ticker.MarketPrice > 0 && ticker.MarketPrevClose > 0 {
 			tickerQuote.ChangeAmt = float32(ticker.MarketPrice - ticker.MarketPrevClose)

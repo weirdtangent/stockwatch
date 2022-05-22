@@ -99,6 +99,11 @@ func fetchTickerInfoFromYH(deps *Dependencies, sublog zerolog.Logger, symbol str
 	}
 
 	tickerDescription := TickerDescription{0, "", ticker.TickerId, summaryResponse.SummaryProfile.LongBusinessSummary, time.Now(), time.Now()}
+	if len(summaryResponse.SummaryProfile.LongBusinessSummary) > 0 {
+		tickerDescription.BusinessSummary = summaryResponse.SummaryProfile.LongBusinessSummary
+	} else if len(summaryResponse.AssetProfile.LongBusinessSummary) > 0 {
+		tickerDescription.BusinessSummary = summaryResponse.AssetProfile.LongBusinessSummary
+	}
 	err = tickerDescription.createOrUpdate(deps, sublog)
 	if err != nil {
 		sublog.Error().Err(err).Str("ticker", ticker.TickerSymbol).Msg("failed to create ticker description")
@@ -122,6 +127,15 @@ func fetchTickerInfoFromYH(deps *Dependencies, sublog zerolog.Logger, symbol str
 	ticker.createOrUpdateAttribute(deps, sublog, "forward_eps", "", summaryResponse.DefaultKeyStatistics.ForwardEPS.Fmt)
 	ticker.createOrUpdateAttribute(deps, sublog, "enterprize_to_revenue", "", summaryResponse.DefaultKeyStatistics.EnterprizeToRevenue.Fmt)
 	ticker.createOrUpdateAttribute(deps, sublog, "enterprize_to_ebita", "", summaryResponse.DefaultKeyStatistics.EnterprizeToEbita.Fmt)
+	ticker.createOrUpdateAttribute(deps, sublog, "held_percent_insiders", "", summaryResponse.DefaultKeyStatistics.HeldPercentInsiders.Fmt)
+	ticker.createOrUpdateAttribute(deps, sublog, "shares_outstanding", "", summaryResponse.DefaultKeyStatistics.SharesOutstanding.Fmt)
+	ticker.createOrUpdateAttribute(deps, sublog, "fund_inception_date", "", summaryResponse.DefaultKeyStatistics.FundInceptionDate.Fmt)
+	ticker.createOrUpdateAttribute(deps, sublog, "total_assets", "", summaryResponse.DefaultKeyStatistics.TotalAssets.Fmt)
+	ticker.createOrUpdateAttribute(deps, sublog, "fund_family", "", summaryResponse.DefaultKeyStatistics.FundFamily)
+	ticker.createOrUpdateAttribute(deps, sublog, "price_hint", "", summaryResponse.DefaultKeyStatistics.PriceHint.Fmt)
+	ticker.createOrUpdateAttribute(deps, sublog, "ytd_return", "", summaryResponse.DefaultKeyStatistics.YtdReturn.Fmt)
+	ticker.createOrUpdateAttribute(deps, sublog, "three_year_avg_return", "", summaryResponse.DefaultKeyStatistics.ThreeYearAverageReturn.Fmt)
+	ticker.createOrUpdateAttribute(deps, sublog, "five_year_avg_return", "", summaryResponse.DefaultKeyStatistics.FiveYearAverageReturn.Fmt)
 
 	return ticker, nil
 }

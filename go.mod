@@ -15,7 +15,7 @@ require (
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/kr/text v0.2.0 // indirect
 	github.com/markbates/goth v1.72.0
-	github.com/microcosm-cc/bluemonday v1.0.18 // indirect
+	github.com/microcosm-cc/bluemonday v1.0.18
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
 	github.com/prometheus/client_golang v1.12.2
@@ -24,7 +24,7 @@ require (
 	github.com/savaki/dynastore v0.0.0-20171109173440-28d8558bb429
 	github.com/weirdtangent/myaws v1.0.6
 	github.com/weirdtangent/mytime v0.1.1
-	github.com/weirdtangent/yhfinance v1.2.8
+	github.com/weirdtangent/yhfinance v1.3.2
 	golang.org/x/net v0.0.0-20220520000938-2e3eb7b945c2 // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/text v0.3.7

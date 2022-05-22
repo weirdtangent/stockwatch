@@ -81,10 +81,11 @@
                   </div>
                 </div><!-- row -->
 
+                {{- if eq .TickerQuote.Ticker.TickerType "EQUITY"}}
                 <div class="row d-none d-xxl-flex">
                   <div class="flex-grow-1 mx-2 pt-2" id="toggle">
                     <div class="btn-group" role="group" aria-label="Chart or table to show">
-                      <span>Financial Charts</span>
+                      <span>Company Financial Charts</span>
 
                       <input type="radio" class="btn-check" name="pickChart" id="financialQuarterlyBar">
                       <label class="btn-sm btn-outline-success ms-2" for="financialQuarterlyBar"><i class="fas fa-chart-column"></i> QtlyBar</label>
@@ -106,5 +107,6 @@
                     </div><!-- btn-group -->
                   </div><!-- toggle -->
                 </div><!-- row -->
+                {{- end}}
               </header>
 {{- end}}

@@ -346,6 +346,10 @@ github.com/weirdtangent/mytime v0.1.1 h1:QOHeGWqDx+3795L2iTlIO0maAi35Jg9rkp50Cqt
 github.com/weirdtangent/mytime v0.1.1/go.mod h1:UqDaTF+gcU1lEZ3GQZaS0sGjmYuYiGwcVVoaNXd9V0w=
 github.com/weirdtangent/yhfinance v1.2.8 h1:wlhMs+telZ953FOsRwtv+PTQhRBnv+41RETztou4jcc=
 github.com/weirdtangent/yhfinance v1.2.8/go.mod h1:92u1VH7B1hTJ3NBWi0DvmPhnyNllUyDzjAEaGXyrlDc=
+github.com/weirdtangent/yhfinance v1.3.1 h1:uSH2UxQoMmlmPet8GlBSU/RhqibaZE54a+yugPziN6E=
+github.com/weirdtangent/yhfinance v1.3.1/go.mod h1:92u1VH7B1hTJ3NBWi0DvmPhnyNllUyDzjAEaGXyrlDc=
+github.com/weirdtangent/yhfinance v1.3.2 h1:ebg4t0HidWsqbW3W/zcsxqWhZXNxUBRKI2UZMD1g970=
+github.com/weirdtangent/yhfinance v1.3.2/go.mod h1:92u1VH7B1hTJ3NBWi0DvmPhnyNllUyDzjAEaGXyrlDc=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
