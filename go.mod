@@ -7,7 +7,7 @@ toolchain go1.23.3
 require (
 	github.com/aws/aws-sdk-go v1.55.5
 	github.com/dgryski/go-skip32 v0.0.0-20151116144831-0e0460d2a555
-	github.com/go-echarts/go-echarts/v2 v2.4.5
+	github.com/go-echarts/go-echarts/v2 v2.4.6
 	github.com/gomarkdown/markdown v0.0.0-20241205020045-f7e15b2f3e62
 	github.com/gomodule/redigo v1.9.2
 	github.com/gorilla/mux v1.8.1
@@ -27,7 +27,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute/metadata v0.5.2 // indirect
+	cloud.google.com/go/compute/metadata v0.6.0 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
