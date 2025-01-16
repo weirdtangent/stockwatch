@@ -5,7 +5,7 @@ go 1.23
 toolchain go1.23.3
 
 require (
-	github.com/aws/aws-sdk-go v1.55.5
+	github.com/aws/aws-sdk-go v1.55.6
 	github.com/dgryski/go-skip32 v0.0.0-20151116144831-0e0460d2a555
 	github.com/go-echarts/go-echarts/v2 v2.4.6
 	github.com/gomarkdown/markdown v0.0.0-20241205020045-f7e15b2f3e62
@@ -46,5 +46,5 @@ require (
 	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/oauth2 v0.25.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
-	google.golang.org/protobuf v1.36.2 // indirect
+	google.golang.org/protobuf v1.36.3 // indirect
 )
