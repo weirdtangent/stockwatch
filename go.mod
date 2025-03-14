@@ -7,8 +7,8 @@ toolchain go1.23.3
 require (
 	github.com/aws/aws-sdk-go v1.55.6
 	github.com/dgryski/go-skip32 v0.0.0-20151116144831-0e0460d2a555
-	github.com/go-echarts/go-echarts/v2 v2.5.1
-	github.com/gomarkdown/markdown v0.0.0-20250207164621-7a1f277a159e
+	github.com/go-echarts/go-echarts/v2 v2.5.2
+	github.com/gomarkdown/markdown v0.0.0-20250311123330-531bef5e742b
 	github.com/gomodule/redigo v1.9.2
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/securecookie v1.1.2
@@ -41,7 +41,7 @@ require (
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.62.0 // indirect
+	github.com/prometheus/common v0.63.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	golang.org/x/net v0.37.0 // indirect
 	golang.org/x/oauth2 v0.28.0 // indirect
