@@ -18,7 +18,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
 	github.com/prometheus/client_golang v1.21.1
-	github.com/rs/zerolog v1.33.0
+	github.com/rs/zerolog v1.34.0
 	github.com/savaki/dynastore v0.0.0-20171109173440-28d8558bb429
 	github.com/weirdtangent/myaws v1.0.7
 	github.com/weirdtangent/mytime v0.1.1
@@ -46,5 +46,5 @@ require (
 	golang.org/x/net v0.37.0 // indirect
 	golang.org/x/oauth2 v0.28.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 )
