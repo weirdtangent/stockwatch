@@ -14,16 +14,16 @@ require (
 	github.com/gorilla/securecookie v1.1.2
 	github.com/gorilla/sessions v1.4.0
 	github.com/jmoiron/sqlx v1.4.0
-	github.com/markbates/goth v1.80.0
+	github.com/markbates/goth v1.81.0
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
-	github.com/prometheus/client_golang v1.21.1
+	github.com/prometheus/client_golang v1.22.0
 	github.com/rs/zerolog v1.34.0
 	github.com/savaki/dynastore v0.0.0-20171109173440-28d8558bb429
 	github.com/weirdtangent/myaws v1.0.7
 	github.com/weirdtangent/mytime v0.1.1
 	github.com/weirdtangent/yhfinance v1.3.2
-	golang.org/x/text v0.23.0
+	golang.org/x/text v0.24.0
 )
 
 require (
@@ -32,10 +32,10 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/go-sql-driver/mysql v1.9.1 // indirect
+	github.com/go-chi/chi/v5 v5.2.1 // indirect
+	github.com/go-sql-driver/mysql v1.9.2 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
@@ -43,8 +43,8 @@ require (
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.63.0 // indirect
 	github.com/prometheus/procfs v0.16.0 // indirect
-	golang.org/x/net v0.38.0 // indirect
-	golang.org/x/oauth2 v0.28.0 // indirect
-	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/net v0.39.0 // indirect
+	golang.org/x/oauth2 v0.29.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 )
