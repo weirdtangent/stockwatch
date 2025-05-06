@@ -23,7 +23,7 @@ require (
 	github.com/weirdtangent/myaws v1.0.7
 	github.com/weirdtangent/mytime v0.1.1
 	github.com/weirdtangent/yhfinance v1.3.2
-	golang.org/x/text v0.24.0
+	golang.org/x/text v0.25.0
 )
 
 require (
@@ -43,8 +43,8 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.63.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
-	golang.org/x/net v0.39.0 // indirect
-	golang.org/x/oauth2 v0.29.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/net v0.40.0 // indirect
+	golang.org/x/oauth2 v0.30.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 )
