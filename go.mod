@@ -7,7 +7,7 @@ toolchain go1.23.3
 require (
 	github.com/aws/aws-sdk-go v1.55.7
 	github.com/dgryski/go-skip32 v0.0.0-20151116144831-0e0460d2a555
-	github.com/go-echarts/go-echarts/v2 v2.6.0
+	github.com/go-echarts/go-echarts/v2 v2.6.1
 	github.com/gomarkdown/markdown v0.0.0-20250311123330-531bef5e742b
 	github.com/gomodule/redigo v1.9.2
 	github.com/gorilla/mux v1.8.1
@@ -23,7 +23,7 @@ require (
 	github.com/weirdtangent/myaws v1.0.7
 	github.com/weirdtangent/mytime v0.1.1
 	github.com/weirdtangent/yhfinance v1.3.2
-	golang.org/x/text v0.26.0
+	golang.org/x/text v0.27.0
 )
 
 require (
@@ -42,9 +42,9 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.65.0 // indirect
-	github.com/prometheus/procfs v0.16.1 // indirect
-	golang.org/x/net v0.41.0 // indirect
+	github.com/prometheus/procfs v0.17.0 // indirect
+	golang.org/x/net v0.42.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 )
