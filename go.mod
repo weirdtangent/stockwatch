@@ -8,13 +8,13 @@ require (
 	github.com/aws/aws-sdk-go v1.55.8
 	github.com/dgryski/go-skip32 v0.0.0-20151116144831-0e0460d2a555
 	github.com/go-echarts/go-echarts/v2 v2.6.1
-	github.com/gomarkdown/markdown v0.0.0-20250731182530-5d03d1963446
+	github.com/gomarkdown/markdown v0.0.0-20250810172220-2e2c11897d1a
 	github.com/gomodule/redigo v1.9.2
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/securecookie v1.1.2
 	github.com/gorilla/sessions v1.4.0
 	github.com/jmoiron/sqlx v1.4.0
-	github.com/markbates/goth v1.81.0
+	github.com/markbates/goth v1.82.0
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
 	github.com/prometheus/client_golang v1.23.0
@@ -46,5 +46,5 @@ require (
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
-	google.golang.org/protobuf v1.36.7 // indirect
+	google.golang.org/protobuf v1.36.8 // indirect
 )
